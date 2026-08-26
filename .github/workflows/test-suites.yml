@@ -51,12 +51,12 @@ jobs:
       - name: Install Backend Dependencies
         run: |
           cd backend
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Install Frontend Dependencies
         run: |
           cd frontend
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Start Backend Server
         run: |
@@ -89,7 +89,7 @@ jobs:
       - name: Install Selenium Test Dependencies
         run: |
           cd selenium-tests
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Run Selenium Tests & Generate Excel Report
         run: |
@@ -134,7 +134,7 @@ jobs:
       - name: Install Backend Dependencies
         run: |
           cd backend
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Start Backend Server
         run: |
@@ -159,7 +159,7 @@ jobs:
       - name: Install Load Test Dependencies
         run: |
           cd load-tests
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Run Load Tests & Generate Excel Report
         run: |
@@ -199,7 +199,7 @@ jobs:
       - name: Install Appium Test Dependencies
         run: |
           cd appium-tests
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Run Appium Tests & Generate Excel Report
         run: |
@@ -236,7 +236,7 @@ jobs:
       - name: Install Vulnerability Test Dependencies
         run: |
           cd vulnerability-tests
-          npm ci || npm install
+          npm ci --legacy-peer-deps || npm install --legacy-peer-deps
 
       - name: Run Security Vulnerability Audit & Generate Excel Report
         run: |
