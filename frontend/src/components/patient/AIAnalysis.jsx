@@ -82,7 +82,7 @@ const AIAnalysis = () => {
                   <Loader2 className="animate-spin text-blue-500" size={32}/>
                   <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Syncing Registry...</p>
                 </div>
-              ) : reports.length > 0 ? (
+              ) : reports?.length > 0 ? (
                 <div className="grid grid-cols-1 gap-4">
                   {reports.map((r) => (
                     <div key={r._id} onClick={() => handleAnalyze(r)} className={`p-6 rounded-[32px] border transition-all cursor-pointer group flex items-center justify-between ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:bg-white/10' : 'bg-slate-50 border-slate-100 hover:bg-white hover:shadow-lg'}`}>
@@ -112,9 +112,11 @@ const AIAnalysis = () => {
                         <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Diagnostic Mode: Synthesis Complete</p>
                      </div>
                      <div className={`px-5 py-2 rounded-2xl text-[10px] font-black uppercase tracking-widest border ${
-                        result?.riskLevel === 'High' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
+                        result?.riskLevel === 'High' ? 'bg-red-500/10 text-red-500 border-red-500/20' :
+                        result?.riskLevel === 'Medium' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                        'bg-emerald-500/10 text-emerald-500 border-emerald-500/20'
                      }`}>
-                        {result?.riskLevel} Risk
+                        {result?.riskLevel || 'Low'} Risk
                      </div>
                   </div>
 

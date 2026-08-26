@@ -5,6 +5,13 @@ import useStore from '../../store/useStore';
 const Footer = () => {
   const { theme } = useStore();
 
+  const isNative = typeof window !== 'undefined' && (
+    window.location.origin.startsWith('capacitor:') ||
+    (window.location.origin.includes('://localhost') && !window.location.port)
+  );
+
+  if (isNative) return null;
+
   return (
     <footer className={`mt-auto border-t py-16 px-6 sm:px-10 transition-all duration-700 relative overflow-hidden ${
       theme === 'dark'

@@ -7,7 +7,7 @@ import {
   User as UserIcon, Calendar, Activity, FileText, Pill,
   ChevronLeft, ChevronRight, ArrowRight, Star, AlertTriangle, Building, MapPin, Globe,
   History as HistoryIcon, CreditCard, Brain, Download, ExternalLink, Loader2, CheckCircle,
-  MessageSquare, UserPlus, TrendingUp, ShieldCheck as ShieldCheckIcon, Edit2, Save, X, Stethoscope, Phone, Mail, Award, Trash2
+  MessageSquare, UserPlus, TrendingUp, ShieldCheck as ShieldCheckIcon, Edit2, Save, X, Stethoscope, Phone as PhoneIcon, Mail, Award, Trash2
 } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { toast } from 'react-hot-toast';
@@ -42,6 +42,12 @@ const DoctorDetails = () => {
 
   useEffect(() => {
     fetchDoctor();
+    // Handle deep-link to specific tab (e.g. from Verification Node)
+    const params = new URLSearchParams(window.location.search);
+    const tab = params.get('tab');
+    if (tab === 'verification') {
+      setActiveTab('verification');
+    }
   }, [doctorId]);
 
   const fetchDoctor = async () => {
@@ -64,7 +70,15 @@ const DoctorDetails = () => {
       }
     } catch (err) {
       toast.error("Doctor archive offline");
-      navigate('/admin/doctors');
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'verification') {
+        navigate('/admin/approvals');
+      } else if (window.location.pathname.includes('/admin/doctor/')) {
+        // Stay in the same section context if possible, or fallback
+        navigate('/admin/doctors');
+      } else {
+        navigate('/admin-dashboard');
+      }
     } finally {
       setLoading(false);
     }
@@ -125,12 +139,15 @@ const DoctorDetails = () => {
   const { user, profile, prescriptions = [], appointments = [], opChart = [] } = data;
   const docs = profile.uploadedDocuments || [];
 
-  const tabs = [
-    { id: 'summary', label: 'Clinical Summary', icon: Brain },
-    { id: 'verification', label: 'Verification Node', icon: ShieldCheckIcon },
-    { id: 'queue', label: 'Recent OP Queue', icon: HistoryIcon },
-    { id: 'prescriptions', label: 'Issued Archive', icon: Pill },
-  ];
+  const isVerificationContext = new URLSearchParams(window.location.search).get('tab') === 'verification';
+
+  const tabs = isVerificationContext
+    ? [{ id: 'verification', label: 'Verification Node', icon: ShieldCheckIcon }]
+    : [
+        { id: 'summary', label: 'Clinical Summary', icon: Brain },
+        { id: 'queue', label: 'Recent OP Queue', icon: HistoryIcon },
+        { id: 'prescriptions', label: 'Issued Archive', icon: Pill },
+      ];
 
   return (
     <div className={`flex min-h-screen transition-colors duration-500 text-left neural-grid pb-24 ${
@@ -208,7 +225,7 @@ const DoctorDetails = () => {
                     </div>
                     <div className="flex items-center gap-5 group">
                        <div className={`w-11 h-11 rounded-2xl flex items-center justify-center transition-all ${theme === 'dark' ? 'bg-white/5 text-zinc-500 group-hover:text-blue-400' : 'bg-slate-50 text-slate-400 group-hover:text-blue-600'}`}>
-                          <Phone size={18} />
+                          <PhoneIcon size={18} />
                        </div>
                        <div className="flex-1">
                           <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-0.5">Primary Link</p>

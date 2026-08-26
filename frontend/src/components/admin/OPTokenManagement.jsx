@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
+import Footer from '../common/Footer';
 import { Ticket, Search as SearchIcon, Filter, Clock, User, Stethoscope, AlertTriangle, CheckCircle, X, Loader2, Plus, ArrowRight, ChevronLeft } from 'lucide-react';
 import useStore from '../../store/useStore';
 import { toast } from 'react-hot-toast';

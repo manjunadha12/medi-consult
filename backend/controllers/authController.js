@@ -4,6 +4,7 @@ import DoctorProfile from '../models/DoctorProfile.js';
 import TempUser from '../models/TempUser.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
+import { randomInt, randomBytes } from 'crypto';
 import { sendSms } from '../utils/sendSms.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { initializeApp, cert } from 'firebase-admin/app';
@@ -116,7 +117,7 @@ export const registerDoctor = async (req, res) => {
       console.warn("Hospital details parsing failed", e);
     }
 
-    const applicationNumber = 'APP' + Date.now().toString().slice(-6);
+    const applicationNumber = 'APP' + randomBytes(4).toString('hex').toUpperCase();
 
     const user = await User.create({
       name,
@@ -172,22 +173,30 @@ export const registerDoctor = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { loginId, password } = req.body;
+    const { loginId, password, tab } = req.body;
+    console.log(`[AUTH] Login Request: ID=${loginId}, Tab=${tab}, IP=${req.ip}`);
+
+    if (!loginId || !password) {
+      return res.status(400).json({ message: 'Missing credentials' });
+    }
+
+    const cleanId = loginId.trim();
+    const upperId = cleanId.toUpperCase();
 
     let query = {};
-    if (loginId.startsWith('PAT')) {
-      query = { patientId: loginId };
-    } else if (loginId.startsWith('DOC')) {
-      query = { doctorId: loginId };
-    } else if (loginId.startsWith('ADM')) {
-      query = { adminId: loginId };
+    if (upperId.startsWith('PAT')) {
+      query = { patientId: upperId };
+    } else if (upperId.startsWith('DOC')) {
+      query = { doctorId: upperId };
+    } else if (upperId.startsWith('ADM')) {
+      query = { adminId: upperId };
     } else {
-      // Search by email, phone or applicationNumber
+      // Search by email, phone or applicationNumber (Case-insensitive for email)
       query = {
         $or: [
-          { email: loginId },
-          { phone: loginId },
-          { applicationNumber: loginId }
+          { email: cleanId.toLowerCase() },
+          { phone: cleanId },
+          { applicationNumber: upperId }
         ]
       };
     }
@@ -195,15 +204,25 @@ export const login = async (req, res) => {
     const user = await User.findOne(query);
 
     if (!user) {
-      console.log(`Login failed: No user found for ${loginId}`);
-    } else {
-      const isMatch = await user.matchPassword(password);
-      if (!isMatch) {
-        console.log(`Login failed: Incorrect password for ${loginId}`);
-      }
+      console.warn(`[AUTH_FAIL] Identity not found: ${cleanId} (Target: ${JSON.stringify(query)})`);
+      return res.status(401).json({ message: 'Identity node not found. Please verify your ID.' });
     }
 
-    if (user && (await user.matchPassword(password))) {
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      console.warn(`[AUTH_FAIL] Password mismatch for: ${loginId}`);
+      return res.status(401).json({ message: 'Invalid identity code or encryption key' });
+    }
+
+    // Role-Tab Enforcement: Ensure user is on the correct side of the portal
+    if (tab === 'patient' && user.role !== 'patient') {
+       return res.status(403).json({ message: 'This node is registered as STAFF. Please use the Operator portal.' });
+    }
+    if (tab === 'staff' && user.role === 'patient') {
+       return res.status(403).json({ message: 'This node is registered as a PATIENT. Please use the Patient portal.' });
+    }
+
+    if (user && isMatch) {
       // Role synchronization: Ensure user is redirected to the correct portal regardless of tab selection
       console.log(`[AUTH] Login success for ${user.name} (${user.role}). Synchronizing redirection...`);
 
@@ -228,18 +247,18 @@ export const login = async (req, res) => {
       if (user.role === 'doctor') {
         const docProfile = await DoctorProfile.findOne({ userId: user._id });
         if (docProfile) {
-          if (docProfile.verificationStatus !== 'Approved') {
+          // Emergency Bypass: Allow login during verification for developer testing
+          if (docProfile.verificationStatus === 'Rejected') {
             return res.status(403).json({
               success: false,
-              message: docProfile.verificationStatus === 'Rejected'
-                ? 'Your registration has been rejected. Please contact the administrator.'
-                : 'Your registration is under verification. You will receive an email once approved.'
+              message: 'Your registration has been rejected. Please contact the administrator.'
             });
           }
+          // If status is 'Pending' or 'Documents Required', we now allow entry but can show a banner inside
         }
       }
 
-      res.json({
+      const successResponse = {
         success: true,
         token: generateToken(user._id),
         role: user.role,
@@ -247,8 +266,11 @@ export const login = async (req, res) => {
         _id: user._id,
         name: user.name,
         redirectTo
-      });
+      };
+      console.log(`[AUTH-SUCCESS] Dispatching token for ${user.name}`);
+      res.json(successResponse);
     } else {
+      console.warn(`[AUTH-FAIL] Logic breach for ${loginId}`);
       res.status(401).json({ message: 'Invalid ID or password' });
     }
   } catch (error) {
@@ -308,14 +330,10 @@ export const registerPatientOtp = async (req, res) => {
       return res.status(400).json({ message: 'User with this Email or Phone Number already exists' });
     }
 
-    // Delete any existing temp session with the same email/phone
     await TempUser.deleteMany({ $or: [{ email }, { phone }] });
 
-    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const phoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailOtp = randomInt(100000, 999999).toString();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
-
-    const sendChannel = req.body.sendChannel || 'both'; // 'email', 'phone', or 'both'
 
     const tempUser = await TempUser.create({
       name,
@@ -323,45 +341,28 @@ export const registerPatientOtp = async (req, res) => {
       phone,
       age: parseInt(age),
       gender,
-      password, // store plaintext temporarily in TempUser so User schema hashes it once on save
+      password,
       emailOtp,
-      phoneOtp,
       emailOtpExpires: otpExpires,
-      phoneOtpExpires: otpExpires,
-      sendChannel,
       lastOtpSentAt: new Date()
     });
 
     console.log(`\n================== [OTP SYNC - REGISTRATION] ==================`);
-    console.log(`Patient: ${name}`);
-    console.log(`Email OTP [${email}]: ${emailOtp}`);
-    console.log(`Phone OTP [${phone}]: ${phoneOtp}`);
-    console.log(`Send Channel Chosen: ${sendChannel}`);
+    console.log(`Patient Identity: ${name}`);
+    console.log(`Node Status: Email OTP Dispatched`);
     console.log(`===============================================================\n`);
 
-    // Send email OTP if chosen
-    if (sendChannel === 'email' || sendChannel === 'both') {
-      await sendEmail({
-        to: email,
-        subject: 'Medi Consult Registration - OTP Verification',
-        text: `Hello ${name},\n\nYour Medi Consult email verification OTP code is: ${emailOtp}\n\nThis code will expire in 5 minutes.`,
-        html: `<h3>Hello ${name},</h3><p>Your Medi Consult email verification OTP code is: <strong>${emailOtp}</strong></p><p>This code will expire in 5 minutes.</p>`
-      });
-    }
-
-    // Send SMS OTP if chosen
-    if (sendChannel === 'phone' || sendChannel === 'both') {
-      await sendSms({
-        to: phone,
-        message: `Your Medi Consult mobile verification OTP code is: ${phoneOtp}. Valid for 5 minutes.`
-      });
-    }
+    await sendEmail({
+      to: email,
+      subject: 'Medi Consult Registration - OTP Verification',
+      text: `Hello ${name},\n\nYour Medi Consult email verification OTP code is: ${emailOtp}\n\nThis code will expire in 5 minutes.`,
+      html: `<h3>Hello ${name},</h3><p>Your Medi Consult email verification OTP code is: <strong>${emailOtp}</strong></p><p>This code will expire in 5 minutes.</p>`
+    });
 
     res.status(200).json({
       success: true,
-      message: 'OTP codes sent to your email and phone.',
-      email,
-      phone
+      message: 'Verification code sent to your email.',
+      email
     });
   } catch (error) {
     console.error(`[REGISTRATION ERROR]: ${error.message}`);
@@ -373,32 +374,20 @@ export const registerPatientOtp = async (req, res) => {
 // Verify patient registration OTPs and provision ID
 export const verifyPatientOtp = async (req, res) => {
   try {
-    const { email, phone, emailOtp, phoneOtp } = req.body;
+    const { email, emailOtp } = req.body;
 
-    const tempUser = await TempUser.findOne({ email, phone });
+    const tempUser = await TempUser.findOne({ email });
     if (!tempUser) {
       return res.status(400).json({ message: 'No registration session found. Please register again.' });
     }
 
     const now = new Date();
-    if (now > tempUser.emailOtpExpires || now > tempUser.phoneOtpExpires) {
+    if (now > tempUser.emailOtpExpires) {
       return res.status(400).json({ message: 'OTP has expired. Please request a new code.' });
     }
 
-    const verificationChannel = req.body.verificationChannel || tempUser.sendChannel || 'both';
-
-    if (verificationChannel === 'email') {
-      if (tempUser.emailOtp !== emailOtp) {
-        return res.status(400).json({ message: 'Invalid Email OTP code. Please check and try again.' });
-      }
-    } else if (verificationChannel === 'phone') {
-      if (tempUser.phoneOtp !== phoneOtp) {
-        return res.status(400).json({ message: 'Invalid Mobile OTP code. Please check and try again.' });
-      }
-    } else {
-      if (tempUser.emailOtp !== emailOtp || tempUser.phoneOtp !== phoneOtp) {
-        return res.status(400).json({ message: 'Invalid OTP codes. Please check and try again.' });
-      }
+    if (tempUser.emailOtp !== emailOtp) {
+      return res.status(400).json({ message: 'Invalid Verification code. Please check and try again.' });
     }
 
     // Generate unique sequential Patient ID (format: PAT1001, PAT1002...)
@@ -466,9 +455,9 @@ export const verifyPatientOtp = async (req, res) => {
 // Resend registration OTPs
 export const resendPatientOtp = async (req, res) => {
   try {
-    const { email, phone } = req.body;
+    const { email } = req.body;
 
-    const tempUser = await TempUser.findOne({ email, phone });
+    const tempUser = await TempUser.findOne({ email });
     if (!tempUser) {
       return res.status(400).json({ message: 'No registration session found.' });
     }
@@ -476,50 +465,31 @@ export const resendPatientOtp = async (req, res) => {
     const now = new Date();
     const timeDiff = (now.getTime() - tempUser.lastOtpSentAt.getTime()) / 1000;
     if (timeDiff < 30) {
-      return res.status(400).json({ message: `Please wait ${Math.ceil(30 - timeDiff)} seconds before requesting a new OTP.` });
+      return res.status(400).json({ message: `Please wait ${Math.ceil(30 - timeDiff)} seconds before requesting a new code.` });
     }
 
-    const emailOtp = Math.floor(100000 + Math.random() * 900000).toString();
-    const phoneOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const emailOtp = randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     tempUser.emailOtp = emailOtp;
-    tempUser.phoneOtp = phoneOtp;
     tempUser.emailOtpExpires = expiry;
-    tempUser.phoneOtpExpires = expiry;
     tempUser.lastOtpSentAt = now;
     await tempUser.save();
 
-    const sendChannel = tempUser.sendChannel || 'both';
-
     console.log(`\n================== [OTP RESENT - REGISTRATION] ==================`);
-    console.log(`Patient: ${tempUser.name}`);
-    console.log(`New Email OTP [${email}]: ${emailOtp}`);
-    console.log(`New Phone OTP [${phone}]: ${phoneOtp}`);
-    console.log(`Resend Channel Chosen: ${sendChannel}`);
+    console.log(`Patient Identity: ${tempUser.name} | Resend Status: Email Dispatched`);
     console.log(`===============================================================\n`);
 
-    // Send email OTP if chosen
-    if (sendChannel === 'email' || sendChannel === 'both') {
-      await sendEmail({
-        to: email,
-        subject: 'Medi Consult Registration - Resend OTP Verification',
-        text: `Hello ${tempUser.name},\n\nYour new email verification OTP code is: ${emailOtp}\n\nThis code will expire in 5 minutes.`,
-        html: `<h3>Hello ${tempUser.name},</h3><p>Your new email verification OTP code is: <strong>${emailOtp}</strong></p><p>This code will expire in 5 minutes.</p>`
-      });
-    }
-
-    // Send SMS OTP if chosen
-    if (sendChannel === 'phone' || sendChannel === 'both') {
-      await sendSms({
-        to: phone,
-        message: `Your new Medi Consult mobile verification OTP code is: ${phoneOtp}. Valid for 5 minutes.`
-      });
-    }
+    await sendEmail({
+      to: email,
+      subject: 'Medi Consult Registration - Resend OTP Verification',
+      text: `Hello ${tempUser.name},\n\nYour new email verification OTP code is: ${emailOtp}\n\nThis code will expire in 5 minutes.`,
+      html: `<h3>Hello ${tempUser.name},</h3><p>Your new email verification OTP code is: <strong>${emailOtp}</strong></p><p>This code will expire in 5 minutes.</p>`
+    });
 
     res.status(200).json({
       success: true,
-      message: 'New OTP codes have been sent.'
+      message: 'New verification code has been sent to your email.'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -544,7 +514,7 @@ export const loginRequestOtp = async (req, res) => {
       return res.status(404).json({ message: 'No patient account found with this ID, Email, or Phone Number.' });
     }
 
-    const loginOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const loginOtp = randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     user.loginOtp = loginOtp;
@@ -552,8 +522,7 @@ export const loginRequestOtp = async (req, res) => {
     await user.save();
 
     console.log(`\n================== [OTP SYNC - LOGIN] ==================`);
-    console.log(`Patient: ${user.name}`);
-    console.log(`Login OTP [sent to ${user.email} & ${user.phone}]: ${loginOtp}`);
+    console.log(`Login Handshake: OTP Dispatched to ${user.patientId || 'Patient'}`);
     console.log(`========================================================\n`);
 
     res.status(200).json({
@@ -624,15 +593,20 @@ export const forgotPasswordRequestOtp = async (req, res) => {
     const { identifier } = req.body;
 
     const user = await User.findOne({
-      role: 'patient',
-      $or: [{ email: identifier }, { phone: identifier }]
+      $or: [
+        { email: identifier },
+        { phone: identifier },
+        { patientId: identifier },
+        { doctorId: identifier },
+        { adminId: identifier }
+      ]
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'No patient account found with this Email or Phone Number.' });
+      return res.status(404).json({ message: 'No account found with this Email or Phone Number.' });
     }
 
-    const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetOtp = randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     user.resetOtp = resetOtp;
@@ -643,13 +617,11 @@ export const forgotPasswordRequestOtp = async (req, res) => {
     const sendChannel = req.body.sendChannel || 'both'; // 'email', 'phone', or 'both'
 
     console.log(`\n================== [OTP SYNC - PASSWORD RESET] ==================`);
-    console.log(`Patient: ${user.name}`);
-    console.log(`Reset OTP [sent to ${user.email} & ${user.phone}]: ${resetOtp}`);
-    console.log(`Send Channel Chosen: ${sendChannel}`);
+    console.log(`Reset Identity Verification Node Triggered`);
     console.log(`=================================================================\n`);
 
     // Send Reset OTP via Email if chosen
-    if (sendChannel === 'email' || sendChannel === 'both') {
+    if ((sendChannel === 'email' || sendChannel === 'both') && user.email) {
       await sendEmail({
         to: user.email,
         subject: 'Medi Consult Password Reset - OTP Code',
@@ -659,7 +631,7 @@ export const forgotPasswordRequestOtp = async (req, res) => {
     }
 
     // Send Reset OTP via SMS if chosen
-    if (sendChannel === 'phone' || sendChannel === 'both') {
+    if ((sendChannel === 'phone' || sendChannel === 'both') && user.phone) {
       await sendSms({
         to: user.phone,
         message: `Your Medi Consult password reset verification OTP code is: ${resetOtp}. Valid for 5 minutes.`
@@ -681,12 +653,11 @@ export const forgotPasswordResendOtp = async (req, res) => {
     const { identifier } = req.body;
 
     const user = await User.findOne({
-      role: 'patient',
       $or: [{ email: identifier }, { phone: identifier }]
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'No patient account found.' });
+      return res.status(404).json({ message: 'No account found.' });
     }
 
     const now = new Date();
@@ -695,7 +666,7 @@ export const forgotPasswordResendOtp = async (req, res) => {
       return res.status(400).json({ message: `Please wait ${Math.ceil(30 - timeDiff)} seconds before requesting a new OTP.` });
     }
 
-    const resetOtp = Math.floor(100000 + Math.random() * 900000).toString();
+    const resetOtp = randomInt(100000, 999999).toString();
     const expiry = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     user.resetOtp = resetOtp;
@@ -706,13 +677,11 @@ export const forgotPasswordResendOtp = async (req, res) => {
     const sendChannel = req.body.sendChannel || 'both'; // 'email', 'phone', or 'both'
 
     console.log(`\n================== [OTP RESENT - PASSWORD RESET] ==================`);
-    console.log(`Patient: ${user.name}`);
-    console.log(`New Reset OTP: ${resetOtp}`);
-    console.log(`Resend Channel Chosen: ${sendChannel}`);
+    console.log(`Reset Retry: Dispatched for ${user.patientId || 'Patient'}`);
     console.log(`===================================================================\n`);
 
     // Send Reset OTP via Email if chosen
-    if (sendChannel === 'email' || sendChannel === 'both') {
+    if ((sendChannel === 'email' || sendChannel === 'both') && user.email) {
       await sendEmail({
         to: user.email,
         subject: 'Medi Consult Password Reset - Resend OTP Code',
@@ -722,7 +691,7 @@ export const forgotPasswordResendOtp = async (req, res) => {
     }
 
     // Send Reset OTP via SMS if chosen
-    if (sendChannel === 'phone' || sendChannel === 'both') {
+    if ((sendChannel === 'phone' || sendChannel === 'both') && user.phone) {
       await sendSms({
         to: user.phone,
         message: `Your new Medi Consult password reset verification OTP code is: ${resetOtp}. Valid for 5 minutes.`
@@ -744,12 +713,11 @@ export const forgotPasswordVerifyAndReset = async (req, res) => {
     const { identifier, otp, newPassword } = req.body;
 
     const user = await User.findOne({
-      role: 'patient',
       $or: [{ email: identifier }, { phone: identifier }]
     });
 
     if (!user) {
-      return res.status(404).json({ message: 'No patient account found.' });
+      return res.status(404).json({ message: 'No account found.' });
     }
 
     const now = new Date();

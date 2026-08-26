@@ -6,7 +6,8 @@ import {
   startConversation,
   markAsRead,
   deleteConversation,
-  dismissPotentialChat
+  dismissPotentialChat,
+  logCall
 } from '../controllers/chatController.js';
 import { protect } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
@@ -22,5 +23,6 @@ router.post('/start', startConversation);
 router.put('/read/:conversationId', markAsRead);
 router.delete('/conversation/:conversationId', deleteConversation);
 router.put('/dismiss-potential/:appointmentId', dismissPotentialChat);
+router.post('/log-call', logCall);
 
 export default router;

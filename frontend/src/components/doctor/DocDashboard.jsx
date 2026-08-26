@@ -6,8 +6,8 @@ import api from '../../utils/api';
 import { safeNum } from '../../utils/mathUtils';
 import {
   Search as SearchIcon, Users, Calendar, Clock, Activity, AlertCircle,
-  Video, FileText, CheckCircle, TrendingUp,
-  Stethoscope, Mail, ChevronRight, User as UserIcon, MoreVertical, Brain, History as HistoryIcon
+  Video, FileText, CheckCircle, TrendingUp, Phone as PhoneIcon,
+  Stethoscope, Mail, ChevronRight, User as UserIcon, MoreVertical, Brain, History as HistoryIcon, Settings
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
@@ -59,7 +59,7 @@ const DocDashboard = () => {
     <div className="flex min-h-screen bg-[#050505] text-zinc-300 text-left neural-grid pb-24">
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <Navbar />
-        
+
         <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 custom-scrollbar relative z-10">
           <div className="max-w-[1600px] mx-auto flex flex-col min-h-full">
             <div className="flex-1 space-y-6 lg:space-y-10">
@@ -80,6 +80,7 @@ const DocDashboard = () => {
                     <div className="flex flex-wrap justify-center md:justify-start gap-4 sm:gap-6 mt-4 sm:mt-6">
                       <span className="flex items-center gap-2 text-[8px] sm:text-[10px] font-black uppercase text-zinc-400 tracking-widest"><Mail size={12} className="text-blue-400" /> {user?.email}</span>
                       <span className="flex items-center gap-2 text-[8px] sm:text-[10px] font-black uppercase text-zinc-400 tracking-widest"><Activity size={12} className="text-blue-400" /> {profile?.department || 'OPD'}</span>
+                      <button onClick={() => navigate('/doctor/network')} className="flex items-center gap-2 text-[8px] sm:text-[10px] font-black uppercase text-blue-400 hover:text-blue-300 tracking-widest transition-colors"><Users size={12}/> Network Node</button>
                     </div>
                   </div>
                   <div className="text-center md:text-right space-y-2 sm:space-y-3 shrink-0 relative z-10 w-full md:w-auto">
@@ -191,12 +192,31 @@ const DocDashboard = () => {
                               </span>
                             </td>
                             <td className="px-6 sm:px-8 py-6 sm:py-8 text-right">
-                              <button
-                                 onClick={() => navigate(`/doctor/video-consult?roomCode=${p.roomCode}&appointmentId=${p._id}&patientId=${p.patientId}&patientName=${p.patientName}`)}
-                                 className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2 ml-auto active:scale-95"
-                              >
-                                <Video size={12} strokeWidth={3} className="sm:w-3.5 sm:h-3.5" /> JOIN
-                              </button>
+                              <div className="flex justify-end gap-2">
+                                <button
+                                   onClick={() => navigate(`/doctor/voice-consult?roomCode=${p._id}&appointmentId=${p._id}&peerId=${p.patientId}&peerName=${p.patientName}`)}
+                                   className="bg-blue-600/10 border border-blue-500/20 text-blue-500 p-2 sm:p-3 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all active:scale-95 shadow-lg"
+                                   title="Voice Link"
+                                >
+                                  <PhoneIcon size={12} strokeWidth={3} className="sm:w-3.5 sm:h-3.5" />
+                                </button>
+
+                                {p.isMeetingReady ? (
+                                  <button
+                                     onClick={() => navigate(`/doctor/video-consult?roomCode=${p._id}&appointmentId=${p._id}&peerId=${p.patientId}&peerName=${p.patientName}`)}
+                                     className="bg-blue-600 text-white px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all flex items-center gap-2 active:scale-95"
+                                  >
+                                    <Video size={12} strokeWidth={3} className="sm:w-3.5 sm:h-3.5" /> JOIN
+                                  </button>
+                                ) : (
+                                  <button
+                                     onClick={() => navigate('/doctor/queue')}
+                                     className="bg-white/5 border border-white/10 text-zinc-500 px-4 sm:px-6 py-2 sm:py-3 rounded-xl sm:rounded-2xl text-[8px] sm:text-[10px] font-black uppercase tracking-widest hover:text-white transition-all flex items-center gap-2"
+                                  >
+                                    <Settings size={12} /> SETUP
+                                  </button>
+                                )}
+                              </div>
                             </td>
                           </tr>
                         )) : (

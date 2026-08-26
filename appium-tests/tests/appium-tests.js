@@ -36,6 +36,8 @@ async function runMobileAppiumTests() {
     hostname: APPIUM_HOST,
     port: APPIUM_PORT,
     path: '/',
+    connectionRetryTimeout: 3000,
+    connectionRetryCount: 1,
     capabilities: {
       platformName: 'Android',
       'appium:automationName': 'UiAutomator2',

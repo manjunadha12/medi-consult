@@ -24,5 +24,5 @@ const patientProfileSchema = new mongoose.Schema({
   painLevel: { type: Number, min: 0, max: 10 }
 });
 
-const PatientProfile = mongoose.model('PatientProfile', patientProfileSchema);
+const PatientProfile = mongoose.models.PatientProfile || mongoose.model('PatientProfile', patientProfileSchema);
 export default PatientProfile;

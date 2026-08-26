@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from './Navbar';
 import {
   Sun, Moon, Shield, Bell, Monitor, Lock, Trash2,
-  LogOut, Lightbulb, ChevronRight, Database, Users, Info,
+  LogOut, Lightbulb, ChevronRight, Database, Users, Info, CheckCircle,
   Settings, Download, RefreshCw, Smartphone as MobileIcon, Sparkles, Activity, Scale, ArrowUp
 } from 'lucide-react';
 import useStore from '../../store/useStore';
@@ -164,6 +164,42 @@ const GeneralSettings = () => {
                           <option>Compact</option>
                         </select>
                       </div>
+                    </div>
+                  </SectionCard>
+                </div>
+
+                <div className="lg:col-span-1">
+                  <SectionCard title="Interface Hub" subtitle="Toggle system visibility" icon={MobileIcon}>
+                    <div className="space-y-3">
+                       {[
+                         { id: 'dock', label: 'Neural Dock', desc: 'Floating bottom action dock' },
+                         { id: 'sidebar', label: 'Clinical Sidebar', desc: 'Modern side navigation node' }
+                       ].map((opt) => (
+                         <button
+                           key={opt.id}
+                           onClick={() => {
+                             store.setNavigationType(opt.id);
+                             toast.success(`Interface Node: ${opt.label}`);
+                           }}
+                           className={`w-full p-4 rounded-[24px] border text-left transition-all ${
+                             store.navigationType === opt.id
+                               ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                               : 'bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 hover:bg-slate-50 dark:hover:bg-white/10'
+                           }`}
+                         >
+                           <div className="flex justify-between items-center">
+                             <div>
+                               <p className="text-[11px] font-black uppercase tracking-tight">{opt.label}</p>
+                               <p className={`text-[9px] font-bold mt-0.5 uppercase tracking-tighter ${store.navigationType === opt.id ? 'text-blue-100' : 'text-slate-500'}`}>{opt.desc}</p>
+                             </div>
+                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${
+                               store.navigationType === opt.id ? 'border-white bg-white/20' : 'border-slate-200 dark:border-zinc-700'
+                             }`}>
+                                {store.navigationType === opt.id && <div className="w-2.5 h-2.5 bg-white rounded-full shadow-sm"></div>}
+                             </div>
+                           </div>
+                         </button>
+                       ))}
                     </div>
                   </SectionCard>
                 </div>

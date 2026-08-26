@@ -337,10 +337,10 @@ const HealthProgress = () => {
                         <div className="space-y-2">
                            <div className="flex justify-between text-xs font-bold">
                                <span className="text-slate-500 uppercase">Weekly Score</span>
-                               <span className="text-blue-500">{aiResult?.weeklyTrend?.healthScore || 85}/100</span>
+                               <span className="text-blue-500">{aiResult?.weeklyTrend?.healthScore || '--'}/100</span>
                            </div>
                            <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500" style={{width: `${aiResult?.weeklyTrend?.healthScore || 85}%`}}></div>
+                              <div className="h-full bg-blue-500" style={{width: `${aiResult?.weeklyTrend?.healthScore || 0}%`}}></div>
                            </div>
                            <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{aiResult?.weeklyTrend?.weeklyStatus || 'Active'}</p>
                         </div>

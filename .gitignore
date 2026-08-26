@@ -37,6 +37,10 @@ out/
 *.log
 *.sqlite
 
-# Firebase Service Account Credentials
+# Firebase Service Account Credentials & Keys
 serviceAccountKey.json
+*.pem
+
+# IDE
+.vscode/
 

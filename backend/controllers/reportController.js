@@ -57,6 +57,14 @@ export const deleteReport = async (req, res) => {
       return res.status(404).json({ message: 'Report not found' });
     }
 
+    // [SEC] IDOR check: only the uploader or an admin may delete this report
+    if (
+      report.uploadedBy.toString() !== req.user._id.toString() &&
+      req.user.role !== 'admin'
+    ) {
+      return res.status(403).json({ message: 'Access denied: you can only delete your own reports' });
+    }
+
     const __dirname = path.resolve();
     const filePath = path.join(__dirname, report.fileUrl);
     if (fs.existsSync(filePath)) {
@@ -69,3 +77,14 @@ export const deleteReport = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const getReportById = async (req, res) => {
+  try {
+    const report = await Report.findById(req.params.id);
+    if (!report) return res.status(404).json({ message: "Report not found" });
+    res.json(report);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+

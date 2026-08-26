@@ -1,6 +1,5 @@
 import React from 'react';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import useStore from '../../store/useStore';
 import { CreditCard, Download, ExternalLink, Receipt, Loader2, IndianRupee, X, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 import api from '../../utils/api';
@@ -157,7 +156,6 @@ const Bills = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
 
         {/* Payment Modal */}
         {payingBill && (

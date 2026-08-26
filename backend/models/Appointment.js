@@ -16,14 +16,20 @@ const appointmentSchema = new mongoose.Schema({
 
   // Payment Fields
   paymentMethod: { type: String, enum: ['UPI', 'Card', 'Wallet', 'PayPal', 'Razorpay'], default: 'Razorpay' },
-  paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed'], default: 'Pending' },
+  paymentStatus: { type: String, enum: ['Pending', 'Paid', 'Failed', 'Verifying', 'Timeout'], default: 'Pending' },
   fee: { type: Number, default: 0 },
+  transactionId: { type: String }, // For manual UPI UTR verification
+  paymentScreenshot: { type: String }, // URL or path to the uploaded screenshot
   razorpayOrderId: { type: String },
   razorpayPaymentId: { type: String },
   razorpaySignature: { type: String },
 
   // Video Call Fields
   roomCode: { type: String },
+  meetingId: { type: String },
+  meetingPassword: { type: String },
+  scheduledVideoTime: { type: String },
+  isMeetingReady: { type: Boolean, default: false },
   participants: [String], // Array of userId/patientId
 
   // Opinion & Results
@@ -44,5 +50,5 @@ const appointmentSchema = new mongoose.Schema({
   endedAt: { type: Date }
 });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema);
+const Appointment = mongoose.models.Appointment || mongoose.model('Appointment', appointmentSchema);
 export default Appointment;

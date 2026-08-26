@@ -3,19 +3,21 @@ import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
 import {
   FileUp, Search as SearchIcon, Brain, AlertCircle, CheckCircle,
-  ChevronRight, ArrowRight, Loader2, Download, X, FileText, ExternalLink, RefreshCw, BarChart3, Info
+  ChevronRight, ArrowRight, Loader2, Download, X, FileText, ExternalLink, RefreshCw, BarChart3, Info, Send
 } from 'lucide-react';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, ReferenceLine
 } from 'recharts';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
+import useStore from '../../store/useStore';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
-const AIReportReview = () => {
+const AIReportReview = ({ patientId: propPatientId, onComplete, onShare, hideNavbar = false }) => {
+  const { theme } = useStore();
   const [file, setFile] = useState(null);
-  const [patientId, setPatientId] = useState('');
+  const [patientId, setPatientId] = useState(propPatientId || '');
   const [patientReports, setPatientReports] = useState([]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(false);
@@ -30,7 +32,7 @@ const AIReportReview = () => {
     setFetching(true);
     try {
       const { data } = await api.get(`/doctor/patient/${patientId}`);
-      setPatientReports(data.reports || []);
+      setPatientReports(data?.reports || []);
       toast.success("Archive Synced");
     } catch (err) {
       setPatientReports([]);
@@ -47,16 +49,40 @@ const AIReportReview = () => {
         const jsonData = JSON.parse(jsonMatch[1] || jsonMatch[0]);
         // If we have metabolic status, let's chart it
         if (jsonData.metabolic_status) {
-           return [
-             { name: 'HbA1c', value: jsonData.metabolic_status.hba1c, normal: 5.7 },
-             { name: 'Glucose', value: jsonData.metabolic_status.glucose_fasting, normal: 99 }
-           ];
+           const data = [];
+           const hba1c = parseFloat(jsonData.metabolic_status.hba1c);
+           const glucose = parseFloat(jsonData.metabolic_status.glucose_fasting);
+
+           if (!isNaN(hba1c)) data.push({ name: 'HbA1c', value: hba1c, normal: 5.7 });
+           if (!isNaN(glucose)) data.push({ name: 'Glucose', value: glucose, normal: 99 });
+
+           return data.length > 0 ? data : null;
         }
       }
     } catch (e) {
       console.warn("Could not parse JSON for chart", e);
     }
     return null;
+  };
+
+  const formatJsonToText = (obj, level = 0) => {
+    if (typeof obj !== 'object' || obj === null) return String(obj);
+
+    return Object.entries(obj).map(([key, value]) => {
+      const formattedKey = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      if (Array.isArray(value)) {
+        return `#### ${formattedKey}\n${value.map(item => `* ${item}`).join('\n')}`;
+      }
+
+      if (typeof value === 'object' && value !== null) {
+        return `#### ${formattedKey}\n${formatJsonToText(value, level + 1)}`;
+      }
+
+      if (value === "not_provided" || !value) return "";
+
+      return `**${formattedKey}**: ${value}  \n`;
+    }).join('\n');
   };
 
   const handleAnalyze = async (existingReport = null) => {
@@ -82,7 +108,21 @@ const AIReportReview = () => {
         resultText = res.data.content;
       }
 
-      setAnalysis(resultText);
+      // Pre-process: If result is raw JSON, convert to human-friendly Markdown
+      let displayContent = resultText;
+      try {
+        const jsonStart = resultText.indexOf('{');
+        const jsonEnd = resultText.lastIndexOf('}') + 1;
+        if (jsonStart !== -1 && jsonEnd > jsonStart) {
+          const rawJson = resultText.substring(jsonStart, jsonEnd);
+          const parsed = JSON.parse(rawJson);
+          displayContent = formatJsonToText(parsed);
+        }
+      } catch (e) {
+        console.warn("Synthesis wasn't pure JSON, rendering as markdown directly.");
+      }
+
+      setAnalysis(displayContent);
       const parsedChart = extractJsonData(resultText);
       setChartData(parsedChart);
 
@@ -97,18 +137,20 @@ const AIReportReview = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#050505] text-zinc-300 text-left neural-grid pb-24">
+    <div className={`flex ${hideNavbar ? 'h-full' : 'min-h-screen'} ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-800'} text-left neural-grid ${hideNavbar ? 'pb-0' : 'pb-24'}`}>
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <Navbar />
-        <main className="p-8 space-y-10 text-left relative z-10">
-          <header className="flex justify-between items-end">
+        {!hideNavbar && <Navbar />}
+        <main className={`flex-1 overflow-y-auto custom-scrollbar ${hideNavbar ? 'p-0' : 'p-8'} space-y-10 text-left relative z-10`}>
+          <header className={`flex justify-between items-end ${hideNavbar ? 'mb-4' : 'mb-8'}`}>
             <div>
-              <h1 className="text-3xl font-black text-white uppercase tracking-tight">AI Report Review</h1>
+              <h1 className={`${hideNavbar ? 'text-xl' : 'text-3xl'} font-black text-white uppercase tracking-tight`}>AI Report Review</h1>
               <p className="text-zinc-500 font-bold text-[10px] uppercase tracking-[0.3em] mt-1">Neural Diagnostic Interface</p>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 items-center">
                <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-               <div className="w-2 h-2 bg-blue-300 rounded-full"></div>
+               {hideNavbar && (
+                 <button onClick={onComplete} className="p-2 bg-white/5 border border-white/10 rounded-xl text-zinc-400 hover:text-white transition-all"><X size={20}/></button>
+               )}
             </div>
           </header>
 
@@ -140,12 +182,23 @@ const AIReportReview = () => {
                       <div key={i} className="group p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between hover:border-blue-500/30 transition-all">
                         <div className="flex items-center gap-3">
                           <FileText size={16} className="text-zinc-500 group-hover:text-blue-400 transition-colors" />
-                          <p className="text-[10px] font-black text-zinc-300 uppercase truncate max-w-[150px]">{r.fileName}</p>
+                          <p className="text-[10px] font-black text-zinc-300 uppercase truncate max-w-[120px]">{r.fileName}</p>
                         </div>
-                        <button
-                          onClick={() => { setSelectedReport(r); handleAnalyze(r); }}
-                          className="text-[9px] font-black text-blue-400 uppercase tracking-widest hover:underline"
-                        >Initialize Scan</button>
+                        <div className="flex gap-2">
+                           {onShare && (
+                              <button
+                                onClick={() => onShare(r)}
+                                className="p-2 bg-white/5 border border-white/10 rounded-lg text-emerald-500 hover:bg-emerald-500 hover:text-white transition-all shadow-sm"
+                                title="Share to Chat"
+                              >
+                                 <Send size={12} />
+                              </button>
+                           )}
+                           <button
+                             onClick={() => { setSelectedReport(r); handleAnalyze(r); }}
+                             className="text-[9px] font-black text-blue-400 uppercase tracking-widest hover:underline"
+                           >Initialize Scan</button>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -233,7 +286,17 @@ const AIReportReview = () => {
                       <h3 className="text-2xl font-black text-white flex items-center gap-4 uppercase tracking-tight">
                         <Brain className="text-blue-400" size={32} /> Clinical Neural Synthesis
                       </h3>
-                      <button className="p-4 bg-zinc-900 border border-white/10 text-zinc-400 rounded-2xl hover:text-blue-400 transition-all hover:bg-zinc-800"><Download size={24} /></button>
+                      <div className="flex gap-3">
+                         {onShare && (
+                            <button
+                              onClick={() => onShare({ isAnalysis: true, content: analysis, fileName: selectedReport?.fileName })}
+                              className="px-6 py-4 bg-emerald-600 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest flex items-center gap-2 hover:bg-emerald-500 transition-all shadow-xl shadow-emerald-900/20"
+                            >
+                               <Send size={16} /> Share Synthesis
+                            </button>
+                         )}
+                         <button className="p-4 bg-zinc-900 border border-white/10 text-zinc-400 rounded-2xl hover:text-blue-400 transition-all hover:bg-zinc-800"><Download size={24} /></button>
+                      </div>
                     </div>
 
                     <div className="prose prose-sm max-w-none relative z-10 markdown-report text-zinc-300">

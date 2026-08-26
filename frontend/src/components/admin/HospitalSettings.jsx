@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
-import { Home, Phone, Mail, Clock, Save, Camera, Globe, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
+import { Home, Mail, Clock, Save, Camera, Globe, ShieldCheck as ShieldCheckIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
 import api from '../../utils/api';
 import {
-  User as UserIcon, Mail, Phone, MapPin, Activity,
+  User as UserIcon, Mail, Phone as PhoneIcon, MapPin, Activity,
   Stethoscope, Shield, Edit2, Camera, Star, Save, X, Loader2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
@@ -19,6 +19,7 @@ const DocProfile = () => {
   const [saving, setSaving] = useState(false);
 
   const [formData, setFormData] = useState({
+    name: '',
     specialization: '',
     hospitalName: '',
     department: '',
@@ -35,6 +36,7 @@ const DocProfile = () => {
       const res = await api.get('/doctor/profile');
       setProfile(res.data);
       setFormData({
+        name: user?.name || '',
         specialization: res.data.specialization || '',
         hospitalName: res.data.hospitalName || '',
         department: res.data.department || '',
@@ -62,9 +64,9 @@ const DocProfile = () => {
       await api.put('/doctor/profile', formData);
       toast.success("Profile Node Synchronized");
 
-      // Update store user if phone changed
-      if (formData.phone !== user.phone) {
-        store.setUser({ ...user, phone: formData.phone });
+      // Update store user if name or phone changed
+      if (formData.name !== user.name || formData.phone !== user.phone) {
+        store.setUser({ ...user, name: formData.name, phone: formData.phone });
       }
 
       setIsEditing(false);
@@ -139,7 +141,16 @@ const DocProfile = () => {
                         </button>
                       </div>
                     </div>
-                    <h2 className="text-2xl font-black text-white uppercase tracking-tight">{user?.name}</h2>
+                    {isEditing ? (
+                      <input
+                        className="w-full bg-zinc-900 border border-white/10 rounded-xl p-2 text-center text-lg font-black text-white outline-none focus:border-blue-500/50 uppercase"
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        placeholder="Clinical Name"
+                      />
+                    ) : (
+                      <h2 className="text-2xl font-black text-white uppercase tracking-tight">{user?.name}</h2>
+                    )}
                     <p className="text-blue-400 font-bold text-sm tracking-widest uppercase mt-1">{profile?.specialization || 'Consultant'}</p>
                     <div className="mt-6 flex justify-center gap-4">
                        <div className="bg-amber-500/10 border border-amber-500/20 px-4 py-2 rounded-2xl flex items-center gap-1.5 text-amber-400 font-black text-xs">
@@ -163,7 +174,7 @@ const DocProfile = () => {
                         </div>
                       </div>
                       <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-zinc-400 shrink-0"><Phone size={20} /></div>
+                        <div className="w-12 h-12 bg-white/5 border border-white/10 rounded-2xl flex items-center justify-center text-zinc-400 shrink-0"><PhoneIcon size={20} /></div>
                         <div className="text-left overflow-hidden flex-1">
                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest mb-0.5">Emergency Line</p>
                            {isEditing ? (

@@ -5,6 +5,7 @@ import { Loader2 } from 'lucide-react';
 
 // Common Components
 import Navbar from './components/common/Navbar';
+import Sidebar from './components/common/Sidebar';
 import NeuralDock from './components/common/NeuralDock';
 
 // Auth Components
@@ -26,13 +27,17 @@ import BookOP from './components/patient/BookOP';
 import MedicineReminder from './components/patient/MedicineReminder';
 import MedicineSearch from './components/patient/MedicineSearch';
 import HealthProgress from './components/patient/HealthProgress';
+import GiveReview from './components/patient/GiveReview';
 import Bills from './components/patient/Bills';
 import EmergencyQR from './components/patient/EmergencyQR';
 import AIChat from './components/patient/AIChat';
 import PatientVideoConsult from './components/patient/VideoConsultation';
+import PatientVoiceConsult from './components/common/VoiceConsultation';
 import PatientPrescriptions from './components/patient/Prescriptions';
 import PatientHistory from './components/patient/PatientHistory';
 import PatientDiagnosisHub from './components/patient/PatientDiagnosisHub';
+import ConsultationDetails from './components/common/ConsultationDetails';
+import GlobalCallListener from './components/common/GlobalCallListener';
 import GeneralSettings from './components/common/GeneralSettings';
 import ChatSystem from './components/common/ChatSystem';
 
@@ -42,6 +47,7 @@ import PatientQueue from './components/doctor/PatientQueue';
 import SearchPatient from './components/doctor/SearchPatient';
 import PatientDetails from './components/doctor/PatientDetails';
 import DoctorVideoConsult from './components/doctor/VideoConsultation';
+import DoctorVoiceConsult from './components/common/VoiceConsultation';
 import AIReportReview from './components/doctor/AIReportReview';
 import ReportComparison from './components/doctor/ReportComparison';
 import WritePrescription from './components/doctor/WritePrescription';
@@ -54,6 +60,7 @@ import DocSettings from './components/doctor/DocSettings';
 import DoctorHistory from './components/doctor/DoctorHistory';
 import DoctorDiagnosisHub from './components/doctor/DoctorDiagnosisHub';
 import DoctorAIChat from './components/doctor/AIChat';
+import DoctorNetwork from './components/doctor/DoctorNetwork';
 
 // Admin Components
 import AdminDashboard from './components/admin/AdminDashboard';
@@ -77,6 +84,8 @@ import DataExport from './components/admin/DataExport';
 import BackupRestore from './components/admin/BackupRestore';
 import SystemSettings from './components/admin/SystemSettings';
 import HospitalSettings from './components/admin/HospitalSettings';
+import AdminProfile from './components/admin/AdminProfile';
+import ProfileGovernance from './components/admin/ProfileGovernance';
 
 const ProtectedRoute = ({ children, role }) => {
   const { user } = useStore();
@@ -90,7 +99,7 @@ const ProtectedRoute = ({ children, role }) => {
     if (user.role === 'patient' && !location.pathname.startsWith('/patient')) return <Navigate to="/patient/dashboard" replace />;
 
     if (location.pathname === '/admin-dashboard' || location.pathname === '/doc-dashboard' || location.pathname.startsWith('/patient')) {
-       return children;
+      return children;
     }
 
     return <Navigate to="/" replace />;
@@ -99,19 +108,30 @@ const ProtectedRoute = ({ children, role }) => {
 };
 
 const LayoutWrapper = ({ children }) => {
-  const { user, theme } = useStore();
+  const { user, theme, showNeuralDock, showSidebar: sidebarPref, sidebarExpanded } = useStore();
   const location = useLocation();
-  const showDock = user && 
-                   (user.role === 'patient' || user.role === 'doctor' || user.role === 'admin') &&
-                   !location.pathname.startsWith('/register') && 
-                   location.pathname !== '/' &&
-                   !location.pathname.includes('video-consult') &&
-                   !location.pathname.includes('chat');
+
+  const isPublicPage = location.pathname === '/' ||
+    location.pathname.startsWith('/register') ||
+    location.pathname === '/forgot-password';
+
+  const showSidebar = sidebarPref && user && !isPublicPage;
+
+  const showDock = showNeuralDock &&
+    user &&
+    (user.role === 'patient' || user.role === 'doctor' || user.role === 'admin') &&
+    !isPublicPage &&
+    !location.pathname.toLowerCase().includes('consult') &&
+    !location.pathname.toLowerCase().includes('chat');
 
   return (
-    <div className={theme === 'dark' ? 'dark' : 'light'}>
-      {children}
-      {showDock && <NeuralDock />}
+    <div className={`${theme === 'dark' ? 'dark' : 'light'} min-h-screen flex`}>
+      {showSidebar && <Sidebar />}
+      <div className="flex-1 flex flex-col min-w-0 transition-all duration-500">
+        <GlobalCallListener />
+        {children}
+        {showDock && <NeuralDock />}
+      </div>
     </div>
   );
 };
@@ -163,11 +183,14 @@ function App() {
           <Route path="/patient/medicine" element={<ProtectedRoute role="patient"><MedicineReminder /></ProtectedRoute>} />
           <Route path="/patient/medicine-search" element={<ProtectedRoute role="patient"><MedicineSearch /></ProtectedRoute>} />
           <Route path="/patient/health" element={<ProtectedRoute role="patient"><HealthProgress /></ProtectedRoute>} />
+          <Route path="/patient/review" element={<ProtectedRoute role="patient"><GiveReview /></ProtectedRoute>} />
           <Route path="/patient/bills" element={<ProtectedRoute role="patient"><Bills /></ProtectedRoute>} />
           <Route path="/patient/emergency-qr" element={<ProtectedRoute role="patient"><EmergencyQR /></ProtectedRoute>} />
           <Route path="/patient/ai-chat" element={<ProtectedRoute role="patient"><AIChat /></ProtectedRoute>} />
           <Route path="/patient/chat" element={<ProtectedRoute role="patient"><ChatSystem /></ProtectedRoute>} />
+          <Route path="/patient/consultation-details" element={<ProtectedRoute role="patient"><ConsultationDetails /></ProtectedRoute>} />
           <Route path="/patient/video-consult" element={<ProtectedRoute role="patient"><PatientVideoConsult /></ProtectedRoute>} />
+          <Route path="/patient/voice-consult" element={<ProtectedRoute role="patient"><PatientVoiceConsult /></ProtectedRoute>} />
           <Route path="/patient/prescriptions" element={<ProtectedRoute role="patient"><PatientPrescriptions /></ProtectedRoute>} />
           <Route path="/patient/history" element={<ProtectedRoute role="patient"><PatientHistory /></ProtectedRoute>} />
           <Route path="/patient/diagnoses" element={<ProtectedRoute role="patient"><PatientDiagnosisHub /></ProtectedRoute>} />
@@ -178,7 +201,9 @@ function App() {
           <Route path="/doctor/queue" element={<ProtectedRoute role="doctor"><PatientQueue /></ProtectedRoute>} />
           <Route path="/doctor/search" element={<ProtectedRoute role="doctor"><SearchPatient /></ProtectedRoute>} />
           <Route path="/doctor/patient/:patientId" element={<ProtectedRoute role="doctor"><PatientDetails /></ProtectedRoute>} />
+          <Route path="/doctor/consultation-details" element={<ProtectedRoute role="doctor"><ConsultationDetails /></ProtectedRoute>} />
           <Route path="/doctor/video-consult" element={<ProtectedRoute role="doctor"><DoctorVideoConsult /></ProtectedRoute>} />
+          <Route path="/doctor/voice-consult" element={<ProtectedRoute role="doctor"><DoctorVoiceConsult /></ProtectedRoute>} />
           <Route path="/doctor/ai-report" element={<ProtectedRoute role="doctor"><AIReportReview /></ProtectedRoute>} />
           <Route path="/doctor/comparison" element={<ProtectedRoute role="doctor"><ReportComparison /></ProtectedRoute>} />
           <Route path="/doctor/prescription" element={<ProtectedRoute role="doctor"><WritePrescription /></ProtectedRoute>} />
@@ -192,6 +217,7 @@ function App() {
           <Route path="/doctor/diagnoses" element={<ProtectedRoute role="doctor"><DoctorDiagnosisHub /></ProtectedRoute>} />
           <Route path="/doctor/ai-chat" element={<ProtectedRoute role="doctor"><DoctorAIChat /></ProtectedRoute>} />
           <Route path="/doctor/chat" element={<ProtectedRoute role="doctor"><ChatSystem /></ProtectedRoute>} />
+          <Route path="/doctor/network" element={<ProtectedRoute role="doctor"><DoctorNetwork /></ProtectedRoute>} />
 
           {/* Admin Routes */}
           <Route path="/admin-dashboard" element={<ProtectedRoute role="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -215,6 +241,10 @@ function App() {
           <Route path="/admin/export" element={<ProtectedRoute role="admin"><DataExport /></ProtectedRoute>} />
           <Route path="/admin/hospital-settings" element={<ProtectedRoute role="admin"><HospitalSettings /></ProtectedRoute>} />
           <Route path="/admin/system-settings" element={<ProtectedRoute role="admin"><SystemSettings /></ProtectedRoute>} />
+          <Route path="/admin/profile-governance" element={<ProtectedRoute role="admin"><ProfileGovernance /></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute role="admin"><AdminProfile /></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute role="admin"><AdminProfile /></ProtectedRoute>} />
+          <Route path="/admin/backup" element={<ProtectedRoute role="admin"><BackupRestore /></ProtectedRoute>} />
           <Route path="/admin/backup" element={<ProtectedRoute role="admin"><BackupRestore /></ProtectedRoute>} />
 
           <Route path="*" element={<Navigate to="/" replace />} />

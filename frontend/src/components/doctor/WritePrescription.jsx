@@ -16,10 +16,10 @@ const DRUG_INTERACTIONS = [
   { drugA: "Paracetamol", drugB: "Ibuprofen", severity: "Low", message: "NOTE: Avoid double dosing analgesics for prolonged periods to prevent liver and kidney stress." }
 ];
 
-const WritePrescription = () => {
+const WritePrescription = ({ patientId: propPatientId, onComplete, hideNavbar = false }) => {
   const { theme } = useStore();
   const [searchParams] = useSearchParams();
-  const [patientId, setPatientId] = useState(searchParams.get('patientId') || '');
+  const [patientId, setPatientId] = useState(propPatientId || searchParams.get('patientId') || '');
   const [patientName, setPatientName] = useState('');
   const [patientAllergies, setPatientAllergies] = useState([]);
   const [diagnosis, setDiagnosis] = useState('');
@@ -91,14 +91,10 @@ const WritePrescription = () => {
     setFetchingPatient(true);
     try {
       const res = await api.get(`/doctor/patient/${patientId}`);
-      setPatientName(res.data.user.name);
+      setPatientName(res.data?.user?.name || 'Unknown Patient');
       
-      // Mock patient allergies based on patient profile or name for clinical safety demonstration
-      if (res.data.user.name.toLowerCase().includes('manjunadha') || patientId === 'PAT1001') {
-        setPatientAllergies(['Penicillin', 'Sulfa Drugs']);
-      } else {
-        setPatientAllergies(res.data.user.allergies || ['Penicillin']); // default mock allergy
-      }
+      // Clinical safety check: Load registered allergies or default
+      setPatientAllergies(res.data?.profile?.allergies || res.data?.user?.allergies || []);
     } catch (err) {
       setPatientName('');
       setPatientAllergies([]);
@@ -236,7 +232,7 @@ const WritePrescription = () => {
       dosageForm: sug.dosageForm || 'Tablet',
       manufacturer: sug.manufacturer || '',
       commonUses: sug.commonUses || '',
-      dosage: sug.strength ? `1 ${sug.dosageForm.toLowerCase()}` : updated[index].dosage
+      dosage: sug.strength && sug.dosageForm ? `1 ${sug.dosageForm.toLowerCase()}` : updated[index].dosage
     };
     setMedicines(updated);
     setActiveSearchIndex(null);
@@ -392,16 +388,16 @@ const WritePrescription = () => {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#050505] text-zinc-300 neural-grid pb-24 text-left relative overflow-x-hidden">
+    <div className={`flex ${hideNavbar ? 'h-full' : 'min-h-screen'} ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-800'} neural-grid ${hideNavbar ? 'pb-0' : 'pb-24'} text-left relative overflow-x-hidden`}>
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <Navbar />
+        {!hideNavbar && <Navbar />}
 
-        <main className="flex-1 overflow-y-auto p-4 md:p-8 space-y-10 custom-scrollbar relative z-10 print:p-0 print:m-0 print:bg-white print:text-black">
+        <main className={`flex-1 overflow-y-auto ${hideNavbar ? 'p-0' : 'p-4 md:p-8'} space-y-10 custom-scrollbar relative z-10 print:p-0 print:m-0 print:bg-white print:text-black`}>
           
           {/* Header Panel */}
-          <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 pb-8 print:hidden">
+          <header className={`mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6 border-b border-white/5 ${hideNavbar ? 'pb-4' : 'pb-8'} print:hidden`}>
             <div>
-              <h1 className="text-3xl font-black text-white uppercase tracking-tight">Smart Rx Console</h1>
+              <h1 className={`${hideNavbar ? 'text-xl' : 'text-3xl'} font-black text-white uppercase tracking-tight`}>Smart Rx Console</h1>
               <p className="text-blue-500 uppercase text-[10px] font-black tracking-widest mt-1">Pharmacology node synthesis & safety engine</p>
             </div>
             
@@ -422,6 +418,9 @@ const WritePrescription = () => {
               >
                 <Save size={12} /> Save Template
               </button>
+              {hideNavbar && (
+                 <button onClick={onComplete} className="p-2.5 bg-white/5 border border-white/10 rounded-xl text-zinc-400 hover:text-white transition-all"><X size={20}/></button>
+              )}
             </div>
           </header>
 
@@ -442,9 +441,9 @@ const WritePrescription = () => {
               <div className="grid grid-cols-2 gap-8 mb-8 text-xs">
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
                   <h3 className="font-extrabold uppercase text-blue-600 tracking-wider mb-2 border-b border-gray-200 pb-1">Referring Specialist</h3>
-                  <p className="font-bold text-gray-800">Dr. Naresh Trehan</p>
-                  <p className="text-gray-500">Chief Consultant</p>
-                  <p className="text-gray-400 mt-2">MediConsult Clinical Center</p>
+                  <p className="font-bold text-gray-800">{user?.name}</p>
+                  <p className="text-gray-500">{profile?.specialization || 'Consultant'}</p>
+                  <p className="text-gray-400 mt-2">{profile?.hospitalName || 'MediConsult Clinical Center'}</p>
                 </div>
                 <div className="bg-gray-50 p-5 rounded-2xl border border-gray-100">
                   <h3 className="font-extrabold uppercase text-blue-600 tracking-wider mb-2 border-b border-gray-200 pb-1">Patient Details</h3>
@@ -501,8 +500,8 @@ const WritePrescription = () => {
               <div className="flex justify-between items-end mt-16 text-xs border-t border-gray-100 pt-6">
                 <div>
                   <p className="text-gray-400 uppercase text-[9px]">Electronic Auth Signature</p>
-                  <p className="font-black text-gray-800 mt-2">Dr. Naresh Trehan</p>
-                  <p className="text-gray-400">Chief Medical Officer</p>
+                  <p className="font-black text-gray-800 mt-2">{user?.name}</p>
+                  <p className="text-gray-400">Authorized Specialist</p>
                 </div>
                 <div className="text-right flex items-center gap-6">
                   <div>
@@ -987,8 +986,8 @@ const WritePrescription = () => {
                 <div className="grid grid-cols-2 gap-4 text-[10px] border-b border-zinc-150 pb-4">
                   <div>
                     <p className="font-black text-zinc-400 uppercase text-[8px] tracking-widest">Consulting Specialist</p>
-                    <p className="font-bold text-zinc-800 mt-1">Dr. Naresh Trehan</p>
-                    <p className="text-zinc-500">Chief Consultant Cardiologist</p>
+                    <p className="font-bold text-zinc-800 mt-1">{user?.name}</p>
+                    <p className="text-zinc-500">{profile?.specialization || 'Chief Consultant'}</p>
                   </div>
                   <div>
                     <p className="font-black text-zinc-400 uppercase text-[8px] tracking-widest">Patient Identity</p>

@@ -141,7 +141,7 @@ const DoctorAIChat = () => {
         </div>
 
         {/* INPUT AREA */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6">
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 w-full max-w-4xl px-6 z-50">
            <div className={`p-2 rounded-[32px] border shadow-2xl backdrop-blur-3xl transition-all duration-500 ${theme === 'dark' ? 'bg-zinc-950/80 border-white/10' : 'bg-white/90 border-slate-200 shadow-slate-200/50'}`}>
               <form onSubmit={handleSend} className="flex items-center gap-3">
                  <button type="button" onClick={() => setSidebarOpen(true)} className="md:hidden p-4 text-zinc-500"><HistoryIcon size={20}/></button>

@@ -7,7 +7,7 @@ import { safeNum } from '../../utils/mathUtils';
 import {
   Brain, TrendingUp, ChevronRight, Clock, Sparkles, CheckCircle, Pill,
   FileUp, MessageSquare, User as UserIcon, Activity, Zap, CreditCard, QrCode, ArrowRight,
-  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon
+  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon, Phone as PhoneIcon, Lock
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -63,26 +63,36 @@ const CircularProgress = ({ value, size = 180, strokeWidth = 12 }) => {
 };
 
 const PatientDashboard = () => {
-  const store = useStore();
-  const currentUser = store.user;
-  const theme = store.theme;
+  const {
+    user: currentUser,
+    theme,
+    notifications,
+    clearNotification,
+    clearAllNotifications,
+    incomingCall,
+    socket,
+    initializeGlobalSocket
+  } = useStore();
   const navigate = useNavigate();
-  const notifications = store.notifications;
-  const clearNotification = store.clearNotification;
-  const clearAllNotifications = store.clearAllNotifications;
 
   const [appointments, setAppointments] = useState([]);
   const [reports, setReports] = useState([]);
   const [medicines, setMedicines] = useState([]);
   const [healthLogs, setHealthLogs] = useState([]);
   const [isConnected, setIsConnected] = useState(true);
+
+  useEffect(() => {
+    if (!socket && currentUser) {
+      initializeGlobalSocket();
+    }
+  }, [socket, currentUser, initializeGlobalSocket]);
   const [metrics, setMetrics] = useState({
-    score: 85,
-    trend: '+ 4.2%',
-    vitals: 'Normal',
-    adherence: '92%',
-    risk: 'Low',
-    efficiency: '4.2%'
+    score: '...',
+    trend: '...',
+    vitals: 'Syncing',
+    adherence: '...',
+    risk: '...',
+    efficiency: '...'
   });
 
   useEffect(() => {
@@ -97,10 +107,10 @@ const PatientDashboard = () => {
   const fetchMedicines = async () => {
     try {
       if(!currentUser?.userId) return;
-      const { data } = await api.get(`/medicines/${currentUser.userId}`);
-      if (Array.isArray(data)) setMedicines(data);
+      const { data } = await api.get(`/patients/prescriptions`); // Sync with Prescriptions
+      if (Array.isArray(data)) setMedicines(data.slice(0, 3));
     } catch (err) {
-      console.error(err);
+      console.error("[RX_SYNC_FAIL]", err);
     }
   };
 
@@ -130,7 +140,7 @@ const PatientDashboard = () => {
   const calculateDynamicMetrics = (logs) => {
     if (!logs || logs.length === 0) {
       setMetrics({
-        score: 100, trend: '0%', vitals: 'Stable', adherence: '100%', risk: 'None', efficiency: '0%'
+        score: 0, trend: '0%', vitals: 'No Data', adherence: '0%', risk: 'N/A', efficiency: '0%'
       });
       return;
     }
@@ -147,10 +157,17 @@ const PatientDashboard = () => {
       vitals = 'Warning';
     }
 
+    // Calculate dynamic health score
     let score = 100;
-    if (latest.bp_systolic > 120) score -= 10;
-    if (latest.oxygen < 98) score -= 5;
+    if (latest.bp_systolic > 130) score -= 10;
+    if (latest.bp_systolic > 145) score -= 15;
+    if (latest.oxygen < 97) score -= 5;
+    if (latest.oxygen < 94) score -= 15;
     if (latest.sugar > 140) score -= 10;
+    if (latest.sugar > 200) score -= 15;
+
+    // Ensure score is within 0-100
+    score = Math.max(0, Math.min(100, score));
 
     const diff = latest.bp_systolic - previous.bp_systolic;
     const trendVal = diff <= 0 ? Math.abs(diff) + 2.1 : -Math.abs(diff);
@@ -160,7 +177,7 @@ const PatientDashboard = () => {
       score: score,
       trend: trendText,
       vitals: vitals,
-      adherence: '94%',
+      adherence: 'Synchronized',
       risk: risk,
       efficiency: trendText
     });
@@ -169,7 +186,8 @@ const PatientDashboard = () => {
   const fetchData = async () => {
     try {
       const res = await api.get('/appointments/patient-summary');
-      setAppointments(res.data.appointments || []);
+      const appts = res.data.appointments || [];
+      setAppointments(appts);
       setIsConnected(true);
     } catch (err) {
       console.error(err);
@@ -199,26 +217,58 @@ const PatientDashboard = () => {
                 </div>
               )}
 
-              <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                <div className="text-left">
-                  <h1 className={`text-2xl sm:text-3xl lg:text-4xl font-black tracking-tighter uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Patient Command Center</h1>
-                  <p className="text-zinc-500 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em] mt-1">Diagnostic Registry Node: {currentUser?.userId || 'G-NODE'}</p>
+              {/* WELCOME CARD */}
+              <div className={`bg-[#0A0A0A] p-6 sm:p-8 lg:p-10 rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] border border-white/5 relative overflow-hidden group transition-all duration-500 hover:border-blue-500/30 mb-2`}>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full -mr-32 -mt-32 blur-3xl transition-all duration-700"></div>
+                <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600/10 blur-3xl rounded-full"></div>
+                <div className="absolute bottom-0 left-10 right-10 h-[1px] bg-blue-500/40 blur-sm"></div>
+                <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
+                  <div className="text-left">
+                    <p className="text-[8px] sm:text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-2 sm:mb-3">Diagnostic Node Established</p>
+                    <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight leading-none mb-2">
+                      Welcome back, {currentUser?.name?.split(' ')[0] || 'Patient'} 👋
+                    </h1>
+                    {(!currentUser?.name || currentUser.name === 'undefined') && (
+                      <p className="text-amber-500 text-[8px] font-black uppercase tracking-widest animate-pulse">Session identity compromised. Please re-authenticate.</p>
+                    )}
+                    <p className="text-zinc-500 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Here's your neural health overview for today.</p>
+                    <button
+                      onClick={() => navigate('/patient/doctor-search')}
+                      className="mt-6 flex items-center gap-3 px-6 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-500/5"
+                    >
+                      <SearchIcon size={14} /> Quick Specialist Search
+                    </button>
+                  </div>
+                  <div className="p-4 sm:p-6 bg-white/5 border border-white/5 rounded-[24px] sm:rounded-[32px] flex items-center gap-4 sm:gap-5 w-full lg:w-auto">
+                    <div className="text-right flex-1 lg:flex-none">
+                       <p className="text-[8px] sm:text-[9px] font-black text-blue-400 uppercase tracking-widest">I'm Medi AI ●</p>
+                       <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 leading-relaxed uppercase mt-1 max-w-[200px] lg:max-w-[140px]">I analyze your health 24/7 to keep you on the right track.</p>
+                    </div>
+                    <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shrink-0">
+                       <Brain size={20} className="sm:w-7 sm:h-7 text-blue-500 animate-pulse" />
+                    </div>
+                  </div>
                 </div>
-                <div
-                  onClick={() => navigate('/patient/doctor-search')}
-                  className={`group px-6 py-3.5 rounded-2xl border flex items-center gap-4 transition-all duration-500 cursor-pointer shadow-sm ${theme === 'dark' ? 'bg-[#0A0A0F] border-white/5 hover:border-blue-500/30 hover:shadow-blue-500/10' : 'bg-white border-slate-100 hover:border-blue-500/20 shadow-xl shadow-slate-200/50'}`}
-                >
-                   <SearchIcon size={18} className="text-blue-500 group-hover:scale-110 transition-transform" />
-                   <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] group-hover:text-blue-600 transition-colors">Instant Specialist Search</span>
-                   <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_8px_#3b82f6]"></div>
+                <div className="mt-8 sm:mt-10 flex flex-wrap gap-2 sm:gap-3">
+                   {[
+                     { label: 'Patient ID', value: currentUser?.userId },
+                     { label: 'Reg. Date', value: '20/5/2024' },
+                     { label: 'Last Login', value: new Date().toLocaleDateString(), color: 'text-blue-400' },
+                     { label: 'Status', value: 'Verified', color: 'text-emerald-500' }
+                   ].map((item, i) => (
+                     <div key={i} className="px-4 sm:px-6 py-2 sm:py-3 bg-white/5 border border-white/5 rounded-xl sm:rounded-2xl flex-1 min-w-[120px]">
+                        <p className="text-[7px] sm:text-[8px] font-black text-zinc-500 uppercase mb-0.5 sm:mb-1">{item.label}</p>
+                        <p className={`text-[10px] sm:text-xs font-black uppercase truncate ${item.color || 'text-white'}`}>{item.value}</p>
+                     </div>
+                   ))}
                 </div>
-              </header>
+              </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                 {[
                   { label: 'NEURAL VITALS', value: metrics.vitals, icon: Activity, color: 'blue', path: '/patient/health' },
-                  { label: 'REPORT NODES', value: reports.length, icon: FileUp, color: 'purple', path: '/patient/reports/upload' },
-                  { label: 'ACTIVE MEDS', value: `${medicines.length} Nodes`, icon: Pill, color: 'emerald', path: '/patient/medicine' },
+                  { label: 'REPORT NODES', value: reports?.length || 0, icon: FileUp, color: 'purple', path: '/patient/reports/upload' },
+                  { label: 'ACTIVE MEDS', value: `${medicines?.length || 0} Nodes`, icon: Pill, color: 'emerald', path: '/patient/medicine' },
                   { label: 'OP QUEUE', value: 'Ready', icon: Clock, color: 'amber', path: '/patient/book-op' }
                 ].map((stat, i) => (
                   <div key={i} onClick={() => navigate(stat.path)} className={`bg-[#0A0A0A] p-6 sm:p-8 rounded-[32px] border border-white/5 flex flex-col justify-between min-h-[160px] relative overflow-hidden group cursor-pointer transition-all duration-500 hover:border-white/10`}>
@@ -267,7 +317,9 @@ const PatientDashboard = () => {
                           <button
                             onClick={() => {
                               const appt = appointments.find(a => a.status === 'Accepted' || a.status === 'Live');
-                              navigate(`/patient/chat`, { state: { startChat: true, targetUserId: appt.doctorId, appointmentId: appt._id } });
+                              if (appt) {
+                                navigate(`/patient/chat`, { state: { startChat: true, targetUserId: appt.doctorId, appointmentId: appt._id } });
+                              }
                             }}
                             className="flex-1 sm:flex-none px-6 py-2.5 sm:py-3 bg-white/20 text-white rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-white/30 transition-all border border-white/20"
                           >
@@ -275,15 +327,82 @@ const PatientDashboard = () => {
                           </button>
                         )}
                         <button
-                          onClick={() => {
-                            const appt = appointments.find(a => a.status === 'Live' || a.status === 'Pending' || a.status === 'Accepted');
-                            if (appt.status === 'Pending') {
-                               toast.error("Waiting for doctor to accept the node");
-                            } else {
-                               navigate(`/patient/video-consult?roomCode=${appt.roomCode}&appointmentId=${appt._id}&patientName=${appt.doctorName}`);
+                          onClick={async () => {
+                            const activeAppt = appointments.find(a => a.status === 'Live' || a.status === 'Accepted');
+                            const pendingAppt = appointments.find(a => a.status === 'Pending');
+                            const appt = activeAppt || pendingAppt;
+
+                            if (!appt) return;
+
+                            if (window.confirm("Permanently disconnect this consultation node and remove it from your dashboard?")) {
+                               try {
+                                  await api.put(`/appointments/end-session/${appt._id || appt.appointmentId}`, { status: 'Cancelled', remarks: 'User dismissed node' });
+                                  toast.success("Consultation node purged.");
+                                  fetchData();
+                               } catch (err) {
+                                  console.error("[PURGE_ERR]", err);
+                                  const msg = err.response?.data?.message || err.message;
+                                  toast.error(`Purge Failed: ${msg}`);
+                               }
                             }
                           }}
-                          className="flex-1 sm:flex-none px-6 sm:px-8 py-2.5 sm:py-3 bg-white text-emerald-600 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg"
+                          className="flex-1 sm:flex-none px-6 py-2.5 sm:py-3 bg-red-600/20 text-red-500 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all border border-red-500/20"
+                        >
+                          <X size={14} className="inline mr-2" /> Dismiss
+                        </button>
+                        <button
+                          onClick={() => {
+                            const activeAppt = appointments.find(a => a.status === 'Live' || a.status === 'Accepted');
+                            const pendingAppt = appointments.find(a => a.status === 'Pending');
+                            const appt = activeAppt || pendingAppt;
+
+                            if (!appt) return toast.error("No active appointment node found");
+
+                            const isIncoming = incomingCall?.from === appt.doctorId || incomingCall?.from === appt._id;
+
+                            if (appt.status === 'Pending' && !isIncoming) {
+                               toast.error("Waiting for specialist to authorize the node");
+                            } else {
+                               const path = `/patient/voice-consult?roomCode=${appt._id}&appointmentId=${appt._id}&peerName=${appt.doctorName}&peerId=${appt.doctorId}`;
+                               if (isIncoming) {
+                                  navigate(`${path}&incoming=true`);
+                               } else {
+                                  navigate(path);
+                                }
+                            }
+                          }}
+                          className={`flex-1 sm:flex-none px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg ${
+                            incomingCall ? 'bg-emerald-600 text-white animate-bounce' : 'bg-amber-500 text-white'
+                          }`}
+                        >
+                          <PhoneIcon size={14} className="inline mr-2" /> {incomingCall ? 'Accept Link' : 'Voice'}
+                        </button>
+                        <button
+                          onClick={() => {
+                            const activeAppt = appointments.find(a => a.status === 'Live' || a.status === 'Accepted');
+                            const pendingAppt = appointments.find(a => a.status === 'Pending');
+                            const appt = activeAppt || pendingAppt;
+
+                            if (!appt) return toast.error("No active appointment node found");
+
+                            if (appt.status === 'Pending' && !incomingCall) {
+                               toast.error("Waiting for specialist to authorize the node");
+                            } else if (!appt.isMeetingReady && !incomingCall) {
+                               toast.error("Specialist hasn't initialized the clinical arena yet");
+                            } else {
+                               const path = `/patient/video-consult?roomCode=${appt._id}&appointmentId=${appt._id}&peerName=${appt.doctorName}&peerId=${appt.doctorId}`;
+                               if (incomingCall?.from === appt.doctorId || incomingCall?.from === appt._id) {
+                                  navigate(`${path}&incoming=true`);
+                               } else {
+                                  navigate(path);
+                               }
+                            }
+                          }}
+                          className={`flex-1 sm:flex-none px-6 sm:px-8 py-2.5 sm:py-3 rounded-xl sm:rounded-2xl text-[9px] sm:text-[10px] font-black uppercase tracking-widest hover:scale-105 active:scale-95 transition-all shadow-lg ${
+                            appointments.find(a => a.status === 'Accepted' || a.status === 'Live')?.isMeetingReady
+                            ? 'bg-blue-600 text-white animate-pulse'
+                            : 'bg-white text-emerald-600 opacity-50'
+                          }`}
                         >
                           Establish Link
                         </button>
@@ -291,52 +410,37 @@ const PatientDashboard = () => {
                     </div>
                   )}
 
-                  {/* WELCOME CARD */}
-                  <div className={`bg-[#0A0A0A] p-6 sm:p-8 lg:p-10 rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] border border-white/5 relative overflow-hidden group transition-all duration-500 hover:border-blue-500/30`}>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-600/5 rounded-full -mr-32 -mt-32 blur-3xl transition-all duration-700"></div>
-                    <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-blue-600/10 blur-3xl rounded-full"></div>
-                    <div className="absolute bottom-0 left-10 right-10 h-[1px] bg-blue-500/40 blur-sm"></div>
-                    <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6 relative z-10">
-                      <div className="text-left">
-                        <p className="text-[8px] sm:text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mb-2 sm:mb-3">Diagnostic Node Established</p>
-                        <h1 className="text-2xl sm:text-4xl lg:text-5xl font-black text-white uppercase tracking-tight leading-none mb-2">
-                          Welcome back, {currentUser?.name?.split(' ')[0] || 'Patient'} 👋
-                        </h1>
-                        {(!currentUser?.name || currentUser.name === 'undefined') && (
-                          <p className="text-amber-500 text-[8px] font-black uppercase tracking-widest animate-pulse">Session identity compromised. Please re-authenticate.</p>
-                        )}
-                        <p className="text-zinc-500 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.3em] sm:tracking-[0.4em]">Here's your neural health overview for today.</p>
-                        <button
-                          onClick={() => navigate('/patient/doctor-search')}
-                          className="mt-6 flex items-center gap-3 px-6 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[9px] font-black uppercase tracking-widest text-blue-500 hover:bg-blue-600 hover:text-white transition-all shadow-lg shadow-blue-500/5"
-                        >
-                          <SearchIcon size={14} /> Quick Specialist Search
-                        </button>
-                      </div>
-                      <div className="p-4 sm:p-6 bg-white/5 border border-white/5 rounded-[24px] sm:rounded-[32px] flex items-center gap-4 sm:gap-5 w-full lg:w-auto">
-                        <div className="text-right flex-1 lg:flex-none">
-                           <p className="text-[8px] sm:text-[9px] font-black text-blue-400 uppercase tracking-widest">I'm Medi AI ●</p>
-                           <p className="text-[9px] sm:text-[10px] font-bold text-zinc-500 leading-relaxed uppercase mt-1 max-w-[200px] lg:max-w-[140px]">I analyze your health 24/7 to keep you on the right track.</p>
-                        </div>
-                        <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-full bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shrink-0">
-                           <Brain size={20} className="sm:w-7 sm:h-7 text-blue-500 animate-pulse" />
-                        </div>
-                      </div>
+                  {/* VIDEO MEETING INFO CARD */}
+                  {appointments.find(a => (a.status === 'Accepted' || a.status === 'Live') && a.meetingId) && (
+                    <div className="bg-zinc-950/80 border border-blue-500/20 p-6 rounded-[32px] overflow-hidden relative group transition-all hover:border-blue-500/40">
+                       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 relative z-10">
+                          <div className="flex items-center gap-4">
+                             <div className="w-12 h-12 bg-blue-600/10 rounded-2xl flex items-center justify-center text-blue-500 border border-blue-500/20">
+                                <Video size={24} />
+                             </div>
+                             <div className="text-left">
+                                <p className="text-[8px] font-black text-blue-500 uppercase tracking-widest">Scheduled Video Protocol</p>
+                                <h3 className="text-sm font-black text-white uppercase mt-1">Specialist Handshake Ready</h3>
+                             </div>
+                          </div>
+                          <div className="grid grid-cols-2 sm:flex gap-3 w-full sm:w-auto">
+                             {[
+                               { label: 'NODE ID', val: appointments.find(a => a.status === 'Accepted' || a.status === 'Live').meetingId, icon: Shield },
+                               { label: 'PASSKEY', val: appointments.find(a => a.status === 'Accepted' || a.status === 'Live').meetingPassword, icon: Lock },
+                               { label: 'SYNC TIME', val: appointments.find(a => a.status === 'Accepted' || a.status === 'Live').scheduledVideoTime, icon: Clock },
+                             ].map((item, i) => (
+                               <div key={i} className="px-4 py-2 bg-white/5 border border-white/5 rounded-xl flex-1 sm:flex-none min-w-[100px]">
+                                  <p className="text-[7px] font-black text-zinc-500 uppercase mb-0.5">{item.label}</p>
+                                  <p className="text-[9px] font-black text-white uppercase flex items-center gap-2">
+                                     <item.icon size={10} className="text-blue-500" /> {item.val}
+                                  </p>
+                               </div>
+                             ))}
+                          </div>
+                       </div>
                     </div>
-                    <div className="mt-8 sm:mt-10 flex flex-wrap gap-2 sm:gap-3">
-                       {[
-                         { label: 'Patient ID', value: currentUser?.userId },
-                         { label: 'Reg. Date', value: '20/5/2024' },
-                         { label: 'Last Login', value: new Date().toLocaleDateString(), color: 'text-blue-400' },
-                         { label: 'Status', value: 'Verified', color: 'text-emerald-500' }
-                       ].map((item, i) => (
-                         <div key={i} className="px-4 sm:px-6 py-2 sm:py-3 bg-white/5 border border-white/5 rounded-xl sm:rounded-2xl flex-1 min-w-[120px]">
-                            <p className="text-[7px] sm:text-[8px] font-black text-zinc-500 uppercase mb-0.5 sm:mb-1">{item.label}</p>
-                            <p className={`text-[10px] sm:text-xs font-black uppercase truncate ${item.color || 'text-white'}`}>{item.value}</p>
-                         </div>
-                       ))}
-                    </div>
-                  </div>
+                  )}
+
 
                   {/* RECOVERY SCORE CARD */}
                   <div className={`bg-[#0A0A0A] p-6 sm:p-8 lg:p-10 rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] border border-white/5 relative overflow-hidden group transition-all duration-500 hover:border-blue-500/30`}>
@@ -405,6 +509,36 @@ const PatientDashboard = () => {
                         <div className="p-4 sm:p-6 bg-white/5 rounded-2xl sm:rounded-3xl border border-white/5 text-left mb-6 relative z-10"><p className="text-[10px] sm:text-xs font-medium text-zinc-400 leading-relaxed italic">"Neural net confirms stable vital markers. Lipid profile indicates optimal recovery."</p></div>
                         <button onClick={() => navigate('/patient/ai-analysis')} className="w-full py-3.5 sm:py-4 bg-purple-600/10 hover:bg-purple-600/20 border border-purple-500/20 text-purple-400 rounded-xl sm:rounded-2xl text-[8px] sm:text-[9px] font-black uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 relative z-10">Summary <ArrowRight size={12} /></button>
                      </div>
+
+                     {/* RECENT CLINICAL PROVISIONS (PRESCRIPTIONS) */}
+                     <div className={`bg-[#0A0A0A] p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border border-white/5 relative overflow-hidden transition-all duration-500 hover:border-blue-500/30`}>
+                        <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-blue-600/10 blur-3xl rounded-full"></div>
+                        <div className="flex items-center justify-between mb-8 relative z-10">
+                           <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-lg sm:rounded-xl bg-blue-500/10 flex items-center justify-center border border-blue-500/20 shrink-0"><FileText size={16} className="sm:w-5 sm:h-5 text-blue-400" /></div>
+                              <div className="text-left"><h3 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-widest">Clinical Provisions</h3><p className="text-[7px] sm:text-[8px] font-bold text-zinc-500 uppercase mt-0.5">Recent Prescriptions</p></div>
+                           </div>
+                           <button onClick={() => navigate('/patient/prescriptions')} className="text-[8px] font-black text-blue-500 uppercase tracking-widest hover:underline">View All</button>
+                        </div>
+
+                        <div className="space-y-3 relative z-10">
+                           {medicines.length > 0 ? medicines.map((rx, idx) => (
+                             <div key={idx} className="p-4 bg-white/5 border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/10 transition-all cursor-pointer" onClick={() => navigate('/patient/prescriptions')}>
+                                <div className="text-left">
+                                   <p className="text-[10px] font-black text-white uppercase truncate w-32">{rx.diagnosis || 'General Treatment'}</p>
+                                   <p className="text-[8px] font-bold text-zinc-500 uppercase mt-0.5">{new Date(rx.createdAt).toLocaleDateString()}</p>
+                                </div>
+                                <div className="text-right">
+                                   <p className="text-[9px] font-black text-blue-400 uppercase">{rx.medicines?.length} Meds</p>
+                                   <ChevronRight size={14} className="text-zinc-650 group-hover:translate-x-1 transition-all inline ml-1" />
+                                </div>
+                             </div>
+                           )) : (
+                             <div className="py-10 text-center opacity-30 font-black uppercase tracking-[0.2em] text-[10px]">No recent provisions</div>
+                           )}
+                        </div>
+                     </div>
+
                      <div className={`bg-[#0A0A0A] p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border border-white/5 relative overflow-hidden transition-all duration-500 hover:border-emerald-500/30`}>
                         <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-600/10 blur-3xl rounded-full"></div>
                         <div className="absolute bottom-0 left-6 right-6 h-[1px] bg-emerald-500/40 blur-sm"></div>
@@ -415,6 +549,7 @@ const PatientDashboard = () => {
                              { label: 'Medicines', icon: Pill, path: '/patient/medicine-search', color: 'text-emerald-400' },
                              { label: 'Doc Search', icon: SearchIcon, path: '/patient/doctor-search', color: 'text-amber-400' },
                              { label: 'Consult', icon: Video, path: '/patient/video-consult', color: 'text-rose-400' },
+                             { label: 'Voice Link', icon: PhoneIcon, path: '/patient/voice-consult', color: 'text-blue-400' },
                            ].map((op, i) => (
                              <div key={i} onClick={() => navigate(op.path)} className="p-3 sm:p-4 bg-white/5 border border-white/5 rounded-xl sm:rounded-2xl cursor-pointer hover:bg-white/10 hover:border-blue-500/30 transition-all group">
                                 <op.icon size={18} className={`sm:w-5 sm:h-5 ${op.color} mb-2 sm:mb-3 group-hover:scale-110 transition-transform`} />
@@ -440,13 +575,7 @@ const PatientDashboard = () => {
                     <div className="flex items-center gap-2 text-[8px] sm:text-[10px] font-black uppercase tracking-widest relative z-10"><div className="w-1.5 h-1.5 sm:w-2 sm:h-2 bg-white rounded-full animate-pulse"></div> Verified Node</div>
                   </div>
 
-                  <div onClick={() => navigate('/patient/emergency-qr')} className="bg-[#DC2626] p-6 sm:p-8 rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] text-white shadow-2xl shadow-red-900/40 relative overflow-hidden group cursor-pointer hover:scale-[1.02] transition-all active:scale-95 border border-white/20">
-                     <div className="flex items-center gap-4 sm:gap-5 relative z-10 text-left">
-                        <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-2xl sm:rounded-3xl bg-white/20 flex items-center justify-center border border-white/20 shadow-inner shrink-0"><AlertTriangle size={24} className="sm:w-8 sm:h-8 text-white animate-pulse" /></div>
-                        <div className="text-left overflow-hidden"><h3 className="text-xl sm:text-2xl font-black uppercase tracking-tight leading-tight">Emergency SOS</h3><p className="text-red-100 text-[8px] sm:text-[10px] font-bold uppercase tracking-widest mt-1">Instant QR ID Access</p></div>
-                     </div>
-                     <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-white/10 flex justify-between items-center relative z-10"><span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest opacity-70">Link Active</span><ChevronRight size={14} /></div>
-                  </div>
+
 
                   <div className={`bg-[#0A0A0A] p-6 sm:p-8 lg:p-10 rounded-[32px] sm:rounded-[40px] lg:rounded-[48px] border border-white/5 relative overflow-hidden group transition-all duration-500 hover:border-blue-500/30`}>
                      <div className="flex justify-between items-center mb-8 sm:mb-10 relative z-10"><h3 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.3em]">Notifications</h3><Link to="/patient/dashboard" className="text-[8px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest hover:underline">View All</Link></div>

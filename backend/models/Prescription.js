@@ -31,5 +31,5 @@ const prescriptionSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const Prescription = mongoose.model('Prescription', prescriptionSchema);
+const Prescription = mongoose.models.Prescription || mongoose.model('Prescription', prescriptionSchema);
 export default Prescription;

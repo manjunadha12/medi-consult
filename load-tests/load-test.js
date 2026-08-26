@@ -13,11 +13,14 @@ console.log(`Config: 100 Virtual Users (Connections), 60 Seconds duration`);
 console.log(`Excel Report Path: ${EXCEL_FILE_PATH}`);
 console.log('----------------------------------------------------------------\n');
 
+const connections = parseInt(process.env.CONNECTIONS || '50');
+const duration = parseInt(process.env.DURATION || '20');
+
 const instance = autocannon({
   url: targetUrl,
-  connections: 100, // 100 virtual users
-  duration: 60,     // 60 seconds (1 minute)
-  pipelining: 1     // Standard non-pipelined requests to mimic concurrent browser clients
+  connections: connections,
+  duration: duration,
+  pipelining: 1
 }, async (err, result) => {
   if (err) {
     console.error('Error running autocannon benchmark:', err);

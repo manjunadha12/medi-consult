@@ -5,6 +5,7 @@ import api from '../../utils/api';
 import useStore from '../../store/useStore';
 import { Home, Send, User as UserIcon, Loader2, Plus, Brain, Trash2, MessageSquare, Menu, X, Sparkles, Pill, Activity, ChevronRight, Settings, LogOut } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { fullMedicinesDataset } from '../../utils/medicinesData';
 
 const AIChat = () => {
   const store = useStore();
@@ -122,7 +123,49 @@ const AIChat = () => {
     saveConversations(updatedConversations);
     setLoading(true);
 
+    // 1. SMART REGISTRY SCAN: Search local data first to avoid AI Node jitter
+    const lowerInput = textToSend.toLowerCase();
+
+    // Scan input for any medicine name or brand in the registry
+    const localMedMatch = fullMedicinesDataset.find(m =>
+      lowerInput.includes(m.name.toLowerCase()) ||
+      m.brandNames.some(bn => lowerInput.includes(bn.toLowerCase()))
+    );
+
+    if (localMedMatch) {
+      console.log("[SWARM_CORE] Registry Match Identified:", localMedMatch.name);
+      setTimeout(() => {
+        const botMsg = {
+          role: 'bot',
+          content: `### 🛡️ VERIFIED REGISTRY DATA FOUND\n\nI've synchronized with the institutional pharmacology registry for **${localMedMatch.name}**:\n\n` +
+                   `--- \n` +
+                   `#### CLINICAL PROFILE\n` +
+                   `* **Category**: ${localMedMatch.category}\n` +
+                   `* **Primary Use**: ${localMedMatch.usedFor}\n` +
+                   `* **Mechanism**: ${localMedMatch.howItWorks}\n\n` +
+                   `#### ADMINISTRATION\n` +
+                   `* **Dosage**: ${localMedMatch.dosage}\n` +
+                   `* **Storage**: ${localMedMatch.storage}\n\n` +
+                   `#### SAFETY NODE\n` +
+                   `* **Side Effects**: ${localMedMatch.sideEffects.join(', ')}\n` +
+                   `* **Precautions**: ${localMedMatch.precautions.join(', ')}\n\n` +
+                   `*Note: This data is retrieved from a validated clinical node. Would you like me to attempt an AI Synthesis for more speculative health advice?*`
+        };
+
+        const latestConversations = [...updatedConversations];
+        const latestChat = latestConversations.find(c => c.id === currentChatId);
+        if (latestChat) {
+          latestChat.messages = [...latestChat.messages, botMsg];
+          saveConversations(latestConversations);
+        }
+        setLoading(false);
+      }, 600);
+      return;
+    }
+
+    // 2. AI FALLBACK
     try {
+      console.log("[SWARM_CORE] No local match. Requesting AI Synthesis...");
       const { data } = await api.post('/ai/chat', { message: textToSend });
       const botMsg = { role: 'bot', content: data.content };
       
@@ -147,14 +190,64 @@ const AIChat = () => {
     { text: "What are the common side effects of Paracetamol?", desc: "Pharmacology & safety information", icon: Pill, color: 'text-rose-600', bg: 'bg-rose-50' }
   ];
 
+  const formatJsonToText = (obj, level = 0) => {
+    if (typeof obj !== 'object' || obj === null) return String(obj);
+
+    return Object.entries(obj).map(([key, value]) => {
+      const formattedKey = key.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+
+      if (Array.isArray(value)) {
+        if (value.length === 0) return "";
+        if (typeof value[0] === 'object' && value[0] !== null) {
+          return `#### ${formattedKey}\n${value.map(item => formatJsonToText(item, level + 1)).join('\n---\n')}`;
+        }
+        return `#### ${formattedKey}\n${value.map(item => `* ${item}`).join('\n')}`;
+      }
+
+      if (typeof value === 'object' && value !== null) {
+        return `#### ${formattedKey}\n${formatJsonToText(value, level + 1)}`;
+      }
+
+      if (value === "not_provided" || !value) return "";
+
+      return `**${formattedKey}**: ${value}  \n`;
+    }).join('\n');
+  };
+
   const renderMessageContent = (content) => {
     if (!content) return null;
-    const lines = content.split('\n');
+
+    let displayContent = content;
+    try {
+      const jsonStart = content.indexOf('{');
+      const jsonEnd = content.lastIndexOf('}') + 1;
+      if (jsonStart !== -1 && jsonEnd > jsonStart) {
+        const rawJson = content.substring(jsonStart, jsonEnd);
+        const parsed = JSON.parse(rawJson);
+        displayContent = formatJsonToText(parsed);
+      }
+    } catch (e) {
+      // Use original content if not JSON
+    }
+
+    const lines = displayContent.split('\n');
     return (
       <div className={`space-y-3 text-xs sm:text-sm leading-relaxed font-semibold ${theme === 'dark' ? 'text-zinc-300' : 'text-slate-700'}`}>
         {lines.map((line, idx) => {
           const trimmed = line.trim();
-          const parts = line.split(/\*\*(.*?)\*\*/g);
+          if (!trimmed && line !== "---") return null;
+
+          if (line === "---") {
+            return <div key={idx} className="border-t border-white/10 my-4" />;
+          }
+
+          if (trimmed.startsWith('####')) {
+            return <h4 key={idx} className="text-sm font-black uppercase text-blue-500 mt-6 mb-2">{trimmed.replace(/#/g, '').trim()}</h4>;
+          }
+
+          // Remove bullet points from text before processing components
+          const cleanLine = trimmed.replace(/^[*|-]\s*/, '');
+          const parts = cleanLine.split(/\*\*(.*?)\*\*/g);
           const renderedLine = parts.map((part, i) => {
             if (i % 2 === 1) return <strong key={i} className={`font-black ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{part}</strong>;
             return part;
@@ -164,7 +257,7 @@ const AIChat = () => {
             return (
               <div key={idx} className="flex gap-2 pl-4 text-left">
                 <span className="text-blue-500 font-bold">•</span>
-                <p className="flex-1">{renderedLine.slice(1)}</p>
+                <div className="flex-1">{renderedLine}</div>
               </div>
             );
           }
@@ -350,7 +443,7 @@ const AIChat = () => {
           </div>
         </div>
 
-        <div className={`absolute bottom-0 left-0 right-0 pt-6 px-6 pb-24 shrink-0 bg-gradient-to-t ${theme === 'dark' ? 'from-[#050505] via-[#050505]/95' : 'from-[#F8FAFC] via-[#F8FAFC]/95'} to-transparent`}>
+        <div className={`absolute bottom-0 left-0 right-0 pt-6 px-6 pb-8 z-50 shrink-0 bg-gradient-to-t ${theme === 'dark' ? 'from-[#050505] via-[#050505]/95' : 'from-[#F8FAFC] via-[#F8FAFC]/95'} to-transparent`}>
           <div className="max-w-4xl mx-auto">
             <form onSubmit={handleSend} className={`border p-3 rounded-[32px] shadow-2xl flex items-center gap-4 transition-all ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 focus-within:border-blue-500/50' : 'bg-white border-slate-200/60 focus-within:border-blue-600/30'}`}>
               <input

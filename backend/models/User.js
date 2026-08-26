@@ -37,17 +37,13 @@ const userSchema = new mongoose.Schema({
   emailVerified: { type: Boolean, default: false }
 });
 
-userSchema.index({ email: 1 });
-userSchema.index({ patientId: 1 });
-userSchema.index({ doctorId: 1 });
-userSchema.index({ adminId: 1 });
 userSchema.index({ role: 1 });
 
 userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) {
     return next();
   }
-  const salt = await bcrypt.genSalt(10);
+  const salt = await bcrypt.genSalt(12); // Increased institutional complexity
   this.password = await bcrypt.hash(this.password, salt);
 });
 
@@ -55,5 +51,5 @@ userSchema.methods.matchPassword = async function(enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.models.User || mongoose.model('User', userSchema);
 export default User;

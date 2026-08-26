@@ -7,6 +7,7 @@ import {
   ToggleLeft, ToggleRight, Monitor, Moon, Sun, Eye, EyeOff, Key
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import useStore from '../../store/useStore';
 
 const Toggle = ({ enabled, onToggle }) => (
   <button
@@ -18,6 +19,7 @@ const Toggle = ({ enabled, onToggle }) => (
 );
 
 const DocSettings = () => {
+  const { navigationType, setNavigationType } = useStore();
   const [activeSec, setActiveSec] = useState('general');
   const [showOldPw, setShowOldPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -121,6 +123,33 @@ const DocSettings = () => {
                           <p className="text-xs text-zinc-500 mt-1">Reduce spacing for more data density</p>
                         </div>
                         <Toggle enabled={compactView} onToggle={() => setCompactView(!compactView)} />
+                      </div>
+                      <div className="space-y-3 pt-6 border-t border-white/5">
+                        <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest mb-2 px-1">Navigation Topology</p>
+                        {[
+                           { id: 'dock', label: 'Neural Dock' },
+                           { id: 'sidebar', label: 'Clinical Sidebar' },
+                        ].map((opt) => (
+                           <button
+                             key={opt.id}
+                             onClick={() => {
+                               setNavigationType(opt.id);
+                               toast.success(`Navigation Node: ${opt.label}`);
+                             }}
+                             className={`w-full flex items-center justify-between p-4 rounded-2xl border transition-all ${
+                               navigationType === opt.id
+                                 ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                                 : 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10'
+                             }`}
+                           >
+                             <span className="text-[10px] font-black uppercase tracking-widest">{opt.label}</span>
+                             <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                               navigationType === opt.id ? 'border-white bg-white/20' : 'border-zinc-700'
+                             }`}>
+                                {navigationType === opt.id && <div className="w-2 h-2 bg-white rounded-full"></div>}
+                             </div>
+                           </button>
+                        ))}
                       </div>
                     </div>
 

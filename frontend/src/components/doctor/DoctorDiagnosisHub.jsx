@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import useStore from '../../store/useStore';
 import api, { BACKEND_URL } from '../../utils/api';
 import {
@@ -190,7 +189,6 @@ const DoctorDiagnosisHub = () => {
             </div>
           )}
         </main>
-        <NeuralDock />
       </div>
     </div>
   );

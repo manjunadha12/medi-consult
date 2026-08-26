@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import api from '../../utils/api';
 import useStore from '../../store/useStore';
 import { safeNum, formatCurrency } from '../../utils/mathUtils';
@@ -48,6 +47,13 @@ const CostEstimator = () => {
   const [estimate, setEstimate] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const formatLakhs = (amount) => {
+    if (amount >= 100000) {
+      return `₹${(amount / 100000).toFixed(1)}L`;
+    }
+    return `₹${formatCurrency(amount)}`;
+  };
+
   const filteredTreatments = TREATMENTS.filter(t =>
     t.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
     !selectedTreatments.find(st => st.name === t.name)
@@ -75,16 +81,28 @@ const CostEstimator = () => {
         hospitalType: formData.hospitalType,
         roomType: formData.roomType,
         insurance: formData.insurance
-      });
+      }, { timeout: 120000 }); // Institutional priority: 120s timeout for financial synthesis
       setEstimate(data);
       toast.success("Financial synthesis complete");
     } catch (error) {
-      toast.error("Swarm connection failed. Standard rates applied.");
+      const errorMsg = error.response?.data?.message || error.message;
+      console.error("[COST_ESTIMATION_SYNC_FAIL]:", error);
+      toast.error(`Swarm Handshake Blocked: ${errorMsg}`);
+
+      // Intelligent UI Fallback
+      const total = selectedTreatments.reduce((acc, t) => acc + (t.name.includes("Surgery") || t.name.includes("Angioplasty") ? 150000 : 700), 0) + (formData.hospitalType === 'Government' ? 0 : 15000) - (formData.insurance === 'Yes' ? 45000 : 0);
       setEstimate({
-          items: selectedTreatments.map(t => ({ name: t.name, cost: 75000, details: "Standard regional pricing applied." })),
-          room: 15000,
-          insuranceDiscount: 10000,
-          total: 80000,
+          items: selectedTreatments.map(t => ({
+            name: t.name,
+            cost: t.name.includes("Surgery") || t.name.includes("Angioplasty") ? 150000 : 700,
+            details: "Technical baseline applied from local registry."
+          })),
+          room: formData.hospitalType === 'Government' ? 0 : 15000,
+          insuranceDiscount: formData.insurance === 'Yes' ? 45000 : 0,
+          total: total,
+          expectedEstimate: total,
+          lowEstimate: Math.round(total * 0.85),
+          highEstimate: Math.round(total * 1.25),
           swarmNote: "Neural connection slow. Applied base regional averages."
       });
     } finally {
@@ -262,8 +280,45 @@ const CostEstimator = () => {
 
                   <div className="bg-blue-600 p-12 rounded-[48px] flex flex-col items-center text-center gap-3 shadow-[0_20px_50px_rgba(37,99,235,0.4)] relative overflow-hidden group transition-all hover:scale-[1.02]">
                     <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl group-hover:bg-white/20 transition-all duration-1000"></div>
-                    <span className="text-[10px] font-black text-blue-100 uppercase tracking-[0.5em] relative z-10 opacity-80">Total Estimated Liability</span>
-                    <span className="text-5xl md:text-6xl font-black text-white relative z-10 tracking-tighter">₹{formatCurrency(estimate.total || 0)}</span>
+                    <span className="text-[10px] font-black text-blue-100 uppercase tracking-[0.5em] relative z-10 opacity-80">Estimated Total Cost</span>
+                    <span className="text-4xl md:text-5xl font-black text-white relative z-10 tracking-tighter">
+                      {formatLakhs(estimate.lowEstimate)} – {formatLakhs(estimate.highEstimate)}
+                    </span>
+                  </div>
+
+                  {/* Estimation Table */}
+                  <div className={`mt-8 overflow-hidden rounded-[32px] border transition-all ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+                    <table className="w-full text-left">
+                      <thead className={`text-[9px] font-black uppercase tracking-widest ${theme === 'dark' ? 'bg-white/5 text-zinc-500' : 'bg-slate-50 text-slate-400'}`}>
+                        <tr>
+                          <th className="px-6 py-4">Estimate Node</th>
+                          <th className="px-6 py-4 text-right">Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className={`text-xs font-bold divide-y ${theme === 'dark' ? 'divide-white/5 text-zinc-300' : 'divide-slate-50 text-slate-700'}`}>
+                        <tr>
+                          <td className="px-6 py-4 flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                             Low Estimate
+                          </td>
+                          <td className="px-6 py-4 text-right font-black">₹{formatCurrency(estimate.lowEstimate)}</td>
+                        </tr>
+                        <tr className={theme === 'dark' ? 'bg-white/5' : 'bg-blue-50/30'}>
+                          <td className="px-6 py-4 flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                             Expected Estimate
+                          </td>
+                          <td className="px-6 py-4 text-right font-black text-blue-600">₹{formatCurrency(estimate.expectedEstimate)}</td>
+                        </tr>
+                        <tr>
+                          <td className="px-6 py-4 flex items-center gap-2">
+                             <div className="w-1.5 h-1.5 rounded-full bg-rose-500"></div>
+                             High Estimate
+                          </td>
+                          <td className="px-6 py-4 text-right font-black">₹{formatCurrency(estimate.highEstimate)}</td>
+                        </tr>
+                      </tbody>
+                    </table>
                   </div>
 
                   <div className={`mt-12 flex gap-5 p-8 rounded-[40px] border text-left items-start transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5' : 'bg-blue-50 border-blue-100'}`}>
@@ -287,7 +342,6 @@ const CostEstimator = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
       </div>
     </div>
   );

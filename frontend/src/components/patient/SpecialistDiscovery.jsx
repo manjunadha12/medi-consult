@@ -52,6 +52,11 @@ const SpecialistDiscovery = () => {
   const [fetchingDetails, setFetchingDetails] = useState(false);
   const [activeTab, setActiveTab] = useState('About');
 
+  // Review State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   const fetchDoctors = async (searchQuery = '') => {
     setIsSearching(true);
     try {
@@ -91,6 +96,27 @@ const SpecialistDiscovery = () => {
   const handleStartReviewerChat = (patientId) => {
     if (!patientId) return toast.error("Patient node identity missing");
     navigate('/patient/chat', { state: { startChat: true, targetUserId: patientId } });
+  };
+
+  const submitReview = async () => {
+    if (!reviewData.comment.trim()) return toast.error("Please enter a technical comment.");
+    setSubmittingReview(true);
+    try {
+      await api.post('/patients/review', {
+        doctorId: selectedDoc,
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      });
+      toast.success("Review synchronized with medical registry.");
+      setShowReviewModal(false);
+      setReviewData({ rating: 5, comment: '' });
+      // Refresh details to show new review
+      handleDocClick(selectedDoc);
+    } catch (err) {
+      toast.error("Failed to propagate review node.");
+    } finally {
+      setSubmittingReview(false);
+    }
   };
 
   const renderTabContent = () => {
@@ -165,7 +191,15 @@ const SpecialistDiscovery = () => {
       case 'Reviews':
         return (
           <section className="space-y-8 animate-in fade-in slide-in-from-bottom-5 duration-700 text-left">
-            <h3 className="text-xl font-black text-white uppercase tracking-[0.5em]">Clinical Feedbacks</h3>
+            <div className="flex justify-between items-center">
+              <h3 className="text-xl font-black text-white uppercase tracking-[0.5em]">Clinical Feedbacks</h3>
+              <button
+                onClick={() => setShowReviewModal(true)}
+                className="px-6 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-blue-500/20 hover:bg-blue-500 active:scale-95 transition-all"
+              >
+                 Add Feedback Node
+              </button>
+            </div>
             <div className="space-y-6">
               {reviews && reviews.length > 0 ? reviews.map((rev, i) => (
                 <div
@@ -265,7 +299,7 @@ const SpecialistDiscovery = () => {
                         </div>
                         <p className="text-blue-500 text-[11px] font-black uppercase tracking-[0.2em]">{doc.specialization}</p>
                         <div className="space-y-0.5 opacity-60">
-                           <p className="text-zinc-400 text-[9px] font-bold uppercase tracking-widest">MBBS, MS, MCh (CTVS)</p>
+                           <p className="text-zinc-400 text-[9px] font-bold uppercase tracking-widest">{Array.isArray(doc.qualifications) ? doc.qualifications.join(', ') : 'MBBS, MS, MCh'}</p>
                            <p className="text-zinc-500 text-[9px] font-bold uppercase tracking-widest">{doc.exp} Years Practice Tenure</p>
                         </div>
                       </div>
@@ -275,7 +309,7 @@ const SpecialistDiscovery = () => {
                             <Building size={16} className="text-blue-500 shrink-0 mt-0.5" />
                             <div>
                                <p className="text-[11px] font-black uppercase tracking-widest text-zinc-300 leading-tight">{doc.hospital}</p>
-                               <p className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5">Bangalore Hub</p>
+                               <p className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5">{doc.city || 'Bangalore'} Hub</p>
                             </div>
                          </div>
                          <div className="flex items-center gap-3">
@@ -289,7 +323,7 @@ const SpecialistDiscovery = () => {
                             <Star size={18} className="text-amber-500" fill="currentColor" />
                             <div>
                                <p className="text-lg font-black text-white leading-none">{doc.rating}</p>
-                               <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">(4,328 Reviews)</p>
+                               <p className="text-[9px] font-bold text-zinc-600 uppercase tracking-widest mt-1">({doc.reviewCount || 0} Reviews)</p>
                             </div>
                          </div>
                          <p className="text-[9px] font-bold text-zinc-400 uppercase tracking-widest">Languages: English, Hindi</p>
@@ -347,7 +381,7 @@ const SpecialistDiscovery = () => {
                                  <div className="flex items-center gap-2 px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full border border-emerald-500/20 text-[9px] font-black uppercase tracking-[0.2em]"><BadgeCheck size={14} /> Verified Doctor</div>
                               </div>
                               <p className="text-blue-500 text-lg font-black uppercase tracking-[0.4em]">{docDetails.profile?.designation}</p>
-                              <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest opacity-80">MBBS, MS, MCh (CTVS) • {docDetails.profile?.experience} Years Practice</p>
+                              <p className="text-zinc-500 text-sm font-bold uppercase tracking-widest opacity-80">{Array.isArray(docDetails.profile?.qualifications) ? docDetails.profile.qualifications.join(', ') : 'MBBS, MS, MCh'} • {docDetails.profile?.experience} Years Practice</p>
                            </div>
 
                            <div className="flex flex-col sm:flex-row gap-8 border-t border-white/5 pt-8 mt-4">
@@ -357,16 +391,17 @@ const SpecialistDiscovery = () => {
                               </div>
                               <div className="flex items-center gap-3 text-zinc-300">
                                  <MapPin size={20} className="text-blue-500 shrink-0" />
-                                 <p className="text-xs font-black uppercase tracking-widest">Bangalore Hub</p>
+                                 <p className="text-xs font-black uppercase tracking-widest">{docDetails.profile?.city || 'Bangalore'} Hub</p>
                               </div>
                            </div>
                         </div>
 
                         <div className="bg-white/5 border border-white/5 rounded-[40px] p-8 text-center min-w-[260px] backdrop-blur-xl">
-                           <div className="flex items-center justify-center gap-4 text-amber-500 mb-4"><Star size={36} fill="currentColor" /><span className="text-6xl font-black text-white">{docDetails.profile?.rating}</span></div>
-                           <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.5em] mb-8">Consensus</p>
+                           <div className="flex items-center justify-center gap-4 text-amber-500 mb-4"><Star size={36} fill="currentColor" /><span className="text-6xl font-black text-white">{docDetails.profile?.rating || '4.5'}</span></div>
+                           <p className="text-[12px] font-black text-zinc-500 uppercase tracking-[0.5em] mb-2">Consensus</p>
+                           <p className="text-[10px] font-bold text-zinc-600 uppercase tracking-widest mb-8">({docDetails.profile?.reviewCount || 0} REVIEWS)</p>
                            <div className="space-y-3">
-                              {[88, 8, 2, 1, 1].map((w, i) => (
+                              {(docDetails.profile?.ratingDistribution || [88, 8, 2, 1, 1]).map((w, i) => (
                                  <div key={i} className="flex items-center gap-4 px-1">
                                     <span className="text-[10px] font-black text-zinc-600 w-6">{5-i}★</span>
                                     <div className="h-1.5 flex-1 bg-white/5 rounded-full overflow-hidden"><div className="h-full bg-blue-600 transition-all duration-1000" style={{ width: `${w}%` }}></div></div>
@@ -381,12 +416,12 @@ const SpecialistDiscovery = () => {
                    {/* Stats Dashboard */}
                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-16">
                       {[
-                        { icon: Calendar, label: 'Tenure', val: docDetails.profile?.experience + ' Years' },
-                        { icon: Users, label: 'Treated', val: '25,000+' },
-                        { icon: Activity, label: 'Operations', val: '12,500+' },
-                        { icon: BadgeCheck, label: 'Success', val: '98.1%' },
+                        { icon: Calendar, label: 'Tenure', val: (docDetails.profile?.experience || 5) + ' Years' },
+                        { icon: Users, label: 'Treated', val: (docDetails.profile?.patientsTreatedCount || 0).toLocaleString() + '+' },
+                        { icon: Activity, label: 'Operations', val: (docDetails.profile?.operationsCount || 0).toLocaleString() + '+' },
+                        { icon: BadgeCheck, label: 'Success', val: docDetails.profile?.surgicalStats?.successRate || '98.1%' },
                         { icon: Clock, label: 'Latency', val: '< 10m' },
-                        { icon: ThumbsUp, label: 'Repeat', val: '85%' }
+                        { icon: ThumbsUp, label: 'Repeat', val: (docDetails.profile?.recommendationPercentage || 85) + '%' }
                       ].map((stat, idx) => (
                         <div key={idx} className="p-5 bg-[#0A0A0C] border border-white/5 rounded-[32px] text-center space-y-2 group hover:border-blue-500/30 transition-all cursor-default">
                           <stat.icon size={20} className="mx-auto text-blue-500/50 group-hover:text-blue-500 transition-colors" />
@@ -481,6 +516,57 @@ const SpecialistDiscovery = () => {
       <style>{`
         .custom-scrollbar::-webkit-scrollbar { width: 0px; }
       `}</style>
+
+      {/* DOCTOR REVIEW MODAL NODE */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className={`w-full max-w-lg rounded-[48px] border shadow-2xl overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+              <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'}`}>
+                 <div className="text-left">
+                    <h2 className={`text-xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Clinical Review</h2>
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Feedback Synchronization Protocol</p>
+                 </div>
+                 <button onClick={() => setShowReviewModal(false)} className={`p-3 rounded-xl transition-all border ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-zinc-500 hover:text-white' : 'bg-white border-slate-100 text-slate-400'}`}><X size={20}/></button>
+              </div>
+
+              <div className="p-10 space-y-8 text-center">
+                 <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Rate the quality of clinical sync with {docDetails?.user?.name}</p>
+                    <div className="flex justify-center gap-3">
+                       {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setReviewData({ ...reviewData, rating: star })}
+                            className={`p-2 transition-all transform active:scale-90 ${reviewData.rating >= star ? 'text-amber-500 scale-110' : 'text-zinc-700 opacity-30 hover:opacity-100'}`}
+                          >
+                             <Star size={32} fill={reviewData.rating >= star ? "currentColor" : "none"} strokeWidth={3} />
+                          </button>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="space-y-2 text-left">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Technical Feedback / Comments</label>
+                    <textarea
+                      className={`w-full p-6 rounded-[32px] border outline-none text-sm font-bold min-h-[140px] transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white focus:border-blue-500/50' : 'bg-slate-50 border-slate-200'}`}
+                      placeholder="Enter your assessment of the consultation quality..."
+                      value={reviewData.comment}
+                      onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                    ></textarea>
+                 </div>
+
+                 <button
+                   onClick={submitReview}
+                   disabled={submittingReview}
+                   className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                 >
+                    {submittingReview ? <Loader2 size={18} className="animate-spin" /> : <ThumbsUp size={18} />}
+                    Establish Review Record
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

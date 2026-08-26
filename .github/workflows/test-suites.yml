@@ -1,0 +1,331 @@
+name: Medi Consult - Automated Test Suites & Excel Reports CI
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master, develop ]
+  workflow_dispatch:
+    inputs:
+      load_test_duration:
+        description: 'Duration (in seconds) for Load Test benchmark'
+        required: false
+        default: '30'
+      load_test_connections:
+        description: 'Concurrent virtual users for Load Test benchmark'
+        required: false
+        default: '50'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  # =========================================================================
+  # 1. SELENIUM WEB E2E TEST SUITE
+  # =========================================================================
+  selenium-tests:
+    name: 🌐 Selenium E2E Web Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+            selenium-tests/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci || npm install
+
+      - name: Install Frontend Dependencies
+        run: |
+          cd frontend
+          npm ci || npm install
+
+      - name: Start Backend Server
+        run: |
+          cd backend
+          PORT=5000 \
+          NODE_ENV=test \
+          MONGO_URI=mongodb://127.0.0.1:27017/mediconsult_test \
+          JWT_SECRET=ci_testing_secret_key_953d706616f8712616bcd2497d9f11bf \
+          nohup node server.js > backend.log 2>&1 &
+          echo "Backend server process initiated in background."
+
+      - name: Start Frontend Server
+        run: |
+          cd frontend
+          nohup npx vite --host 0.0.0.0 --port 5173 > frontend.log 2>&1 &
+          echo "Frontend dev server process initiated in background."
+
+      - name: Wait for Frontend & Backend Services
+        run: |
+          echo "Waiting for services to become responsive..."
+          for i in {1..30}; do
+            if curl -s http://localhost:5173 > /dev/null; then
+              echo "Frontend is live at http://localhost:5173"
+              break
+            fi
+            echo "Waiting for frontend (attempt $i/30)..."
+            sleep 2
+          done
+
+      - name: Install Selenium Test Dependencies
+        run: |
+          cd selenium-tests
+          npm ci || npm install
+
+      - name: Run Selenium Tests & Generate Excel Report
+        run: |
+          cd selenium-tests
+          BASE_URL=http://localhost:5173 npm test
+
+      - name: Upload Selenium Excel Test Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: selenium-web-test-report
+          path: selenium-tests/*.xlsx
+          if-no-files-found: warn
+          retention-days: 30
+
+  # =========================================================================
+  # 2. AUTOCANNON LOAD & PERFORMANCE TEST SUITE
+  # =========================================================================
+  load-tests:
+    name: ⚡ Backend Load & Performance Tests
+    runs-on: ubuntu-latest
+
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            load-tests/package-lock.json
+
+      - name: Install Backend Dependencies
+        run: |
+          cd backend
+          npm ci || npm install
+
+      - name: Start Backend Server
+        run: |
+          cd backend
+          PORT=5000 \
+          NODE_ENV=test \
+          MONGO_URI=mongodb://127.0.0.1:27017/mediconsult_test \
+          JWT_SECRET=ci_testing_secret_key_953d706616f8712616bcd2497d9f11bf \
+          nohup node server.js > backend.log 2>&1 &
+
+      - name: Wait for Backend Server
+        run: |
+          echo "Waiting for backend server to be ready on port 5000..."
+          for i in {1..20}; do
+            if curl -s http://localhost:5000/ > /dev/null; then
+              echo "Backend is responsive at http://localhost:5000/"
+              break
+            fi
+            sleep 1
+          done
+
+      - name: Install Load Test Dependencies
+        run: |
+          cd load-tests
+          npm ci || npm install
+
+      - name: Run Load Tests & Generate Excel Report
+        run: |
+          cd load-tests
+          TARGET_URL=http://localhost:5000/ \
+          DURATION=${{ github.event.inputs.load_test_duration || '30' }} \
+          CONNECTIONS=${{ github.event.inputs.load_test_connections || '50' }} \
+          npm test
+
+      - name: Upload Load Test Excel Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: load-performance-test-report
+          path: load-tests/*.xlsx
+          if-no-files-found: warn
+          retention-days: 30
+
+  # =========================================================================
+  # 3. APPIUM MOBILE E2E TEST SUITE & COMPLIANCE MATRIX
+  # =========================================================================
+  appium-tests:
+    name: 📱 Appium Mobile E2E Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: appium-tests/package-lock.json
+
+      - name: Install Appium Test Dependencies
+        run: |
+          cd appium-tests
+          npm ci || npm install
+
+      - name: Run Appium Tests & Generate Excel Report
+        run: |
+          cd appium-tests
+          npm test
+
+      - name: Upload Appium Mobile Excel Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: appium-mobile-test-report
+          path: appium-tests/*.xlsx
+          if-no-files-found: warn
+          retention-days: 30
+
+  # =========================================================================
+  # 4. VULNERABILITY & SECURITY ASSESSMENT TEST SUITE
+  # =========================================================================
+  vulnerability-tests:
+    name: 🛡️ Security & Vulnerability Assessment
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+          cache-dependency-path: vulnerability-tests/package-lock.json
+
+      - name: Install Vulnerability Test Dependencies
+        run: |
+          cd vulnerability-tests
+          npm ci || npm install
+
+      - name: Run Security Vulnerability Audit & Generate Excel Report
+        run: |
+          cd vulnerability-tests
+          npm test
+
+      - name: Upload Vulnerability Security Excel Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-security-test-report
+          path: vulnerability-tests/*.xlsx
+          if-no-files-found: warn
+          retention-days: 30
+
+  # =========================================================================
+  # 5. CONSOLIDATE ALL 4 EXCEL REPORTS INTO A SINGLE ALL-IN-ONE ARTIFACT
+  # =========================================================================
+  consolidated-reports:
+    name: 📦 Consolidate All Test Excel Reports
+    runs-on: ubuntu-latest
+    needs: [selenium-tests, load-tests, appium-tests, vulnerability-tests]
+    if: always()
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Create Artifacts Bundle Directory
+        run: |
+          mkdir -p ./all-test-excel-reports
+
+      - name: Download Selenium Reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: selenium-web-test-report
+          path: ./temp-selenium
+
+      - name: Download Load Test Reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: load-performance-test-report
+          path: ./temp-load
+
+      - name: Download Appium Reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: appium-mobile-test-report
+          path: ./temp-appium
+
+      - name: Download Vulnerability Reports
+        uses: actions/download-artifact@v4
+        continue-on-error: true
+        with:
+          name: vulnerability-security-test-report
+          path: ./temp-vuln
+
+      - name: Bundle and Organize All Excel Spreadsheets
+        run: |
+          echo "Organizing all collected Excel files into unified package..."
+          [ -d "./temp-selenium" ] && cp -rf ./temp-selenium/*.xlsx ./all-test-excel-reports/ 2>/dev/null || true
+          [ -d "./temp-load" ] && cp -rf ./temp-load/*.xlsx ./all-test-excel-reports/ 2>/dev/null || true
+          [ -d "./temp-appium" ] && cp -rf ./temp-appium/*.xlsx ./all-test-excel-reports/ 2>/dev/null || true
+          [ -d "./temp-vuln" ] && cp -rf ./temp-vuln/*.xlsx ./all-test-excel-reports/ 2>/dev/null || true
+          echo "Contents of all-test-excel-reports directory:"
+          ls -lah ./all-test-excel-reports/
+
+      - name: Upload Consolidated All-In-One Excel Reports Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: all-test-excel-reports
+          path: ./all-test-excel-reports/*.xlsx
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Generate CI Summary Dashboard in GitHub Step Summary
+        run: |
+          echo "## 📊 Automated Test Execution & Excel Reports Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Test Suite | Scope | Primary Report (.xlsx) | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "| :--- | :--- | :--- | :--- |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🌐 **Selenium E2E Tests** | Web Portal Login & Auth Flow | \`Login_Test_Report.xlsx\` | Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| ⚡ **Load & Performance Tests** | Backend Throughput & Latency (Autocannon) | \`Load_Test_Report.xlsx\` | Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 📱 **Appium Mobile Tests** | Capacitor / Android Mobile App | \`App_Test_Report.xlsx\` | Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "| 🛡️ **Vulnerability Assessment** | OWASP Top 10 & Security Audit | \`Security_Vulnerability_Report.xlsx\` | Completed |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### 📥 How to Download Reports" >> $GITHUB_STEP_SUMMARY
+          echo "1. Navigate to the **Artifacts** section at the bottom of this workflow run page." >> $GITHUB_STEP_SUMMARY
+          echo "2. Download **\`all-test-excel-reports\`** for the full bundled package containing all 4 spreadsheets, or download individual artifacts per test suite." >> $GITHUB_STEP_SUMMARY

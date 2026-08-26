@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { QRCodeSVG } from 'qrcode.react';
 import useStore from '../../store/useStore';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
-import { Shield, MapPin, Phone, User as UserIcon, Activity, Droplet, Download, Share2, Info } from 'lucide-react';
+import { Shield, MapPin, User as UserIcon, Activity, Droplet, Download, Share2, Info } from 'lucide-react';
 
 const EmergencyQR = () => {
   const { user, theme } = useStore();
@@ -80,7 +79,6 @@ const EmergencyQR = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
       </div>
     </div>
   );

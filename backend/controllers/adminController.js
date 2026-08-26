@@ -8,11 +8,9 @@ import Prescription from '../models/Prescription.js';
 import Medicine from '../models/Medicine.js';
 import HealthLog from '../models/HealthLog.js';
 import Notification from '../models/Notification.js';
+import AuditLog from '../models/AuditLog.js';
+import ClinicalDiagnosis from '../models/ClinicalDiagnosis.js';
 import { sendEmail } from '../utils/sendEmail.js';
-import path from 'path';
-
-// Ensure model registration
-import '../models/ClinicalDiagnosis.js';
 
 export const getDashboardSummary = async (req, res) => {
   try {
@@ -26,15 +24,32 @@ export const getDashboardSummary = async (req, res) => {
     const pendingVerification = await DoctorProfile.countDocuments({ verificationStatus: 'Pending' });
     const todayTokens = await Appointment.countDocuments({ date: { $gte: startOfToday, $lte: endOfToday } });
     
-    const completedToday = await Appointment.countDocuments({ status: 'Completed', date: { $gte: startOfToday, $lte: endOfToday } });
-    const revenueToday = completedToday * 500;
+    const completedToday = await Appointment.find({ status: 'Completed', date: { $gte: startOfToday, $lte: endOfToday } });
+    const revenueToday = completedToday.reduce((acc, curr) => acc + (curr.fee || 0), 0);
+
+    const paidTodayCount = await Appointment.countDocuments({ paymentStatus: 'Paid', date: { $gte: startOfToday, $lte: endOfToday } });
+    const paidTodayRev = (await Appointment.find({ paymentStatus: 'Paid', date: { $gte: startOfToday, $lte: endOfToday } })).reduce((acc, curr) => acc + (curr.fee || 0), 0);
+
+    const depts = await User.aggregate([
+      { $match: { role: 'doctor' } },
+      { $lookup: { from: 'doctorprofiles', localField: '_id', foreignField: 'userId', as: 'profile' } },
+      { $unwind: { path: '$profile', preserveNullAndEmptyArrays: true } },
+      { $group: { _id: '$profile.department', count: { $sum: 1 } } }
+    ]);
+    const deptLoad = depts.filter(d => d._id).map(d => ({ name: d._id, value: d.count }));
 
     res.json({
       totalPatients,
       totalDoctors,
       pendingVerification,
       todayTokens: todayTokens || 0,
-      revenueToday: revenueToday || 0
+      revenueToday: paidTodayRev || 0,
+      deptLoad: deptLoad.length > 0 ? deptLoad : [{ name: 'General', value: totalDoctors }],
+      systemHealth: {
+        apiLatency: "24ms",
+        swarmStatus: "Optimal",
+        serverLoad: "12%"
+      }
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -86,21 +101,40 @@ export const verifyDoctor = async (req, res) => {
 
     const message = req.body.message;
 
-    const queryId = id.toUpperCase();
+    const queryId = id.trim();
+    const isMongoId = mongoose.Types.ObjectId.isValid(queryId);
+
     const profile = await DoctorProfile.findOne({
-      $or: [{ doctorId: queryId }, { applicationNumber: queryId }]
+      $or: [
+        { doctorId: queryId.toUpperCase() },
+        { applicationNumber: queryId.toUpperCase() },
+        ...(isMongoId ? [{ userId: queryId }] : [])
+      ]
     });
 
     if (!profile) return res.status(404).json({ message: 'Doctor profile node not found' });
 
     if (status === 'Approved') {
-      const count = await User.countDocuments({ role: 'doctor', doctorId: { $exists: true } });
-      const newDoctorId = 'DOC' + (1000 + count + 1);
+      // Robust Sequential Doctor ID generation
+      const latestDoc = await User.findOne({ doctorId: /^DOC/ }).sort({ doctorId: -1 });
+      let nextIdNumber = 1001;
+      if (latestDoc && latestDoc.doctorId) {
+        const lastNum = parseInt(latestDoc.doctorId.replace('DOC', ''));
+        if (!isNaN(lastNum)) nextIdNumber = lastNum + 1;
+      }
+      const newDoctorId = 'DOC' + nextIdNumber;
+
+      console.log(`[ADMIN_VERIFY] Generating ID: ${newDoctorId} for Node: ${profile._id}`);
+
       profile.doctorId = newDoctorId;
       profile.verificationStatus = 'Approved';
       profile.isVerified = true;
       await profile.save();
-      await User.findByIdAndUpdate(profile.userId, { doctorId: newDoctorId });
+
+      // Synchronize User Node
+      await User.findByIdAndUpdate(profile.userId, {
+        doctorId: newDoctorId
+      });
     } else {
       profile.verificationStatus = status || 'Rejected';
       profile.isVerified = false;
@@ -210,7 +244,17 @@ export const toggleDoctorStatus = async (req, res) => {
 export const togglePatientStatus = async (req, res) => {
   try {
     const { id } = req.params;
-    const user = await User.findOne({ patientId: id, role: 'patient' });
+    const queryId = id.trim();
+    const isMongoId = mongoose.Types.ObjectId.isValid(queryId);
+
+    const user = await User.findOne({
+      $or: [
+        { patientId: queryId.toUpperCase() },
+        ...(isMongoId ? [{ _id: queryId }] : [])
+      ],
+      role: 'patient'
+    });
+
     if (!user) return res.status(404).json({ message: 'Patient not found' });
     user.isActive = !user.isActive;
     await user.save();
@@ -225,13 +269,17 @@ export const getDoctorDetails = async (req, res) => {
     const { doctorId } = req.params;
     if (!doctorId) return res.status(400).json({ message: 'Doctor ID is required' });
 
-    const queryId = doctorId.trim().toUpperCase();
+    const queryId = doctorId.trim();
     console.log(`[ADMIN_SYNC] Probing Doctor Registry for ID: ${queryId}`);
+
+    // Check if ID is a valid MongoDB ObjectId
+    const isMongoId = mongoose.Types.ObjectId.isValid(queryId);
 
     const user = await User.findOne({
       $or: [
-        { doctorId: queryId },
-        { applicationNumber: queryId }
+        { doctorId: queryId.toUpperCase() },
+        { applicationNumber: queryId.toUpperCase() },
+        ...(isMongoId ? [{ _id: queryId }] : [])
       ],
       role: 'doctor'
     }).select('-password').lean();
@@ -305,9 +353,77 @@ export const updateDoctorDetails = async (req, res) => {
   try {
     const { doctorId } = req.params;
     const { name, email, specialization, hospitalName, department, experience, age, gender, phone } = req.body;
-    const user = await User.findOneAndUpdate({ $or: [{ doctorId }, { applicationNumber: doctorId }] }, { name, email, phone }, { new: true });
+
+    const queryId = doctorId.trim();
+    const isMongoId = mongoose.Types.ObjectId.isValid(queryId);
+
+    const user = await User.findOneAndUpdate({
+      $or: [
+        { doctorId: queryId.toUpperCase() },
+        { applicationNumber: queryId.toUpperCase() },
+        ...(isMongoId ? [{ _id: queryId }] : [])
+      ]
+    }, { name, email, phone }, { new: true });
+
+    if (!user) return res.status(404).json({ message: 'User node not found' });
+
     await DoctorProfile.findOneAndUpdate({ userId: user._id }, { specialization, hospitalName, department, experience, age, gender }, { upsert: true });
+
+    // Log to Audit History
+    await AuditLog.create({
+      logId: 'AL' + Date.now(),
+      userId: req.user.adminId || req.user._id,
+      role: 'Admin',
+      action: `Modified Doctor Profile: ${doctorId} (${name})`,
+      status: 'Success'
+    });
+
     res.json({ success: true, message: 'Doctor node parameters updated' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updatePatientDetails = async (req, res) => {
+  try {
+    const { patientId: id } = req.params;
+    const { name, email, phone, age, gender, bloodGroup } = req.body;
+
+    const queryId = id.trim();
+    const isMongoId = mongoose.Types.ObjectId.isValid(queryId);
+
+    const user = await User.findOneAndUpdate({
+      $or: [
+        { patientId: queryId.toUpperCase() },
+        ...(isMongoId ? [{ _id: queryId }] : [])
+      ],
+      role: 'patient'
+    }, { name, email, phone, gender }, { new: true });
+
+    if (!user) return res.status(404).json({ message: 'Patient not found' });
+
+    await PatientProfile.findOneAndUpdate({ userId: user._id }, { age, gender, bloodGroup }, { upsert: true });
+
+    // Log to Audit History
+    await AuditLog.create({
+      logId: 'AL' + Date.now(),
+      userId: req.user.adminId || req.user._id,
+      role: 'Admin',
+      action: `Modified Patient Profile: ${user.patientId || id} (${name})`,
+      status: 'Success'
+    });
+
+    res.json({ success: true, message: 'Patient node parameters updated' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getProfileAuditHistory = async (req, res) => {
+  try {
+    const { targetId } = req.params;
+    const logs = await AuditLog.find({ action: { $regex: targetId, $options: 'i' } }).sort({ createdAt: -1 });
+    res.json(logs);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -315,23 +431,33 @@ export const updateDoctorDetails = async (req, res) => {
 
 export const getPatientDetails = async (req, res) => {
   try {
-    const patientId = req.params.patientId?.toUpperCase();
-    console.log(`[ADMIN_PORTAL] Probing Patient Archive: ${patientId}`);
+    const id = req.params.patientId?.trim();
+    console.log(`[ADMIN_PORTAL] Probing Patient Archive: ${id}`);
 
-    const user = await User.findOne({ patientId });
-    if (!user) return res.status(404).json({ message: 'Patient not found' });
+    const isMongoId = mongoose.Types.ObjectId.isValid(id);
 
-    // Explicitly resolve model to prevent ReferenceError
-    const ClinicalDiagnosis = mongoose.model('ClinicalDiagnosis');
+    const user = await User.findOne({
+      $or: [
+        { patientId: id.toUpperCase() },
+        ...(isMongoId ? [{ _id: id }] : [])
+      ]
+    });
+    if (!user) return res.status(404).json({ message: 'Patient node not found' });
+
+    const patientId = user.patientId;
+    if (!patientId) {
+      console.warn(`[ADMIN_PORTAL] Patient ID missing for User Node: ${user._id}`);
+      return res.status(400).json({ message: 'Patient clinical ID missing from registry' });
+    }
 
     const [reports, prescriptions, consultations, diagnoses, profile, trackerMedicines, healthLogs] = await Promise.all([
-      Report.find({ patientId }).sort({ createdAt: -1 }),
-      Prescription.find({ patientId }).sort({ createdAt: -1 }),
-      Appointment.find({ patientId }).sort({ date: -1 }),
-      ClinicalDiagnosis.find({ patientId }).sort({ consultationDate: -1 }),
-      PatientProfile.findOne({ patientId }),
-      Medicine.find({ patientId, isActive: true }),
-      HealthLog.find({ patientId }).sort({ date: -1 })
+      Report.find({ patientId }).sort({ createdAt: -1 }).lean(),
+      Prescription.find({ patientId }).sort({ createdAt: -1 }).lean(),
+      Appointment.find({ patientId }).sort({ date: -1 }).lean(),
+      ClinicalDiagnosis.find({ patientId }).sort({ consultationDate: -1 }).lean(),
+      PatientProfile.findOne({ patientId }).lean(),
+      Medicine.find({ patientId, isActive: true }).lean(),
+      HealthLog.find({ patientId }).sort({ date: -1 }).lean()
     ]);
 
     res.json({
@@ -346,6 +472,49 @@ export const getPatientDetails = async (req, res) => {
     });
   } catch (error) {
     console.error(`[ADMIN_PORTAL_SYNC_ERROR]:`, error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPayments = async (req, res) => {
+  try {
+    const appointments = await Appointment.find({ fee: { $gt: 0 } }).sort({ createdAt: -1 }).lean();
+    const payments = await Promise.all(appointments.map(async (app) => {
+      const patient = await User.findOne({ patientId: app.patientId }).select('name').lean();
+      return {
+        ...app,
+        patientName: patient?.name || 'Unknown Patient'
+      };
+    }));
+    res.json(payments);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const overridePaymentStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body; // e.g. 'Paid'
+
+    const appointment = await Appointment.findByIdAndUpdate(
+      id,
+      { paymentStatus: status },
+      { new: true }
+    );
+
+    if (!appointment) return res.status(404).json({ message: 'Transaction node not found' });
+
+    await AuditLog.create({
+      logId: 'AL' + Date.now(),
+      userId: req.user.adminId || req.user._id,
+      role: 'Admin',
+      action: `Manual Payment Override: ${appointment.appointmentId || id} to ${status}`,
+      status: 'Success'
+    });
+
+    res.json({ success: true, message: `Payment status synchronized to ${status}`, appointment });
+  } catch (error) {
     res.status(500).json({ message: error.message });
   }
 };

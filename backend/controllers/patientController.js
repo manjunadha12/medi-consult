@@ -1,11 +1,26 @@
 import User from '../models/User.js';
 import PatientProfile from '../models/PatientProfile.js';
 import Prescription from '../models/Prescription.js';
+import DoctorReview from '../models/DoctorReview.js';
+import Appointment from '../models/Appointment.js';
 
 export const getPatientProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    console.log(`[PROFILE] Fetching profile for ID: ${userId}`);
+    console.log(`[PROFILE_NODE] Sync Request for ID: ${userId} (Requested by: ${req.user?.name})`);
+
+    if (!userId || userId === 'undefined') {
+       return res.status(400).json({ message: 'Invalid identity node parameter' });
+    }
+
+    // [SEC] IDOR check: only owner, doctors, or admins may read this profile
+    if (
+      req.user.patientId !== userId &&
+      req.user.role !== 'admin' &&
+      req.user.role !== 'doctor'
+    ) {
+      return res.status(403).json({ message: 'Access denied: insufficient privileges' });
+    }
 
     const user = await User.findOne({ patientId: userId });
 
@@ -22,6 +37,7 @@ export const getPatientProfile = async (req, res) => {
       email: user.email,
       phone: user.phone,
       patientId: user.patientId,
+      profilePicture: user.profilePicture,
       ...profile?._doc
     });
   } catch (error) {
@@ -33,11 +49,19 @@ export const getPatientProfile = async (req, res) => {
 export const updatePatientProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { name, phone, age, gender, bloodGroup, address, allergies, medicalHistory } = req.body;
+    const { name, phone, age, gender, bloodGroup, address, allergies, medicalHistory, profilePicture } = req.body;
+
+    // [SEC] IDOR check: only owner or admin may update this profile
+    if (req.user.patientId !== userId && req.user.role !== 'admin') {
+      return res.status(403).json({ message: 'Access denied: you can only update your own profile' });
+    }
+
+    const updateFields = { name, phone };
+    if (profilePicture) updateFields.profilePicture = profilePicture;
 
     const user = await User.findOneAndUpdate(
       { patientId: userId },
-      { name, phone },
+      updateFields,
       { new: true }
     );
 
@@ -78,6 +102,38 @@ export const deletePrescription = async (req, res) => {
     }
     await Prescription.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Prescription removed from archive' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const addDoctorReview = async (req, res) => {
+  try {
+    const { doctorId, appointmentId, rating, comment } = req.body;
+    const patientId = req.user.patientId;
+
+    if (!patientId) {
+      return res.status(400).json({ message: 'Patient identity not synchronized.' });
+    }
+
+    const reviewId = `REV-${Date.now()}`;
+
+    // Fetch names for denormalization
+    const doctor = await User.findOne({ doctorId });
+
+    const review = await DoctorReview.create({
+      reviewId,
+      patientId,
+      patientName: req.user.name,
+      doctorId,
+      doctorName: doctor?.name || 'Specialist Node',
+      appointmentId,
+      rating,
+      reviewComment: comment,
+      status: 'Published' // Auto-publish for dev
+    });
+
+    res.status(201).json({ success: true, message: 'Review successfully submitted to clinical registry.', review });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

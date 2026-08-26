@@ -112,17 +112,52 @@ export const analyzeHealthTrends = async (req, res) => {
 
     const aiResult = await swarmAnalyze({ prompt });
 
+    // Function to calculate a realistic medical score based on vitals
+    const calculateDynamicScore = (log) => {
+        if (!log) return 85;
+        let score = 100;
+        if (log.bp_systolic > 140 || log.bp_systolic < 90) score -= 15;
+        if (log.oxygen < 95) score -= 10;
+        if (log.sugar > 160 || log.sugar < 70) score -= 10;
+        if (log.heartbeat > 100 || log.heartbeat < 50) score -= 5;
+        return score;
+    };
+
     try {
         const jsonStart = aiResult.indexOf('{');
         const jsonEnd = aiResult.lastIndexOf('}') + 1;
         const parsed = JSON.parse(aiResult.substring(jsonStart, jsonEnd));
+
+        // Ensure the AI provided a score, if not, generate one
+        if (!parsed.weeklyTrend.healthScore) {
+            parsed.weeklyTrend.healthScore = calculateDynamicScore(latest);
+        }
+
         res.json(parsed);
     } catch (e) {
-        // Fallback if AI output is not perfect JSON
+        // Dynamic fallback if AI output is not perfect JSON
+        const fallbackScore = calculateDynamicScore(latest);
         res.json({
-            comparison: { heartRate: "Stable", bp: "Stable", oxygen: "Stable", weight: "Stable", statusIcon: "🟡" },
-            weeklyTrend: { avgHeartRate: "Stable", bpTrend: "Stable", oxygenLevels: "Healthy", weightChange: "No major change", healthScore: 85, weeklyStatus: "Stable" },
-            recommendations: ["Maintain hydration", "Continue walking", "Monitor vitals daily"]
+            comparison: {
+                heartRate: latest.heartbeat > 100 ? "High" : "Stable",
+                bp: latest.bp_systolic > 140 ? "Needs Attention" : "Stable",
+                oxygen: latest.oxygen < 95 ? "Needs Attention" : "Stable",
+                weight: "Stable",
+                statusIcon: fallbackScore < 80 ? "🔴" : (fallbackScore < 90 ? "🟡" : "🟢")
+            },
+            weeklyTrend: {
+                avgHeartRate: "Synchronized",
+                bpTrend: latest.bp_systolic > 140 ? "High" : "Stable",
+                oxygenLevels: latest.oxygen < 95 ? "Low" : "Healthy",
+                weightChange: "No major change",
+                healthScore: fallbackScore,
+                weeklyStatus: fallbackScore > 90 ? "Excellent" : "Monitoring"
+            },
+            recommendations: [
+                latest.oxygen < 95 ? "Increase ventilation and monitor O2" : "Maintain hydration",
+                latest.bp_systolic > 140 ? "Reduce salt intake" : "Continue walking",
+                "Synchronize vitals daily"
+            ]
         });
     }
   } catch (error) {

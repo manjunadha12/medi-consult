@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import useStore from '../../store/useStore';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
-import api from '../../utils/api';
-import { User, Mail, Phone, MapPin, Droplet, AlertCircle, Edit2, Save, X, Loader2, ShieldCheck as ShieldCheckIcon, Shield } from 'lucide-react';
+import api, { BACKEND_URL } from '../../utils/api';
+import { User, Mail, Phone as PhoneIcon, MapPin, Droplet, AlertCircle, Edit2, Save, X, Loader2, ShieldCheck as ShieldCheckIcon, Shield, Camera } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const PatientProfile = () => {
@@ -11,6 +10,7 @@ const PatientProfile = () => {
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -19,15 +19,25 @@ const PatientProfile = () => {
     gender: '',
     bloodGroup: '',
     address: '',
+    profilePicture: '',
     allergies: [],
     medicalHistory: []
   });
+
+  const fileInputRef = React.useRef(null);
 
   useEffect(() => {
     fetchProfile();
   }, []);
 
   const fetchProfile = async () => {
+    if (!user?.userId || user.userId === 'undefined') {
+      console.error("[PROFILE_SYNC_ERR] Invalid User ID Node:", user);
+      toast.error("Identity node desynchronized. Please re-login.");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data } = await api.get(`/patients/profile/${user.userId}`);
       setProfile({
@@ -36,7 +46,8 @@ const PatientProfile = () => {
         medicalHistory: data.medicalHistory || []
       });
     } catch (error) {
-      toast.error("Failed to load profile");
+      console.error("[PROFILE_FETCH_ERR]", error.response?.status, error.response?.data || error.message);
+      toast.error(`Failed to load profile: ${error.response?.data?.message || error.message}`);
     } finally {
       setLoading(false);
     }
@@ -48,11 +59,51 @@ const PatientProfile = () => {
       await api.put(`/patients/profile/${user.userId}`, profile);
       toast.success("Profile updated!");
       setIsEditing(false);
-      setUser({ ...user, name: profile.name });
+      setUser({ ...user, name: profile.name, profilePicture: profile.profilePicture });
     } catch (error) {
       toast.error("Update failed");
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAvatarUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    setUploading(true);
+    try {
+      // Diagnostic Ping
+      try {
+        const pingRes = await api.get('/patients/node-ping');
+        console.log("[AVATAR_PING] Node responds:", pingRes.data);
+      } catch (pingErr) {
+        console.warn("[AVATAR_PING] Node unreachable or 404:", pingErr.message);
+      }
+
+      const uploadURL = `/patients/upload-avatar`;
+      console.log(`[AVATAR_HANDSHAKE] Initializing post to: ${api.defaults.baseURL}${uploadURL}`);
+
+      const { data } = await api.post(uploadURL, formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      setProfile({ ...profile, profilePicture: data.url });
+      // If not editing, auto-save the picture
+      if (!isEditing) {
+        await api.put(`/patients/profile/${user.userId}`, { ...profile, profilePicture: data.url });
+        setUser({ ...user, profilePicture: data.url });
+        toast.success("Identity visual synchronized");
+      }
+    } catch (err) {
+      console.error("[AVATAR_UPLOAD_ERR]", err);
+      const errorMsg = err.response?.data?.message || err.message || "Handshake failed during upload";
+      const fullPath = `${api.defaults.baseURL}/patients/upload-avatar`;
+      toast.error(`Upload Failed: ${errorMsg} (Node: ${fullPath})`);
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -103,10 +154,27 @@ const PatientProfile = () => {
             <div className="lg:col-span-1 space-y-6 sm:space-y-8">
               <div className={`p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border shadow-xl text-center relative overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5 shadow-black/60' : 'bg-white border-slate-100'}`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-                <div className="relative w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-6">
-                  <div className="w-full h-full bg-blue-600 rounded-[28px] sm:rounded-[32px] flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-2xl">
-                    {profile.name?.charAt(0)}
+                <div className="relative w-24 h-24 sm:w-28 sm:h-28 mx-auto mb-6 group/avatar">
+                  <div className={`w-full h-full rounded-[32px] sm:rounded-[40px] flex items-center justify-center text-white text-2xl sm:text-3xl font-black shadow-2xl overflow-hidden border-2 border-white/5 ${!profile.profilePicture ? 'bg-blue-600' : ''}`}>
+                    {profile.profilePicture ? (
+                      <img src={`${BACKEND_URL}${profile.profilePicture}`} alt={profile.name} className="w-full h-full object-cover" />
+                    ) : (
+                      profile.name?.charAt(0)
+                    )}
                   </div>
+                  <button
+                    onClick={() => fileInputRef.current?.click()}
+                    className="absolute -bottom-2 -right-2 w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-xl hover:bg-blue-500 transition-all active:scale-90 border-4 border-[#0A0A0A]"
+                  >
+                    {uploading ? <Loader2 size={16} className="animate-spin" /> : <Camera size={16} />}
+                  </button>
+                  <input
+                    type="file"
+                    ref={fileInputRef}
+                    className="hidden"
+                    onChange={handleAvatarUpload}
+                    accept="image/*"
+                  />
                 </div>
                 {isEditing ? (
                   <input
@@ -149,7 +217,7 @@ const PatientProfile = () => {
               </div>
 
               <div className={`p-6 sm:p-8 rounded-[32px] sm:rounded-[48px] border shadow-xl transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5 shadow-black/60' : 'bg-white border-slate-100'}`}>
-                <h3 className="font-black uppercase tracking-[0.2em] text-[8px] sm:text-[10px] mb-6 sm:mb-8 flex items-center gap-3 text-blue-500 leading-none"><Phone size={14} className="sm:w-4 sm:h-4" /> Contact Hub</h3>
+                <h3 className="font-black uppercase tracking-[0.2em] text-[8px] sm:text-[10px] mb-6 sm:mb-8 flex items-center gap-3 text-blue-500 leading-none"><PhoneIcon size={14} className="sm:w-4 sm:h-4" /> Contact Hub</h3>
                 <div className="space-y-6 sm:space-y-8 text-left">
                   <div className="flex items-center gap-4 sm:gap-5 group">
                     <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shrink-0 ${theme === 'dark' ? 'bg-white/5 text-zinc-500 group-hover:text-blue-400' : 'bg-slate-50 text-slate-400 group-hover:text-blue-600'}`}>
@@ -162,7 +230,7 @@ const PatientProfile = () => {
                   </div>
                   <div className="flex items-center gap-4 sm:gap-5 group">
                     <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center transition-all shrink-0 ${theme === 'dark' ? 'bg-white/5 text-zinc-500 group-hover:text-blue-400' : 'bg-slate-50 text-slate-400 group-hover:text-blue-600'}`}>
-                       <Phone size={16} className="sm:w-4.5 sm:h-4.5" />
+                       <PhoneIcon size={16} className="sm:w-4.5 sm:h-4.5" />
                     </div>
                     <div className="flex-1 min-w-0 text-left">
                       <p className="text-[7px] sm:text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Signal Line</p>
@@ -275,7 +343,6 @@ const PatientProfile = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
       </div>
     </div>
   );

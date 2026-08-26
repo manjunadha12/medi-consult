@@ -124,12 +124,12 @@ const SearchPatient = () => {
                       <FileText className="w-8 h-8 text-blue-600" /> Archived Objects
                     </h3>
                     <div className="px-5 py-2 bg-blue-50 dark:bg-blue-900/20 text-blue-600 rounded-2xl text-[10px] font-black tracking-widest uppercase">
-                       {patient.reports?.length || 0} SECURE FILES
+                       {patient?.reports?.length || 0} SECURE FILES
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 gap-4">
-                    {patient.reports?.length > 0 ? patient.reports.map((r, i) => (
+                    {patient?.reports?.length > 0 ? patient?.reports?.map((r, i) => (
                       <div key={i} className={`flex items-center justify-between p-6 rounded-[32px] border transition-all shadow-sm hover:shadow-xl hover:shadow-blue-500/5 group ${theme === 'dark' ? 'bg-zinc-900/50 border-white/5 hover:border-blue-500/30 hover:bg-zinc-900' : 'bg-gray-50 border-gray-100 hover:border-blue-300 hover:bg-white'}`}>
                         <div className="flex items-center gap-6">
                            <div className={`w-16 h-16 rounded-3xl flex items-center justify-center border transition-all ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5 text-zinc-600 group-hover:text-blue-500' : 'bg-white border-gray-50 group-hover:border-blue-100 text-gray-300 group-hover:text-blue-600 shadow-inner'}`}>

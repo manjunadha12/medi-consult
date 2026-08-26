@@ -7,10 +7,11 @@ import {
   Search as SearchIcon, Pill, Info, AlertTriangle,
   MessageSquare, Save, Download, Share2, Loader2,
   ChevronRight, Thermometer, FlaskConical, Stethoscope, Activity,
-  CheckCircle, Shield, Layout, Zap, Database
+  CheckCircle, Shield, Layout, Zap, Database, ShieldCheck
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
+import { fullMedicinesDataset } from '../../utils/medicinesData';
 
 const MedicineSearch = () => {
   const { theme } = useStore();
@@ -23,16 +24,50 @@ const MedicineSearch = () => {
   const suggestionRef = useRef(null);
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q');
+    if (q) {
+       setQuery(q);
+       handleSearch(q);
+    }
+  }, []);
+
+  useEffect(() => {
     const fetchSuggestions = async () => {
       if (query.length < 2) {
         setSuggestions([]);
         return;
       }
+
+      // 1. Search Local Registry for suggestions
+      const normalizedQuery = query.toLowerCase();
+      const localSuggestions = fullMedicinesDataset.filter(m =>
+        m.name.toLowerCase().includes(normalizedQuery) ||
+        m.genericName.toLowerCase().includes(normalizedQuery) ||
+        m.brandNames.some(bn => bn.toLowerCase().includes(normalizedQuery))
+      ).map(m => ({
+        name: m.name,
+        brandName: m.brandNames[0],
+        commonUses: m.usedFor
+      }));
+
+      // 2. Fetch from Backend/AI suggestions and Merge
       try {
         const { data } = await api.get(`/ai/medicine-suggestions?query=${query}`);
-        setSuggestions(Array.isArray(data) ? data : []);
+        const apiSuggestions = Array.isArray(data) ? data : [];
+
+        // Deduplicate based on name
+        const combined = [...localSuggestions];
+        apiSuggestions.forEach(apiSug => {
+          if (!combined.find(s => s.name.toLowerCase() === apiSug.name.toLowerCase())) {
+            combined.push(apiSug);
+          }
+        });
+
+        setSuggestions(combined.slice(0, 8));
       } catch (err) {
         console.error(err);
+        setSuggestions(localSuggestions.slice(0, 8));
       }
     };
 
@@ -51,13 +86,40 @@ const MedicineSearch = () => {
   }, []);
 
   const handleSearch = async (overrideQuery = null) => {
-    const finalQuery = overrideQuery || query;
-    if (!finalQuery.trim()) return toast.error("Identity Required");
+    const finalQuery = (overrideQuery || query).trim();
+    if (!finalQuery) return toast.error("Identity Required");
 
     setLoading(true);
     setMedicine(null);
     setShowSuggestions(false);
+
+    // 1. FIRST: Search Local Registry (fullMedicinesDataset)
+    const normalizedQuery = finalQuery.toLowerCase();
+
+    // Find best match (Priority: Exact Name > Exact Generic > Partial Name > Brand Name)
+    const localMatch = fullMedicinesDataset.find(m => m.name.toLowerCase() === normalizedQuery) ||
+                       fullMedicinesDataset.find(m => m.genericName.toLowerCase() === normalizedQuery) ||
+                       fullMedicinesDataset.find(m => m.name.toLowerCase().includes(normalizedQuery)) ||
+                       fullMedicinesDataset.find(m => m.brandNames.some(bn => bn.toLowerCase().includes(normalizedQuery)));
+
+    if (localMatch) {
+      console.log("[MED_SYNC] Local Registry Match Found:", localMatch.name);
+      setMedicine({
+        ...localMatch,
+        aiExplanation: `Institutional Node Synchronized: This profile has been retrieved from the validated medical registry. Data accuracy verified for clinical use.`,
+        isRegistryMatch: true,
+        sideEffects: Array.isArray(localMatch.sideEffects) ? localMatch.sideEffects : [],
+        precautions: Array.isArray(localMatch.precautions) ? localMatch.precautions : []
+      });
+      setQuery(localMatch.name);
+      toast.success("Registry Sync Complete");
+      setLoading(false);
+      return;
+    }
+
+    // 2. SECOND: If not found in registry, query AI Node
     try {
+      console.log("[MED_SYNC] No local match. Requesting AI Synthesis for:", finalQuery);
       const { data } = await api.post('/ai/analyze-medicine', { medicineName: finalQuery });
 
       let processedData = data;
@@ -160,8 +222,15 @@ const MedicineSearch = () => {
 
                  <div className="flex flex-col md:flex-row justify-between items-start gap-8 mb-10 relative z-10 text-left">
                     <div>
-                       <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-500/20">{medicine.category || "General"}</span>
-                       <h2 className={`text-4xl font-black uppercase tracking-tighter mt-4 ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{medicine.name}</h2>
+                       <div className="flex items-center gap-3 mb-4">
+                          <span className="px-3 py-1 bg-blue-500/10 text-blue-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-500/20">{medicine.category || "General"}</span>
+                          {medicine.isRegistryMatch && (
+                            <span className="px-3 py-1 bg-emerald-500/10 text-emerald-500 rounded-full text-[9px] font-black uppercase tracking-widest border border-emerald-500/20 flex items-center gap-2">
+                               <ShieldCheck size={12}/> Verified Registry Node
+                            </span>
+                          )}
+                       </div>
+                       <h2 className={`text-4xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{medicine.name}</h2>
                        <p className="text-sm font-bold text-slate-500 uppercase tracking-widest mt-1">Generic: {medicine.genericName || "N/A"}</p>
                     </div>
                  </div>

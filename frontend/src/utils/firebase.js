@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence } from "firebase/auth";
+import { getAuth, GoogleAuthProvider, setPersistence, browserLocalPersistence, indexedDBLocalPersistence } from "firebase/auth";
 
 // Official Firebase configuration for MediConsult
 const firebaseConfig = {
@@ -16,8 +16,11 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 
-// Force local persistence to prevent "missing initial state" on mobile browsers
-setPersistence(auth, browserLocalPersistence);
+// Use indexedDB if possible for better stability on mobile Capacitor apps
+// Falls back to browserLocalPersistence (localStorage) if indexedDB is unavailable
+setPersistence(auth, indexedDBLocalPersistence).catch(() => {
+  setPersistence(auth, browserLocalPersistence);
+});
 
 export { auth };
 export const googleProvider = new GoogleAuthProvider();

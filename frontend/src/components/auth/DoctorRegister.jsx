@@ -276,19 +276,25 @@ const DoctorRegister = () => {
     if (instQuery.length < 2) { setInstSuggestions([]); return; }
     const timer = setTimeout(async () => {
       setIsSearching(true);
-      const localResults = smartInstitutionSearch(instQuery);
-      let aiResults = [];
       try {
         const { data } = await api.post('/ai/search-hospital', { query: instQuery });
-        aiResults = Array.isArray(data) ? data : [];
-      } catch (err) { console.error("AI Search Error", err); }
-      const combined = [...localResults];
-      aiResults.forEach(ai => {
-        if (!combined.some(l => l.name.toLowerCase() === ai.name.toLowerCase())) combined.push({ ...ai, score: 60, matchType: "AI Neural" });
-      });
-      setInstSuggestions(combined.sort((a, b) => (b.score || 0) - (a.score || 0)));
-      setIsSearching(false);
-      setFocusedIndex(-1);
+        const results = Array.isArray(data) ? data : [];
+
+        // Map backend results to the suggestion format
+        const mappedResults = results.map(inst => ({
+          ...inst,
+          score: inst.verificationStatus === 'Verified' ? 100 : 80,
+          matchType: inst.verificationStatus === 'Verified' ? "Verified Node" : "AI Neural"
+        }));
+
+        setInstSuggestions(mappedResults);
+      } catch (err) {
+        console.error("Institutional Search Error", err);
+        setInstSuggestions([]);
+      } finally {
+        setIsSearching(false);
+        setFocusedIndex(-1);
+      }
     }, 500);
     return () => clearTimeout(timer);
   }, [instQuery]);

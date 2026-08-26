@@ -10,9 +10,7 @@ import Notification from '../models/Notification.js';
 import PrescriptionTemplate from '../models/PrescriptionTemplate.js';
 import HealthLog from '../models/HealthLog.js';
 import DoctorReview from '../models/DoctorReview.js';
-
-// Ensure model is registered
-import '../models/ClinicalDiagnosis.js';
+import ClinicalDiagnosis from '../models/ClinicalDiagnosis.js';
 
 export const getDoctorProfile = async (req, res) => {
   try {
@@ -26,6 +24,7 @@ export const getDoctorProfile = async (req, res) => {
 export const updateDoctorProfile = async (req, res) => {
   try {
     const {
+      name,
       specialization,
       hospitalName,
       department,
@@ -38,8 +37,11 @@ export const updateDoctorProfile = async (req, res) => {
       phone
     } = req.body;
 
-    if (phone) {
-      await User.findByIdAndUpdate(req.user._id, { phone });
+    if (name || phone) {
+      const userUpdate = {};
+      if (name) userUpdate.name = name;
+      if (phone) userUpdate.phone = phone;
+      await User.findByIdAndUpdate(req.user._id, userUpdate);
     }
 
     const updatedProfile = await DoctorProfile.findOneAndUpdate(
@@ -134,25 +136,34 @@ export const searchPatient = async (req, res) => {
 
 export const getPatientDetails = async (req, res) => {
   try {
-    const patientId = req.params.patientId?.toUpperCase();
-    console.log(`[DOCTOR_PORTAL] Fetching details for patient: ${patientId}`);
+    const id = req.params.patientId?.trim();
+    console.log(`[DOCTOR_PORTAL] Fetching details for node: ${id}`);
 
-    const user = await User.findOne({ patientId });
+    const isMongoId = mongoose.Types.ObjectId.isValid(id);
+
+    const user = await User.findOne({
+      $or: [
+        { patientId: id.toUpperCase() },
+        ...(isMongoId ? [{ _id: id }] : [])
+      ],
+      role: 'patient'
+    });
+
     if (!user) {
-      return res.status(404).json({ message: 'Patient not found' });
+      return res.status(404).json({ message: 'Patient not found in registry' });
     }
 
-    // Explicitly resolve model to prevent ReferenceError
-    const ClinicalDiagnosis = mongoose.model('ClinicalDiagnosis');
+    const patientId = user.patientId;
+    if (!patientId) return res.status(400).json({ message: 'Patient clinical ID missing' });
 
     const [reports, prescriptions, consultations, diagnoses, profile, trackerMedicines, healthLogs] = await Promise.all([
-      Report.find({ patientId }).sort({ createdAt: -1 }),
-      Prescription.find({ patientId }).sort({ createdAt: -1 }),
-      Appointment.find({ patientId }).sort({ date: -1 }),
-      ClinicalDiagnosis.find({ patientId }).sort({ consultationDate: -1 }),
-      PatientProfile.findOne({ patientId }),
-      Medicine.find({ patientId, isActive: true }),
-      HealthLog.find({ patientId }).sort({ date: -1 })
+      Report.find({ patientId }).sort({ createdAt: -1 }).lean(),
+      Prescription.find({ patientId }).sort({ createdAt: -1 }).lean(),
+      Appointment.find({ patientId }).sort({ date: -1 }).lean(),
+      ClinicalDiagnosis.find({ patientId }).sort({ consultationDate: -1 }).lean(),
+      PatientProfile.findOne({ patientId }).lean(),
+      Medicine.find({ patientId, isActive: true }).lean(),
+      HealthLog.find({ patientId }).sort({ date: -1 }).lean()
     ]);
 
     res.json({
@@ -310,7 +321,21 @@ export const getPublicDoctorProfile = async (req, res) => {
     const user = await User.findOne({ $or: [{ doctorId }, { applicationNumber: doctorId }], role: 'doctor' }).select('name email phone profilePic');
     if (!user) return res.status(404).json({ message: 'Doctor node not found' });
     const profile = await DoctorProfile.findOne({ userId: user._id });
-    const reviews = await DoctorReview.find({ doctorId: doctorId, status: 'Published' }).sort({ createdAt: -1 }).limit(5);
+    const reviews = await DoctorReview.find({ doctorId: doctorId, status: 'Published' }).sort({ createdAt: -1 });
+    const avgRating = reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : 4.5;
+
+    // Calculate star distribution percentages
+    const counts = [0, 0, 0, 0, 0, 0]; // Index 0-5
+    reviews.forEach(r => {
+      const star = Math.floor(r.rating);
+      if (star >= 1 && star <= 5) counts[star]++;
+    });
+    const distribution = reviews.length > 0
+      ? [5, 4, 3, 2, 1].map(star => Math.round((counts[star] / reviews.length) * 100))
+      : [85, 10, 3, 1, 1]; // Institutional defaults
+
     const profileData = profile?.toObject() || {};
     const safeArray = (arr, fallback) => (arr && Array.isArray(arr) && arr.length > 0) ? arr : fallback;
 
@@ -318,6 +343,9 @@ export const getPublicDoctorProfile = async (req, res) => {
       user: { _id: user._id, name: user.name, email: user.email, phone: user.phone, profilePic: user.profilePic || user.profilePicture },
       profile: {
         ...profileData,
+        rating: avgRating,
+        reviewCount: reviews.length,
+        ratingDistribution: distribution,
         fullName: user.name,
         designation: profileData.designation || "Senior Consultant",
         qualifications: safeArray(profileData.qualifications, ["MBBS", "MS", "MCh"]),

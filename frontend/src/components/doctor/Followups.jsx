@@ -1,27 +1,32 @@
 import React from 'react';
 import Navbar from '../common/Navbar';
-import { Calendar, User, Phone, MessageSquare, Clock, ChevronRight } from 'lucide-react';
+import { Calendar, User, Phone as PhoneIcon, MessageSquare, Clock, ChevronRight, X } from 'lucide-react';
 import useStore from '../../store/useStore';
 
-const Followups = () => {
+const Followups = ({ patientId: propPatientId, onComplete, hideNavbar = false }) => {
   const { theme } = useStore();
   const followups = [
-    { date: 'Oct 26, 2024', id: 'PAT1005', name: 'Ravi Teja', reason: 'Post-Surgery Check', status: 'Confirmed' },
+    { date: 'Oct 26, 2024', id: propPatientId || 'PAT1005', name: 'Ravi Teja', reason: 'Post-Surgery Check', status: 'Confirmed' },
     { date: 'Oct 26, 2024', id: 'PAT1006', name: 'Lakshmi Devi', reason: 'Diabetic Review', status: 'Pending' },
     { date: 'Oct 27, 2024', id: 'PAT1008', name: 'Anitha Reddy', reason: 'BP Monitoring', status: 'Confirmed' },
     { date: 'Oct 28, 2024', id: 'PAT1009', name: 'Suresh Kumar', reason: 'General Review', status: 'Pending' },
   ];
 
   return (
-    <div className={`flex min-h-screen transition-colors duration-500 text-left neural-grid pb-24 ${
+    <div className={`flex ${hideNavbar ? 'h-full' : 'min-h-screen'} transition-colors duration-500 text-left neural-grid ${hideNavbar ? 'pb-0' : 'pb-24'} ${
       theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'
     }`}>
       <div className="flex-1 flex flex-col overflow-hidden relative">
-        <Navbar />
-        <main className="p-8 lg:p-10 overflow-y-auto custom-scrollbar relative z-10">
-          <header className="mb-10">
-            <h1 className={`text-3xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Follow-up Patients</h1>
-            <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1">Upcoming Reviews and Recovery Checkups</p>
+        {!hideNavbar && <Navbar />}
+        <main className={`${hideNavbar ? 'p-0' : 'p-8 lg:p-10'} overflow-y-auto custom-scrollbar relative z-10`}>
+          <header className={`flex justify-between items-center ${hideNavbar ? 'mb-4' : 'mb-10'}`}>
+            <div>
+              <h1 className={`${hideNavbar ? 'text-xl' : 'text-3xl'} font-black text-white uppercase tracking-tight`}>Follow-up Patients</h1>
+              <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1">Upcoming Reviews and Recovery Checkups</p>
+            </div>
+            {hideNavbar && (
+              <button onClick={onComplete} className="p-2 bg-white/5 border border-white/10 rounded-xl text-zinc-400 hover:text-white transition-all"><X size={20}/></button>
+            )}
           </header>
 
           <div className={`rounded-[48px] border shadow-2xl overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-zinc-950/80 border-white/5' : 'bg-white border-slate-100'}`}>
@@ -61,7 +66,7 @@ const Followups = () => {
 
                     <div className="flex gap-3">
                       <button className={`p-4 rounded-2xl transition-all shadow-sm ${theme === 'dark' ? 'bg-white/5 border border-white/5 text-zinc-400 hover:text-blue-400' : 'bg-slate-50 border border-slate-100 text-slate-400 hover:text-blue-600'}`}>
-                        <Phone size={20} />
+                        <PhoneIcon size={20} />
                       </button>
                       <button className={`p-4 rounded-2xl transition-all shadow-sm ${theme === 'dark' ? 'bg-white/5 border border-white/5 text-zinc-400 hover:text-blue-400' : 'bg-slate-50 border border-slate-100 text-slate-400 hover:text-blue-600'}`}>
                         <MessageSquare size={20} />

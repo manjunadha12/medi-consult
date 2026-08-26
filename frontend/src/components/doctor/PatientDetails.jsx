@@ -251,7 +251,7 @@ const PatientDetails = () => {
 
                 {activeTab === 'history' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10">
-                     {consultations.length > 0 ? consultations.map((c, i) => (
+                     {consultations?.length > 0 ? consultations.map((c, i) => (
                        <div key={i} className={`border rounded-[32px] p-8 space-y-4 group transition-all ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30' : 'bg-slate-50 border-slate-100 hover:bg-white hover:shadow-lg'}`}>
                           <div className="flex justify-between items-center">
                              <div className="flex items-center gap-3">
@@ -304,7 +304,7 @@ const PatientDetails = () => {
 
                 {activeTab === 'reports' && (
                   <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10">
-                    {reports.length > 0 ? reports.map((report, i) => (
+                    {reports?.length > 0 ? reports.map((report, i) => (
                       <div key={i} className={`flex items-center justify-between p-6 border rounded-[32px] group transition-all shadow-sm ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30 hover:bg-white/10' : 'bg-slate-50 border-slate-100 hover:bg-white hover:shadow-lg'}`}>
                         <div className="flex items-center gap-6">
                           <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/10 text-zinc-500 group-hover:text-blue-400' : 'bg-white border-slate-200 text-slate-300 group-hover:text-blue-500'}`}>
@@ -331,7 +331,7 @@ const PatientDetails = () => {
 
                 {activeTab === 'prescriptions' && (
                   <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10 text-left">
-                    {prescriptions.length > 0 ? prescriptions.map((p, i) => (
+                    {prescriptions?.length > 0 ? prescriptions.map((p, i) => (
                       <div key={i} className={`border rounded-[40px] overflow-hidden shadow-sm transition-all ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30' : 'bg-white border-slate-100 hover:border-blue-200 hover:shadow-lg'}`}>
                         <div className={`p-6 border-b flex justify-between items-center px-8 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
                           <p className="font-black text-[9px] text-blue-500 uppercase tracking-[0.2em]">Issued Node: {new Date(p.createdAt).toLocaleDateString()}</p>

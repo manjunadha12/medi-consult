@@ -1,14 +1,20 @@
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
+import { fileURLToPath } from 'url';
 
-// Ensure upload directory exists
-const uploadDir = './uploads';
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+// Ensure absolute paths for stability across environments
+const rootDir = path.join(__dirname, '..');
+const uploadDir = path.join(rootDir, 'uploads');
+const chatUploadDir = path.join(uploadDir, 'chat');
+
 if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir);
+  fs.mkdirSync(uploadDir, { recursive: true });
 }
 
-const chatUploadDir = './uploads/chat';
 if (!fs.existsSync(chatUploadDir)) {
   fs.mkdirSync(chatUploadDir, { recursive: true });
 }
@@ -16,7 +22,7 @@ if (!fs.existsSync(chatUploadDir)) {
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const isChat = req.originalUrl.includes('/chat/');
-    cb(null, isChat ? 'uploads/chat/' : 'uploads/');
+    cb(null, isChat ? chatUploadDir : uploadDir);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
@@ -25,14 +31,16 @@ const storage = multer.diskStorage({
 });
 
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = /jpeg|jpg|png|webp|pdf/;
-  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+  // Allow common clinical imaging and document formats + webm for voice/video notes
+  const allowedTypes = /jpeg|jpg|png|webp|pdf|webm|mp3|wav|ogg|mpeg/;
   const mimetype = allowedTypes.test(file.mimetype);
+  const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
 
-  if (extname && mimetype) {
+  if (mimetype || extname) {
     return cb(null, true);
   } else {
-    cb(new Error('Only images (jpg, jpeg, png, webp) and PDFs are allowed'));
+    console.warn(`[UPLOAD_BLOCK] Unsupported format: ${file.mimetype} (${file.originalname})`);
+    cb(new Error('Format not supported by institutional security node.'));
   }
 };
 

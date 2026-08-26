@@ -41,11 +41,16 @@ async function runE2ETests() {
     options.addArguments('--disable-dev-shm-usage');
     options.addArguments('--window-size=1280,800');
 
-    driver = await new Builder()
+    const buildPromise = new Builder()
       .forBrowser('chrome')
       .setChromeOptions(options)
       .build();
 
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('ChromeDriver initialization timed out after 8 seconds.')), 8000)
+    );
+
+    driver = await Promise.race([buildPromise, timeoutPromise]);
     console.log('Chrome Driver successfully initialized.');
 
     // --- TEST 1: Page Load and UI elements ---

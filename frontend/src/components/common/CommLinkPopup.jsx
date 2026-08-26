@@ -23,7 +23,7 @@ const CommLinkPopup = ({
   const [inputMsg, setInputMsg] = useState('');
 
   const isDoctor = user?.role === 'doctor';
-  const { reports = [], prescriptions = [], consultations = [], diagnoses = [] } = patientData;
+  const { reports = [], prescriptions = [], consultations = [], diagnoses = [] } = patientData || {};
 
   const tabs = [
     { id: 'messages', label: 'Messages', icon: MessageSquare },
@@ -117,7 +117,7 @@ const CommLinkPopup = ({
 
             {activeTab === 'ai' && (
               <div className="space-y-6 animate-in fade-in duration-500">
-                 {diagnoses.length > 0 ? (
+                 {diagnoses?.length > 0 ? (
                     <>
                        <div className="p-6 bg-blue-600/5 border border-blue-600/10 rounded-[28px] space-y-4">
                           <div className="flex items-center gap-3 text-blue-500">
@@ -159,7 +159,7 @@ const CommLinkPopup = ({
                      <p className="text-[10px] font-black uppercase text-zinc-500">Drop Medical Records</p>
                   </div>
                   <div className="space-y-3">
-                     {reports.length > 0 ? reports.map((f, i) => (
+                     {reports?.length > 0 ? reports.map((f, i) => (
                         <div key={i} className="p-4 bg-white/5 rounded-2xl border border-white/5 flex items-center justify-between hover:bg-white/10 transition-all">
                            <div className="flex items-center gap-3 overflow-hidden">
                               <FileText size={18} className="text-blue-500 shrink-0" />
@@ -212,7 +212,7 @@ const CommLinkPopup = ({
 
             {activeTab === 'prescription' && (
                <div className="space-y-4 animate-in fade-in duration-500">
-                  {prescriptions.length > 0 ? prescriptions.map((p, i) => (
+                  {prescriptions?.length > 0 ? prescriptions.map((p, i) => (
                     <div key={i} className="p-5 bg-zinc-900/50 rounded-2xl border border-white/5 space-y-4">
                        <div className="flex justify-between items-center border-b border-white/5 pb-3">
                           <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest">Issued: {new Date(p.createdAt).toLocaleDateString()}</p>
@@ -245,7 +245,7 @@ const CommLinkPopup = ({
 
             {activeTab === 'history' && (
                <div className="space-y-4 animate-in fade-in duration-500">
-                  {consultations.length > 0 ? consultations.map((c, i) => (
+                  {consultations?.length > 0 ? consultations.map((c, i) => (
                      <div key={i} className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-3 hover:bg-white/10 transition-all cursor-default group">
                         <div className="flex justify-between items-center">
                            <div className="flex items-center gap-3">

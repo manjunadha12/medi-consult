@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import {
   FileUp, FileText, X, CheckCircle, Loader2, BrainCircuit,
   Trash2, ExternalLink, Sparkles
@@ -154,7 +153,7 @@ const UploadReport = () => {
                        <Loader2 className="w-10 h-10 animate-spin text-blue-600/20 mb-4" />
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Scanning Archive Nodes...</p>
                     </div>
-                  ) : reports.length === 0 ? (
+                  ) : reports?.length === 0 ? (
                     <div className="py-20 text-center">
                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em]">No neural records found in cluster.</p>
                     </div>
@@ -187,7 +186,6 @@ const UploadReport = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
       </div>
     </div>
   );

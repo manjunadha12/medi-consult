@@ -6,7 +6,7 @@ const messageSchema = new mongoose.Schema({
   text: { type: String },
   type: {
     type: String,
-    enum: ['text', 'image', 'pdf', 'voice', 'report', 'prescription', 'instruction'],
+    enum: ['text', 'image', 'pdf', 'voice', 'report', 'prescription', 'instruction', 'call'],
     default: 'text'
   },
   attachments: [{
@@ -30,5 +30,5 @@ const messageSchema = new mongoose.Schema({
   isPinned: { type: Boolean, default: false }
 }, { timestamps: true });
 
-const Message = mongoose.model('Message', messageSchema);
+const Message = mongoose.models.Message || mongoose.model('Message', messageSchema);
 export default Message;

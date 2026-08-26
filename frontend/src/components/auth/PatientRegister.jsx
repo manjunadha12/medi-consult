@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import api from '../../utils/api';
 import { toast } from 'react-hot-toast';
 import {
-  User as UserIcon, Mail, Phone, Calendar, ArrowRight, ShieldCheck as ShieldCheckIcon,
+  User as UserIcon, Mail, Phone as PhoneIcon, Calendar, ArrowRight, ShieldCheck as ShieldCheckIcon,
   CheckCircle2, RotateCcw, AlertTriangle, Sparkles, Shield, Activity,
   Globe, Headphones, UserPlus, Lock, Plus, Users
 } from 'lucide-react';
@@ -24,9 +24,7 @@ const PatientRegister = () => {
     confirmPassword: ''
   });
   
-  const [sendChannel, setSendChannel] = useState('both'); // 'both', 'email', 'phone'
   const [emailOtp, setEmailOtp] = useState('');
-  const [phoneOtp, setPhoneOtp] = useState('');
   const [countdown, setCountdown] = useState(0);
   const [patientId, setPatientId] = useState('');
   const [loading, setLoading] = useState(false);
@@ -55,8 +53,7 @@ const PatientRegister = () => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register/patient-otp', {
-        ...formData,
-        sendChannel
+        ...formData
       });
 
       toast.success(data.message);
@@ -75,21 +72,15 @@ const PatientRegister = () => {
 
   const handleVerifyOtp = async (e) => {
     e.preventDefault();
-    if ((sendChannel === 'email' || sendChannel === 'both') && !emailOtp.trim()) {
-      return toast.error('Please enter the Email verification code');
-    }
-    if ((sendChannel === 'phone' || sendChannel === 'both') && !phoneOtp.trim()) {
-      return toast.error('Please enter the Mobile verification code');
+    if (!emailOtp.trim()) {
+      return toast.error('Please enter the verification code');
     }
 
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register/verify-patient', {
         email: formData.email,
-        phone: formData.phone,
-        emailOtp: emailOtp,
-        phoneOtp: phoneOtp,
-        verificationChannel: sendChannel
+        emailOtp: emailOtp
       });
       toast.success(data.message);
       setPatientId(data.patientId);
@@ -107,8 +98,7 @@ const PatientRegister = () => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register/resend-otp', {
-        email: formData.email,
-        phone: formData.phone
+        email: formData.email
       });
       toast.success(data.message);
       setCountdown(30);
@@ -244,7 +234,7 @@ const PatientRegister = () => {
                       </div>
 
                       <div className="relative group">
-                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                         <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
                          <input name="phone" type="tel" placeholder="Mobile Number" value={formData.phone} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm" required />
                       </div>
 
@@ -278,15 +268,11 @@ const PatientRegister = () => {
                    <div className="space-y-4">
                       <div className="relative group">
                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 group-focus-within:text-blue-500" />
-                         <input type="text" maxLength={6} placeholder="Email OTP" value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} className="w-full pl-11 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-center font-black tracking-[0.5em] text-sm" required />
-                      </div>
-                      <div className="relative group">
-                         <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 group-focus-within:text-blue-500" />
-                         <input type="text" maxLength={6} placeholder="Mobile OTP" value={phoneOtp} onChange={(e) => setPhoneOtp(e.target.value)} className="w-full pl-11 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-center font-black tracking-[0.5em] text-sm" required />
+                         <input type="text" maxLength={6} placeholder="Email Verification Code" value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} className="w-full pl-11 pr-6 py-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white text-center font-black tracking-[0.5em] text-sm" required />
                       </div>
                    </div>
                    <button type="submit" disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-xl font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">Verify & Sync</button>
-                   <button type="button" onClick={handleResendOtp} disabled={countdown > 0} className="w-full text-[9px] font-black uppercase text-blue-600 hover:underline">{countdown > 0 ? `Resend in ${countdown}s` : 'Resend Codes'}</button>
+                   <button type="button" onClick={handleResendOtp} disabled={countdown > 0} className="w-full text-[9px] font-black uppercase text-blue-600 hover:underline">{countdown > 0 ? `Resend in ${countdown}s` : 'Resend Code'}</button>
                 </form>
               )}
 

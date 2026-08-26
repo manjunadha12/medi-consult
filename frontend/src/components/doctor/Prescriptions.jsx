@@ -164,9 +164,9 @@ const Prescriptions = () => {
 
               <div className="flex justify-between items-end mt-16 text-xs border-t border-gray-100 pt-6">
                 <div>
-                  <p className="text-gray-400 uppercase text-[9px]">Verified Sign-Off</p>
-                  <p className="font-black text-gray-800 mt-2">Dr. Naresh Trehan</p>
-                  <p className="text-gray-400">Electronic Authorization Node</p>
+                  <p className="text-gray-400 uppercase text-[9px]">Electronic Auth Signature</p>
+                  <p className="font-black text-gray-800 mt-2">{user?.name}</p>
+                  <p className="text-gray-400">Authorized Specialist</p>
                 </div>
                 <div className="text-right">
                   <p className="text-gray-400 uppercase text-[9px] mb-1">Stamp & Verify</p>
@@ -288,8 +288,8 @@ const Prescriptions = () => {
                 <div className="grid grid-cols-2 gap-4 text-[10px] border-b border-zinc-150 pb-4">
                   <div>
                     <p className="font-black text-zinc-400 uppercase text-[8px] tracking-widest">Consulting Specialist</p>
-                    <p className="font-bold text-zinc-800 mt-1">Dr. Naresh Trehan</p>
-                    <p className="text-zinc-500">Chief Consultant</p>
+                    <p className="font-bold text-zinc-800 mt-1">{user?.name}</p>
+                    <p className="text-zinc-500">{user?.role === 'doctor' ? 'Chief Consultant' : 'Specialist Node'}</p>
                   </div>
                   <div>
                     <p className="font-black text-zinc-400 uppercase text-[8px] tracking-widest">Patient Identity</p>

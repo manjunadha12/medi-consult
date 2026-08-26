@@ -4,7 +4,7 @@ import Navbar from '../common/Navbar';
 import api from '../../utils/api';
 import {
   Clock, User as UserIcon, AlertCircle, CheckCircle,
-  ExternalLink, Search as SearchIcon, Filter, History as HistoryIcon, Video
+  ExternalLink, Search as SearchIcon, Filter, History as HistoryIcon, Video, MessageCircle, Settings, Shield, X, Save, Edit3
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
@@ -13,6 +13,16 @@ const PatientQueue = () => {
   const [queue, setQueue] = useState([]);
   const [loading, setLoading] = useState(true);
   const [view, setView] = useState('active'); // 'active' or 'history'
+
+  // Meeting Setup States
+  const [showMeetingModal, setShowMeetingModal] = useState(false);
+  const [selectedAppt, setSelectedAppt] = useState(null);
+  const [meetingForm, setMeetingForm] = useState({
+    meetingId: '',
+    meetingPassword: '',
+    scheduledVideoTime: ''
+  });
+  const [savingMeeting, setSavingMeeting] = useState(false);
 
   useEffect(() => {
     fetchQueue();
@@ -38,7 +48,7 @@ const PatientQueue = () => {
       return toast.error("Please accept the appointment node first");
     }
     toast.success(`Synchronizing node with ${p.patientName}`);
-    navigate(`/doctor/video-consult?roomCode=${p.roomCode}&appointmentId=${p._id}&patientId=${p.patientId}&patientName=${p.patientName}`);
+    navigate(`/doctor/video-consult?roomCode=${p._id}&appointmentId=${p._id}&patientId=${p.patientId}&patientName=${p.patientName}`);
   };
 
   const handleAccept = async (id) => {
@@ -48,6 +58,41 @@ const PatientQueue = () => {
       fetchQueue();
     } catch (err) {
       toast.error("Authorization failed");
+    }
+  };
+
+  const openMeetingSetup = (p) => {
+    setSelectedAppt(p);
+    setMeetingForm({
+      meetingId: p.meetingId || `MC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+      meetingPassword: p.meetingPassword || Math.random().toString(36).substring(2, 8).toUpperCase(),
+      scheduledVideoTime: p.scheduledVideoTime || p.time
+    });
+    setShowMeetingModal(true);
+  };
+
+  const handleSaveMeeting = async (e) => {
+    e.preventDefault();
+    setSavingMeeting(true);
+    try {
+      await api.put(`/appointments/video-meeting/${selectedAppt._id}`, meetingForm);
+      toast.success("Meeting Node Configured");
+      setShowMeetingModal(false);
+      fetchQueue();
+    } catch (err) {
+      toast.error("Failed to sync meeting node");
+    } finally {
+      setSavingMeeting(false);
+    }
+  };
+
+  const handleToggleMeetingReady = async (id, currentReady) => {
+    try {
+      await api.put(`/appointments/toggle-meeting-ready/${id}`, { isMeetingReady: !currentReady });
+      toast.success(!currentReady ? "Clinical Arena Ready" : "Clinical Arena Offline");
+      fetchQueue();
+    } catch (err) {
+      toast.error("Handshake Failed");
     }
   };
 
@@ -157,6 +202,13 @@ const PatientQueue = () => {
                           ) : (
                             <>
                               <button
+                                onClick={() => openMeetingSetup(p)}
+                                className={`p-4 rounded-2xl transition-all shadow-md active:scale-90 border ${p.meetingId ? 'bg-blue-600/10 border-blue-500/20 text-blue-400' : 'bg-white/5 border-white/10 text-zinc-500 hover:text-white'}`}
+                                title="Configure Video Node"
+                              >
+                                <Settings size={20} />
+                              </button>
+                              <button
                                 onClick={() => navigate('/doctor/chat', { state: { startChat: true, targetUserId: p.patientId, appointmentId: p._id } })}
                                 className="p-4 bg-white/5 border border-white/10 text-emerald-400 rounded-2xl hover:bg-emerald-600 hover:text-white transition-all shadow-md active:scale-90"
                                 title="Open neural link"
@@ -164,17 +216,17 @@ const PatientQueue = () => {
                                 <MessageCircle size={20} />
                               </button>
                               <button
-                                onClick={() => navigate(`/doctor/patient/${p.patientId}`)}
-                                className="p-4 bg-white/5 border border-white/10 text-blue-400 rounded-2xl hover:bg-blue-600 hover:text-white transition-all shadow-md active:scale-90"
-                                title="Access archive node"
+                                onClick={() => handleToggleMeetingReady(p._id, p.isMeetingReady)}
+                                className={`px-6 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all border ${p.isMeetingReady ? 'bg-emerald-600 text-white border-emerald-500 shadow-emerald-500/20' : 'bg-white/5 border-white/10 text-zinc-500 hover:text-white'}`}
                               >
-                                <UserIcon size={20} />
+                                {p.isMeetingReady ? 'ARENA READY' : 'TAKE VIDEO'}
                               </button>
                               <button
-                                className="px-8 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all active:scale-95 border border-blue-400/20"
+                                className={`px-8 py-4 bg-blue-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-blue-500/20 hover:bg-blue-500 transition-all active:scale-95 border border-blue-400/20 ${!p.isMeetingReady && 'opacity-30 grayscale pointer-events-none'}`}
                                 onClick={() => handleAttend(p)}
+                                disabled={!p.isMeetingReady}
                               >
-                                INITIALIZE JOIN
+                                JOIN
                               </button>
                             </>
                           )}
@@ -197,6 +249,79 @@ const PatientQueue = () => {
           </div>
         </main>
       </div>
+
+      {/* Meeting Setup Modal */}
+      {showMeetingModal && (
+        <div className="fixed inset-0 z-[2000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-6 animate-in fade-in duration-300">
+           <div className="w-full max-w-lg rounded-[56px] bg-[#0A0A0A] border border-blue-500/20 shadow-2xl overflow-hidden transition-all duration-500">
+              <div className="p-10 border-b border-white/5 flex items-center justify-between bg-white/5">
+                 <div className="text-left">
+                    <h2 className="text-2xl font-black uppercase tracking-tight text-white">Video Node Config</h2>
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] mt-1">Scheduled Specialized Handshake</p>
+                 </div>
+                 <button onClick={() => setShowMeetingModal(false)} className="p-4 rounded-[20px] transition-all border bg-zinc-900 border-white/5 text-zinc-500 hover:text-white"><X size={24} strokeWidth={3} /></button>
+              </div>
+
+              <form onSubmit={handleSaveMeeting} className="p-10 space-y-8 text-left">
+                 <div className="space-y-6">
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Meeting ID</label>
+                       <div className="relative">
+                          <Shield size={16} className="absolute left-5 top-5 text-blue-500" />
+                          <input
+                            className="w-full p-5 pl-14 rounded-3xl border bg-zinc-900 border-white/5 text-white outline-none font-black uppercase text-xs transition-all focus:border-blue-500/30"
+                            placeholder="NODE ID"
+                            value={meetingForm.meetingId}
+                            onChange={(e) => setMeetingForm({...meetingForm, meetingId: e.target.value.toUpperCase()})}
+                            required
+                          />
+                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Passkey</label>
+                       <div className="relative">
+                          <Settings size={16} className="absolute left-5 top-5 text-purple-500" />
+                          <input
+                            className="w-full p-5 pl-14 rounded-3xl border bg-zinc-900 border-white/5 text-white outline-none font-black uppercase text-xs transition-all focus:border-purple-500/30"
+                            placeholder="ENCRYPTION KEY"
+                            value={meetingForm.meetingPassword}
+                            onChange={(e) => setMeetingForm({...meetingForm, meetingPassword: e.target.value.toUpperCase()})}
+                            required
+                          />
+                       </div>
+                    </div>
+
+                    <div className="space-y-2">
+                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.3em] ml-1">Scheduled Time Node</label>
+                       <div className="relative">
+                          <Clock size={16} className="absolute left-5 top-5 text-amber-500" />
+                          <input
+                            className="w-full p-5 pl-14 rounded-3xl border bg-zinc-900 border-white/5 text-white outline-none font-black uppercase text-xs transition-all focus:border-amber-500/30"
+                            placeholder="HH:MM AM/PM"
+                            value={meetingForm.scheduledVideoTime}
+                            onChange={(e) => setMeetingForm({...meetingForm, scheduledVideoTime: e.target.value})}
+                            required
+                          />
+                       </div>
+                    </div>
+                 </div>
+
+                 <div className="flex gap-4 pt-6">
+                    <button type="button" onClick={() => setShowMeetingModal(false)} className="flex-1 py-6 rounded-[32px] font-black uppercase text-[10px] tracking-[0.3em] transition-all border border-white/5 text-zinc-500 hover:bg-white/5">Abort</button>
+                    <button
+                      type="submit"
+                      disabled={savingMeeting}
+                      className="flex-[2] bg-blue-600 text-white py-6 rounded-[32px] font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                    >
+                       {savingMeeting ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} strokeWidth={3} />}
+                       Synchronize Config
+                    </button>
+                 </div>
+              </form>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

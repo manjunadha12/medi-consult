@@ -86,22 +86,16 @@ const ManageDoctors = () => {
 
           <header className="flex flex-col md:flex-row md:items-end justify-between gap-4">
             <div className="text-left">
-              <p className={`text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>Admin Control</p>
-              <h1 className={`text-2xl sm:text-3xl font-black uppercase tracking-tight mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Doctor Management</h1>
-              <p className="text-zinc-500 font-medium mt-1 text-[10px] sm:text-sm text-left">Verify credentials and manage hospital medical staff</p>
+              <p className={`text-[8px] sm:text-[10px] font-black uppercase tracking-widest ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>Security Registry</p>
+              <h1 className={`text-2xl sm:text-3xl font-black uppercase tracking-tight mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Doctor Security</h1>
+              <p className="text-zinc-500 font-medium mt-1 text-[10px] sm:text-sm text-left">Manage specialist access rights and system status</p>
             </div>
             <div className="flex flex-wrap gap-2 sm:gap-3 w-full md:w-auto">
               <button
                 onClick={fetchDoctors}
-                className={`flex-1 md:flex-none border px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:bg-white/10' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
+                className={`flex-1 md:flex-none border px-4 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'}`}
               >
-                <RefreshCw size={14} className="sm:w-4 sm:h-4" /> Refresh
-              </button>
-              <button
-                onClick={() => toast.success("Access registration node for new doctor provisioning")}
-                className="flex-1 md:flex-none bg-blue-600 text-white px-6 sm:px-8 py-2 sm:py-3 rounded-xl sm:rounded-2xl font-black text-[10px] sm:text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:bg-blue-500 transition-all"
-              >
-                <Plus size={14} className="sm:w-4 sm:h-4" /> Add Doctor
+                <RefreshCw size={14} className="sm:w-4 sm:h-4" /> Refresh Registry
               </button>
             </div>
           </header>
@@ -117,26 +111,14 @@ const ManageDoctors = () => {
                 onChange={e => setSearch(e.target.value)}
               />
             </div>
-            <div className="flex gap-2 sm:gap-3">
-              <select
-                className={`flex-1 md:w-48 border px-4 py-3 rounded-xl sm:rounded-2xl text-[10px] sm:text-sm font-bold outline-none transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-300' : 'bg-slate-50 border-slate-200 text-slate-700'}`}
-                value={specFilter}
-                onChange={e => setSpecFilter(e.target.value)}
-              >
-                <option value="all" className={theme === 'dark' ? 'bg-zinc-900' : 'bg-white'}>All Specializations</option>
-                {specializations.map(s => (
-                  <option key={s} value={s} className={theme === 'dark' ? 'bg-zinc-900' : 'bg-white'}>{s}</option>
-                ))}
-              </select>
-            </div>
           </div>
 
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             {[
-              { label: 'Total Doctors', value: doctors.length, color: 'text-blue-400' },
-              { label: 'Verified', value: doctors.filter(d => d.isVerified).length, color: 'text-emerald-400' },
+              { label: 'Active Node', value: doctors.filter(d => d.isActive !== false).length, color: 'text-emerald-400' },
+              { label: 'Blocked Node', value: doctors.filter(d => d.isActive === false).length, color: 'text-red-400' },
+              { label: 'Verified', value: doctors.filter(d => d.isVerified).length, color: 'text-blue-400' },
               { label: 'Pending', value: doctors.filter(d => !d.isVerified).length, color: 'text-amber-400' },
-              { label: 'Active', value: doctors.filter(d => d.isActive !== false).length, color: 'text-cyan-400' },
             ].map(stat => (
               <div key={stat.label} className={`border rounded-2xl sm:rounded-3xl p-4 sm:p-5 backdrop-blur-3xl noise-overlay transition-all duration-500 ${theme === 'dark' ? 'bg-zinc-950/80 border-white/5' : 'bg-white border-slate-100 shadow-sm'}`}>
                 <p className="text-[7px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest text-left">{stat.label}</p>
@@ -162,10 +144,8 @@ const ManageDoctors = () => {
                     <tr>
                       <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Doctor Profile</th>
                       <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Expertise</th>
-                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Hospital</th>
-                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Verified</th>
-                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Status</th>
-                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Actions</th>
+                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest">Verification</th>
+                      <th className="px-6 sm:px-8 py-4 sm:py-5 text-[8px] sm:text-[9px] lg:text-[10px] font-black text-zinc-500 uppercase tracking-widest text-right">Access Protocol</th>
                     </tr>
                   </thead>
                   <tbody className={`divide-y font-bold text-sm ${theme === 'dark' ? 'divide-white/5 text-zinc-300' : 'divide-slate-50 text-slate-600'}`}>
@@ -176,7 +156,7 @@ const ManageDoctors = () => {
                             <div className={`w-12 h-12 border rounded-2xl flex items-center justify-center ${theme === 'dark' ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-blue-50 border-blue-100 text-blue-600'}`}>
                               <Stethoscope size={22} />
                             </div>
-                            <div className="text-left cursor-pointer group/name" onClick={() => navigate(`/admin/doctor/${doc.doctorId || doc.applicationNumber}`)}>
+                            <div className="text-left cursor-pointer group/name" onClick={() => navigate(`/admin/doctor/${doc._id}`)}>
                               <p className={`font-black group-hover/name:text-blue-500 transition-colors ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{doc.name}</p>
                               <p className="text-[10px] font-black text-blue-400 uppercase">{doc.doctorId || doc.applicationNumber}</p>
                             </div>
@@ -187,52 +167,36 @@ const ManageDoctors = () => {
                           <p className="text-[10px] font-black text-zinc-500 uppercase">{doc.department || '—'}</p>
                         </td>
                         <td className="px-8 py-5 text-left">
-                          <p className={`max-w-[150px] truncate ${theme === 'dark' ? 'text-zinc-200' : 'text-slate-700'}`}>{doc.hospitalName || '—'}</p>
-                        </td>
-                        <td className="px-8 py-5 text-left">
                           <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase flex items-center gap-1.5 w-fit ${
                             doc.verificationStatus === 'Approved'
                               ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                              : doc.verificationStatus === 'Rejected'
-                              ? 'bg-red-500/10 text-red-400 border border-red-500/20'
-                              : doc.verificationStatus === 'Documents Required'
-                              ? 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                               : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
                           }`}>
                             {doc.verificationStatus === 'Approved' ? <CheckCircle size={10} /> : <Shield size={10} />}
                             {doc.verificationStatus || 'Pending'}
                           </span>
                         </td>
-                        <td className="px-8 py-5 text-left">
-                          <span className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase w-fit flex items-center gap-1.5 ${
-                            doc.isActive !== false
-                              ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-                              : 'bg-zinc-800 text-zinc-500 border border-zinc-700'
-                          }`}>
-                            {doc.isActive !== false ? 'Active' : 'Inactive'}
-                          </span>
-                        </td>
                         <td className="px-8 py-5 text-right">
-                          <div className="flex justify-end gap-2">
-                            {!doc.isVerified && (
-                              <button
-                                onClick={() => handleVerify(doc.doctorId || doc.applicationNumber)}
-                                className="px-4 py-2 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-xl text-[9px] font-black uppercase hover:bg-emerald-500 hover:text-white transition-all"
-                              >
-                                Verify
-                              </button>
-                            )}
+                          <div className="flex justify-end gap-3 items-center">
+                            <div className="text-right">
+                               <p className={`text-[10px] font-black uppercase ${doc.isActive !== false ? 'text-emerald-500' : 'text-red-500'}`}>
+                                  {doc.isActive !== false ? 'Node Active' : 'Node Blocked'}
+                               </p>
+                            </div>
                             <button
-                              onClick={() => handleToggleStatus(doc.doctorId || doc.applicationNumber)}
-                              className={`p-2 border rounded-xl transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-blue-400' : 'bg-white border-slate-200 text-slate-400 hover:text-blue-600'}`}
-                              title={doc.isActive !== false ? 'Deactivate' : 'Activate'}
+                              onClick={() => handleToggleStatus(doc._id)}
+                              className={`p-3 rounded-2xl transition-all border ${
+                                doc.isActive !== false
+                                  ? 'bg-red-600/10 text-red-500 border-red-600/20 hover:bg-red-600 hover:text-white'
+                                  : 'bg-emerald-600/10 text-emerald-500 border border-emerald-500/20 hover:bg-emerald-600 hover:text-white'
+                              }`}
+                              title={doc.isActive !== false ? 'BLOCK DOCTOR' : 'UNBLOCK DOCTOR'}
                             >
-                              {doc.isActive !== false ? <ToggleRight size={18} /> : <ToggleLeft size={18} />}
+                              {doc.isActive !== false ? <ToggleRight size={20} /> : <ToggleLeft size={20} />}
                             </button>
                             <button
-                              onClick={() => handleDelete(doc.doctorId || doc.applicationNumber)}
-                              className={`p-2 border rounded-xl transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-red-400' : 'bg-white border-slate-200 text-slate-300 hover:text-red-500'}`}
-                              title="Delete doctor"
+                              onClick={() => handleDelete(doc._id)}
+                              className={`p-3 border rounded-2xl transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-red-400' : 'bg-white border-slate-200 text-slate-300 hover:text-red-500'}`}
                             >
                               <Trash2 size={18} />
                             </button>

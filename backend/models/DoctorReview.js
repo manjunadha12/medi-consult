@@ -15,5 +15,5 @@ const doctorReviewSchema = new mongoose.Schema({
   createdAt: { type: Date, default: Date.now }
 });
 
-const DoctorReview = mongoose.model('DoctorReview', doctorReviewSchema);
+const DoctorReview = mongoose.models.DoctorReview || mongoose.model('DoctorReview', doctorReviewSchema);
 export default DoctorReview;

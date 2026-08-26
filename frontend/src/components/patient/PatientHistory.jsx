@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import useStore from '../../store/useStore';
-import api from '../../utils/api';
+import api, { BACKEND_URL } from '../../utils/api';
 import {
   History as HistoryIcon, Clock, CreditCard, Activity,
   Stethoscope, ChevronRight, Search, Filter,
   Download, FileText, Brain, Shield, Info, Loader2,
-  Calendar, MapPin, CheckCircle, AlertCircle, TrendingUp, ChevronLeft, Folder, File, ClipboardList
+  Calendar, MapPin, CheckCircle, AlertCircle, TrendingUp, ChevronLeft, Folder, File, ClipboardList, Paperclip, Star, X
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { formatCurrency } from '../../utils/mathUtils';
@@ -20,9 +19,40 @@ const PatientHistory = () => {
   const [diagnosisData, setDiagnosisData] = useState([]);
   const [search, setSearch] = useState('');
 
+  // Review System Nodes
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [selectedAppointment, setSelectedAppointment] = useState(null);
+  const [reviewData, setReviewData] = useState({ rating: 5, comment: '' });
+  const [submittingReview, setSubmittingReview] = useState(false);
+
   useEffect(() => {
     fetchHistory();
   }, []);
+
+  const handleOpenReview = (appt) => {
+    setSelectedAppointment(appt);
+    setShowReviewModal(true);
+  };
+
+  const submitReview = async () => {
+    if (!reviewData.comment.trim()) return toast.error("Please enter a technical comment.");
+    setSubmittingReview(true);
+    try {
+      await api.post('/patients/review', {
+        doctorId: selectedAppointment.doctorId,
+        appointmentId: selectedAppointment.appointmentId || selectedAppointment._id,
+        rating: reviewData.rating,
+        comment: reviewData.comment
+      });
+      toast.success("Review synchronized with medical registry.");
+      setShowReviewModal(false);
+      setReviewData({ rating: 5, comment: '' });
+    } catch (err) {
+      toast.error("Failed to propagate review node.");
+    } finally {
+      setSubmittingReview(false);
+    }
+  };
 
   const fetchHistory = async () => {
     setLoading(true);
@@ -369,6 +399,15 @@ const PatientHistory = () => {
                       }`}>
                         Full Report <ChevronRight size={14} />
                       </button>
+
+                      {activeFolder === 'op' && item.status === 'Completed' && (
+                        <button
+                          onClick={() => handleOpenReview(item)}
+                          className="w-full py-4 bg-emerald-600/10 border border-emerald-500/20 text-emerald-500 rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] hover:bg-emerald-600 hover:text-white transition-all flex items-center justify-center gap-2"
+                        >
+                          Write Review <Star size={14} />
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -382,8 +421,58 @@ const PatientHistory = () => {
             </div>
           )}
         </main>
-        <NeuralDock />
       </div>
+
+      {/* DOCTOR REVIEW MODAL NODE */}
+      {showReviewModal && (
+        <div className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className={`w-full max-w-lg rounded-[48px] border shadow-2xl overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+              <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'}`}>
+                 <div className="text-left">
+                    <h2 className={`text-xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Clinical Review</h2>
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Feedback Synchronization Protocol</p>
+                 </div>
+                 <button onClick={() => setShowReviewModal(false)} className={`p-3 rounded-xl transition-all border ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-zinc-500 hover:text-white' : 'bg-white border-slate-100 text-slate-400'}`}><X size={20}/></button>
+              </div>
+
+              <div className="p-10 space-y-8 text-center">
+                 <div className="space-y-4">
+                    <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Rate the quality of clinical sync with {selectedAppointment?.doctorName}</p>
+                    <div className="flex justify-center gap-3">
+                       {[1, 2, 3, 4, 5].map((star) => (
+                          <button
+                            key={star}
+                            onClick={() => setReviewData({ ...reviewData, rating: star })}
+                            className={`p-2 transition-all transform active:scale-90 ${reviewData.rating >= star ? 'text-amber-500 scale-110' : 'text-zinc-700 opacity-30 hover:opacity-100'}`}
+                          >
+                             <Star size={32} fill={reviewData.rating >= star ? "currentColor" : "none"} strokeWidth={3} />
+                          </button>
+                       ))}
+                    </div>
+                 </div>
+
+                 <div className="space-y-2 text-left">
+                    <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Technical Feedback / Comments</label>
+                    <textarea
+                      className={`w-full p-6 rounded-[32px] border outline-none text-sm font-bold min-h-[140px] transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white focus:border-blue-500/50' : 'bg-slate-50 border-slate-200'}`}
+                      placeholder="Enter your assessment of the consultation quality..."
+                      value={reviewData.comment}
+                      onChange={(e) => setReviewData({ ...reviewData, comment: e.target.value })}
+                    ></textarea>
+                 </div>
+
+                 <button
+                   onClick={submitReview}
+                   disabled={submittingReview}
+                   className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black uppercase tracking-[0.3em] text-[10px] shadow-2xl shadow-blue-500/40 hover:bg-blue-700 transition-all flex items-center justify-center gap-4 active:scale-95 disabled:opacity-50"
+                 >
+                    {submittingReview ? <Loader2 size={18} className="animate-spin" /> : <TrendingUp size={18} />}
+                    Establish Review Record
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
     </div>
   );
 };

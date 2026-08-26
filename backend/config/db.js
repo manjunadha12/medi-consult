@@ -8,10 +8,11 @@ const connectDB = async () => {
       connectTimeoutMS: 10000,
     });
     console.log(`[DATABASE] Success: Synchronized with ${conn.connection.host}`);
+    console.log(`[DATABASE] Active Node: ${conn.connection.name}`); // Display DB Name for verification
   } catch (error) {
     console.error(`[DATABASE ERROR] Failed to connect: ${error.message}`);
     console.error('PRO-TIP: Make sure you have whitelisted 0.0.0.0/0 in MongoDB Atlas.');
-    process.exit(1);
+    // process.exit(1); // Do not exit to prevent ECONNREFUSED on proxy
   }
 };
 

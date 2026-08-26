@@ -95,5 +95,5 @@ const doctorProfileSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false }
 });
 
-const DoctorProfile = mongoose.model('DoctorProfile', doctorProfileSchema);
+const DoctorProfile = mongoose.models.DoctorProfile || mongoose.model('DoctorProfile', doctorProfileSchema);
 export default DoctorProfile;

@@ -3,13 +3,20 @@
   "appName": "Medi Consult",
   "webDir": "dist",
   "server": {
-    "androidScheme": "http",
+    "androidScheme": "https",
+    "hostname": "localhost",
     "cleartext": true,
-    "url": "http://10.214.116.15:5173",
     "allowNavigation": [
-      "10.214.116.15",
+      "10.80.61.15",
+      "192.168.1.17",
+      "192.168.137.1",
+      "192.168.1.25",
       "localhost",
-      "*.razorpay.com"
+      "*.firebaseapp.com",
+      "*.firebaseauth.com",
+      "accounts.google.com",
+      "*.razorpay.com",
+      "api.qrserver.com"
     ]
   },
   "plugins": {

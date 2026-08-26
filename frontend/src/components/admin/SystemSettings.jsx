@@ -1,12 +1,12 @@
 import React, { useState } from 'react';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
-import { Settings, Cpu, Shield, Key, Bell, Database, Save, Activity } from 'lucide-react';
+import { Settings, Cpu, Shield, Key, Bell, Database, Save, Activity, Monitor } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
 
 const SystemSettings = () => {
-  const { theme } = useStore();
+  const { theme, navigationType, setNavigationType } = useStore();
 
   return (
     <div className={`flex min-h-screen transition-colors duration-500 text-left ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'}`}>
@@ -95,6 +95,34 @@ const SystemSettings = () => {
                   </h3>
                   <p className={`text-xs font-bold ${theme === 'dark' ? 'text-red-400/80' : 'text-red-400'}`}>Restrict platform access for scheduled maintenance or upgrades.</p>
                   <button className="w-full bg-red-600 text-white py-4 rounded-2xl font-black text-xs shadow-lg shadow-red-500/20 uppercase tracking-widest hover:bg-red-700 transition-all active:scale-95">Enable Maintenance Mode</button>
+               </div>
+
+               {/* App Interface Topology */}
+               <div className={`p-8 rounded-[40px] border shadow-sm space-y-6 transition-all duration-500 ${theme === 'dark' ? 'bg-[#0E0E12]/90 border-white/5' : 'bg-white border-slate-100'}`}>
+                  <h3 className={`text-sm font-black uppercase tracking-widest flex items-center gap-2 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                     <Monitor size={20} className="text-cyan-500" /> Interface Topology
+                  </h3>
+                  <div className="grid grid-cols-2 gap-4">
+                     {[
+                       { id: 'dock', label: 'Neural Dock' },
+                       { id: 'sidebar', label: 'Sidebar Node' }
+                     ].map((opt) => (
+                        <button
+                          key={opt.id}
+                          onClick={() => {
+                             setNavigationType(opt.id);
+                             toast.success(`Global Topology: ${opt.label}`);
+                          }}
+                          className={`p-4 rounded-2xl border text-[9px] font-black uppercase tracking-widest transition-all ${
+                            navigationType === opt.id
+                              ? 'bg-blue-600 border-blue-500 text-white shadow-lg shadow-blue-500/20'
+                              : 'bg-white dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 hover:bg-slate-50'
+                          }`}
+                        >
+                           {opt.label}
+                        </button>
+                     ))}
+                  </div>
                </div>
 
             </div>

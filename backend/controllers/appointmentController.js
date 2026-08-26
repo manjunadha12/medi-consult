@@ -7,23 +7,70 @@ import Prescription from '../models/Prescription.js';
 import Report from '../models/Report.js';
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_your_id',
-  key_secret: process.env.RAZORPAY_KEY_SECRET || 'your_secret'
+  key_id: process.env.RAZORPAY_KEY_ID || 'rzp_test_TJH58EdrShV62S',
+  key_secret: process.env.RAZORPAY_KEY_SECRET || 'uGW37UPEbvMdzmmVBuCghrpW'
 });
+
+export const updateVideoMeeting = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { meetingId, meetingPassword, scheduledVideoTime } = req.body;
+
+    const appointment = await Appointment.findByIdAndUpdate(
+      id,
+      { meetingId, meetingPassword, scheduledVideoTime },
+      { new: true }
+    );
+
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    res.json({ success: true, appointment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const toggleMeetingReady = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { isMeetingReady } = req.body;
+
+    const appointment = await Appointment.findByIdAndUpdate(
+      id,
+      { isMeetingReady },
+      { new: true }
+    );
+
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    res.json({ success: true, appointment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
 
 export const bookOP = async (req, res) => {
   try {
-    const { doctorId, department, date, time, problemDescription, consultationType, paymentMethod, fee } = req.body;
+    const { doctorId, department, date, time, problemDescription, consultationType, paymentMethod, fee, transactionId } = req.body;
     const patientId = req.user.patientId;
+
+    if (!patientId) {
+      console.warn(`[BOOKING_BLOCK] User ${req.user._id} is not synchronized as a Patient.`);
+      return res.status(400).json({ success: false, message: "User node not fully synchronized as Patient. Please re-login." });
+    }
+
+    if (!doctorId) {
+      return res.status(400).json({ success: false, message: "Specialist node ID is required." });
+    }
+
+    console.log(`[BOOKING_SYNC] Initializing for Patient: ${patientId} ↔ Doctor: ${doctorId}`);
 
     // Generate secure room code
     const roomCode = `MC-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    // Generate unique appointment ID
     const appointmentId = `OP-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
-
-    // Generate token number (simplified)
     const tokenNumber = Math.floor(100 + Math.random() * 900);
+    const meetingId = `MC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const meetingPassword = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const newAppointment = new Appointment({
       patientId,
@@ -36,25 +83,44 @@ export const bookOP = async (req, res) => {
       consultationType: consultationType || 'Video',
       problemDescription: problemDescription || 'No description provided',
       roomCode,
+      meetingId,
+      meetingPassword,
+      scheduledVideoTime: time,
       paymentMethod: paymentMethod || 'Razorpay',
       fee: fee || 0,
-      paymentStatus: 'Pending'
+      paymentStatus: 'Pending',
+      transactionId: transactionId || undefined,
+      paymentScreenshot: req.file ? req.file.path : undefined
     });
 
     // If Razorpay, create order
     if (newAppointment.paymentMethod === 'Razorpay' && newAppointment.fee > 0) {
-      const options = {
-        amount: newAppointment.fee * 100, // amount in paise
-        currency: "INR",
-        receipt: appointmentId,
-      };
-      const order = await razorpay.orders.create(options);
-      newAppointment.razorpayOrderId = order.id;
-    } else if (newAppointment.paymentMethod === 'PayPal' || newAppointment.paymentMethod === 'Card') {
+      try {
+        const options = {
+          amount: newAppointment.fee * 100, // amount in paise
+          currency: "INR",
+          receipt: appointmentId,
+        };
+        const order = await razorpay.orders.create(options);
+        newAppointment.razorpayOrderId = order.id;
+        console.log(`[PAYMENT_NODE] Razorpay Order Generated: ${order.id}`);
+      } catch (rzpErr) {
+        console.error(`[PAYMENT_NODE_FAIL] Razorpay Handshake Error:`, rzpErr.message);
+        // We don't crash the whole booking, just notify or fallback
+        return res.status(503).json({
+          success: false,
+          message: "Payment gateway node busy. Please try another method or try again."
+        });
+      }
+    } else if (newAppointment.paymentMethod === 'UPI') {
+        newAppointment.paymentStatus = 'Verifying';
+        console.log(`[PAYMENT_NODE] Manual UPI verification requested for UTR: ${transactionId}`);
+    } else if (['PayPal', 'Card', 'Wallet'].includes(newAppointment.paymentMethod)) {
         newAppointment.paymentStatus = 'Paid';
     }
 
     await newAppointment.save();
+    console.log(`[BOOKING_SUCCESS] Slot Synchronized: ${appointmentId}`);
 
     res.status(201).json({
       success: true,
@@ -63,7 +129,8 @@ export const bookOP = async (req, res) => {
       razorpayOrderId: newAppointment.razorpayOrderId
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error(`[BOOKING_FATAL_ERROR] Node Sync Failure:`, error);
+    res.status(500).json({ success: false, message: `Node synchronization failure: ${error.message}` });
   }
 };
 
@@ -78,18 +145,24 @@ export const generateManualToken = async (req, res) => {
     const roomCode = `MC-${Math.random().toString(36).substring(2, 6).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const appointmentId = `OP-MAN-${Date.now()}`;
     const tokenNumber = Math.floor(100 + Math.random() * 900);
+    const meetingId = `MC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+    const meetingPassword = Math.random().toString(36).substring(2, 8).toUpperCase();
+    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
     const newAppointment = new Appointment({
       patientId,
       doctorId,
       specialization: department,
       date: new Date(),
-      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      time,
       tokenNumber,
       appointmentId,
       consultationType: consultationType || 'In-person',
       problemDescription: problemDescription || 'Manual Token Generation',
       roomCode,
+      meetingId,
+      meetingPassword,
+      scheduledVideoTime: time,
       paymentStatus: 'Paid', // Admin generated is usually handled offline
       status: 'Pending',
       isEmergency: isEmergency || false
@@ -161,14 +234,22 @@ export const getGlobalQueue = async (req, res) => {
 
 export const getPatientAppointments = async (req, res) => {
   try {
-    const patientId = req.user.patientId;
-    const appointments = await Appointment.find({ patientId }).sort({ createdAt: -1 });
+    // If patientId is provided in query (used by doctors), use that; otherwise use logged-in user's ID
+    const patientId = req.query.patientId || req.user.patientId;
+
+    if (!patientId) {
+      return res.status(400).json({ message: "Patient ID node required for history sync" });
+    }
+
+    const appointments = await Appointment.find({ patientId }).sort({ date: -1, createdAt: -1 });
 
     const enriched = await Promise.all(appointments.map(async (app) => {
       const doctor = await User.findOne({ doctorId: app.doctorId });
+      const patient = await User.findOne({ patientId: app.patientId });
       return {
         ...app._doc,
-        doctorName: doctor?.name || 'Dr. Arjun Kumar'
+        doctorName: doctor?.name || 'Specialist Node',
+        patientName: patient?.name || 'Patient Node'
       };
     }));
 
@@ -180,16 +261,26 @@ export const getPatientAppointments = async (req, res) => {
 
 export const getAppointmentDetails = async (req, res) => {
   try {
-    const appointment = await Appointment.findById(req.params.id);
-    if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+    const { id } = req.params;
+    let appointment;
+
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      appointment = await Appointment.findById(id);
+    }
+
+    if (!appointment) {
+      appointment = await Appointment.findOne({ appointmentId: id });
+    }
+
+    if (!appointment) return res.status(404).json({ message: 'Appointment not found in registry' });
 
     const patient = await User.findOne({ patientId: appointment.patientId });
     const doctor = await User.findOne({ doctorId: appointment.doctorId });
 
     res.json({
       ...appointment._doc,
-      patientName: patient?.name,
-      doctorName: doctor?.name
+      patientName: patient?.name || 'Patient Node',
+      doctorName: doctor?.name || 'Specialist Node'
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -247,6 +338,36 @@ export const startConsultation = async (req, res) => {
   }
 };
 
+export const endConsultation = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, remarks } = req.body;
+
+    let appointment;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      appointment = await Appointment.findByIdAndUpdate(id, {
+        status: status || 'Completed',
+        remarks: remarks || 'Consultation ended',
+        endedAt: new Date()
+      }, { new: true });
+    }
+
+    if (!appointment) {
+      appointment = await Appointment.findOneAndUpdate({ appointmentId: id }, {
+        status: status || 'Completed',
+        remarks: remarks || 'Consultation ended',
+        endedAt: new Date()
+      }, { new: true });
+    }
+
+    if (!appointment) return res.status(404).json({ message: 'Appointment node not found' });
+
+    res.json({ success: true, appointment });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export const getDoctorHistory = async (req, res) => {
   try {
     const doctorId = req.user.doctorId;
@@ -274,21 +395,23 @@ export const getPatientSummary = async (req, res) => {
     const patientId = req.user.patientId;
     const appointments = await Appointment.find({ patientId }).sort({ createdAt: -1 });
 
-    const enriched = await Promise.all(appointments.map(async (app) => {
+    const enriched = (await Promise.all(appointments.map(async (app) => {
       const doctor = await User.findOne({ doctorId: app.doctorId });
+      if (!doctor) return null; // Filter out ghost nodes
+
       return {
         ...app._doc,
-        doctorName: doctor?.name || 'Dr. Arjun Kumar'
+        doctorName: doctor.name
       };
-    }));
+    }))).filter(Boolean); // Remove nulls
 
     res.json({
       success: true,
       appointments: enriched,
       stats: {
-        total: appointments.length,
-        pending: appointments.filter(a => a.status === 'Pending').length,
-        completed: appointments.filter(a => a.status === 'Completed').length
+        total: enriched.length,
+        pending: enriched.filter(a => a.status === 'Pending').length,
+        completed: enriched.filter(a => a.status === 'Completed').length
       }
     });
   } catch (error) {
@@ -308,6 +431,12 @@ export const updatePaymentStatus = async (req, res) => {
     );
 
     if (!appointment) return res.status(404).json({ message: 'Appointment not found' });
+
+    // If paid, we can also auto-accept the appointment if it's pending
+    if (appointment.paymentStatus === 'Paid' && appointment.status === 'Pending') {
+       appointment.status = 'Accepted';
+       await appointment.save();
+    }
 
     res.json({
       success: true,

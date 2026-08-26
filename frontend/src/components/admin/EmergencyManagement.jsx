@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
-import { AlertTriangle, Clock, User, Stethoscope, Phone, ShieldAlert, Send } from 'lucide-react';
+import { AlertTriangle, Clock, User, Stethoscope, ShieldAlert, Send } from 'lucide-react';
 import useStore from '../../store/useStore';
 
 const EmergencyManagement = () => {

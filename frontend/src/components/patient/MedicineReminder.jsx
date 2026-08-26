@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import Navbar from '../common/Navbar';
-import NeuralDock from '../common/NeuralDock';
 import {
   Pill, Plus, X, CheckCircle, Circle, Trash2, Clock,
   AlertCircle, Loader2, Sparkles, Calendar
@@ -197,7 +196,6 @@ const MedicineReminder = () => {
             </div>
           </div>
         </main>
-        <NeuralDock />
       </div>
 
       {/* Add Medicine Modal */}
