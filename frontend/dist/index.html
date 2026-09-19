@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Medi Consult</title>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https: http: blob: data:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https: http: https://checkout.razorpay.com https://*.firebaseapp.com https://apis.google.com https://www.gstatic.com; connect-src 'self' https: http: wss: ws: https://api.razorpay.com https://*.razorpay.com https://*.firebaseio.com https://*.googleapis.com https://*.firebaseapp.com; img-src 'self' data: blob: https: http:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; media-src 'self' blob: data: https: http:; frame-src 'self' https: http:;">
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="Referrer-Policy" content="strict-origin-when-cross-origin">
+  <script>
+    // Polyfill 'global' for libraries like simple-peer
+    window.global = window;
+    window.process = { env: { NODE_ENV: 'development' } };
+
+    window.onerror = function (msg, url, line, col, error) {
+      var div = document.createElement('div');
+      div.style.position = 'fixed';
+      div.style.top = '0';
+      div.style.left = '0';
+      div.style.width = '100%';
+      div.style.padding = '20px';
+      div.style.background = 'red';
+      div.style.color = 'white';
+      div.style.zIndex = '99999';
+      div.innerHTML = 'CORE_CRASH: ' + msg + ' (Line: ' + line + ')';
+      document.body.appendChild(div);
+      return false;
+    };
+  </script>
+  <script type="module" crossorigin src="/assets/index-CpC3rYhy.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DgeG1W4O.css">
+</head>
+
+<body>
+  <div id="root"></div>
+</body>
+
+</html>

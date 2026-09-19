@@ -11,6 +11,5 @@ serviceAccountKey.json
 **/node_modules/@capacitor/android/capacitor/build/
 
 # Builds & Caches
-dist/
 .idea/
 .vscode/
