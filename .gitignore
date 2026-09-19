@@ -7,8 +7,8 @@
 serviceAccountKey.json
 *.pem
 
-# Dependencies
-node_modules/
+# Android build cache transforms
+**/node_modules/@capacitor/android/capacitor/build/
 
 # Builds & Caches
 dist/
