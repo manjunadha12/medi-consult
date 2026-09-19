@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=satoshi@900,700,500,300,400&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -39,7 +39,7 @@
 html, body {
   background-color: var(--neural-bg);
   color: var(--neural-text);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: 'Satoshi', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   overflow-x: hidden;
@@ -215,6 +215,39 @@ html, body {
   animation: shimmer 2s linear infinite;
 }
 
+/* ─── Smooth Scroll & Scroll-Up Animations ─── */
+html {
+  scroll-behavior: smooth;
+}
+
+@keyframes scrollUpSlide {
+  0% {
+    opacity: 0.85;
+    transform: translateY(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scrollUpGlow {
+  0% {
+    box-shadow: 0 0 0 rgba(37, 99, 235, 0);
+  }
+  50% {
+    box-shadow: 0 10px 35px rgba(37, 99, 235, 0.25);
+  }
+  100% {
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.15);
+  }
+}
+
+.animate-scroll-up {
+  animation: scrollUpSlide 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards,
+             scrollUpGlow 0.5s ease-out forwards;
+}
+
 /* ─── Noise texture overlay ─── */
 .noise-overlay::after {
   content: '';
@@ -225,20 +258,44 @@ html, body {
   border-radius: inherit;
 }
 
-/* ─── Grid backdrop pattern ─── */
+/* ─── Grid backdrop pattern (Disabled for clean, line-free background) ─── */
 .neural-grid {
-  background-image:
-    linear-gradient(var(--grid-color) 1px, transparent 1px),
-    linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
-  background-size: 40px 40px;
+  background-image: none;
 }
 
 :root {
-  --grid-color: rgba(255,255,255,0.02);
+  --grid-color: transparent;
 }
 
 .light {
-  --grid-color: rgba(0,0,0,0.05);
+  --grid-color: transparent;
+}
+
+/* ─── UI Density Compact Mode Scaling ─── */
+[data-density="compact"] {
+  font-size: 13px;
+}
+
+[data-density="compact"] .p-8,
+[data-density="compact"] .p-10,
+[data-density="compact"] .p-12,
+[data-density="compact"] .p-16 {
+  padding: 1.25rem !important;
+}
+
+[data-density="compact"] .p-6 {
+  padding: 0.85rem !important;
+}
+
+[data-density="compact"] .py-8 {
+  padding-top: 1.25rem !important;
+  padding-bottom: 1.25rem !important;
+}
+
+[data-density="compact"] .gap-8,
+[data-density="compact"] .gap-10,
+[data-density="compact"] .gap-12 {
+  gap: 1.25rem !important;
 }
 
 /* ─── Prose (markdown) overrides for dark mode ─── */

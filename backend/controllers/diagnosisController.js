@@ -8,11 +8,28 @@ export const createDiagnosis = async (req, res) => {
   try {
     const ClinicalDiagnosis = mongoose.model('ClinicalDiagnosis');
     const {
-      patientId, patientName, diagnosis, chiefComplaint, symptoms, clinicalFindings,
+      patientId: rawPatientId, patientName: rawPatientName, diagnosis, chiefComplaint, symptoms, clinicalFindings,
       reportSummary, reportInterpretation, doctorsNotes, treatmentPlan,
       medicationsPrescribed, medicationsText, recommendedTests, followUpInstructions, nextReviewDate,
       consultationDate
     } = req.body;
+
+    // Resolve patient canonical profile
+    let patientId = (rawPatientId || '').trim();
+    let patientName = rawPatientName;
+
+    const patientUser = await User.findOne({
+      $or: [
+        { patientId: patientId.toUpperCase() },
+        { patientId: patientId },
+        ...(mongoose.Types.ObjectId.isValid(patientId) ? [{ _id: patientId }] : [])
+      ]
+    });
+
+    if (patientUser) {
+      patientId = patientUser.patientId || patientUser._id.toString();
+      patientName = patientUser.name || patientName;
+    }
 
     let attachments = [];
     if (req.files) {
@@ -30,7 +47,7 @@ export const createDiagnosis = async (req, res) => {
       doctorId,
       doctorName,
       patientId,
-      patientName,
+      patientName: patientName || 'Patient',
       diagnosis,
       chiefComplaint,
       symptoms,
@@ -39,7 +56,7 @@ export const createDiagnosis = async (req, res) => {
       reportInterpretation,
       doctorsNotes,
       treatmentPlan,
-      medicationsPrescribed,
+      medicationsPrescribed: Array.isArray(medicationsPrescribed) ? medicationsPrescribed : [],
       medicationsText,
       recommendedTests,
       followUpInstructions,
@@ -49,8 +66,11 @@ export const createDiagnosis = async (req, res) => {
     });
 
     await newDiagnosis.save();
+    console.log(`[DIAGNOSIS_CREATE] Node created for patient: ${patientId} by doctor: ${doctorId}`);
+
     res.status(201).json({ success: true, message: 'Diagnosis record established', data: newDiagnosis });
   } catch (error) {
+    console.error('[DIAGNOSIS_CREATE_ERROR]:', error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -58,12 +78,34 @@ export const createDiagnosis = async (req, res) => {
 export const getPatientDiagnosisHistory = async (req, res) => {
   try {
     const ClinicalDiagnosis = mongoose.model('ClinicalDiagnosis');
-    const patientId = req.params.patientId?.toUpperCase();
-    if (!patientId || patientId === 'UNDEFINED') return res.json([]);
+    let rawId = req.params.patientId?.trim();
 
-    console.log(`[DIAGNOSIS_SYNC] Handshaking with ledger for: ${patientId}`);
+    if (!rawId || rawId === 'undefined' || rawId === 'null') {
+      if (req.user?.role === 'patient') {
+        rawId = req.user.patientId || req.user._id?.toString();
+      } else {
+        return res.json([]);
+      }
+    }
 
-    const history = await ClinicalDiagnosis.find({ patientId }).sort({ consultationDate: -1 }).lean();
+    console.log(`[DIAGNOSIS_SYNC] Fetching history for patient key: ${rawId}`);
+
+    const isMongo = mongoose.Types.ObjectId.isValid(rawId);
+    const user = await User.findOne({
+      $or: [
+        { patientId: rawId.toUpperCase() },
+        { patientId: rawId },
+        ...(isMongo ? [{ _id: rawId }] : [])
+      ]
+    });
+
+    const searchIds = [rawId, rawId.toUpperCase(), rawId.toLowerCase()];
+    if (user?.patientId) searchIds.push(user.patientId, user.patientId.toUpperCase());
+    if (user?._id) searchIds.push(user._id.toString());
+
+    const history = await ClinicalDiagnosis.find({
+      patientId: { $in: searchIds }
+    }).sort({ consultationDate: -1, createdAt: -1 }).lean();
 
     return res.json(history || []);
   } catch (error) {
@@ -75,9 +117,26 @@ export const getPatientDiagnosisHistory = async (req, res) => {
 export const getDoctorDiagnosisHistory = async (req, res) => {
   try {
     const ClinicalDiagnosis = mongoose.model('ClinicalDiagnosis');
-    const { doctorId } = req.params;
-    const history = await ClinicalDiagnosis.find({ doctorId }).sort({ consultationDate: -1 });
-    res.json(history);
+    const rawDoctorId = req.params.doctorId?.trim();
+
+    let searchIds = [rawDoctorId];
+    const isMongo = mongoose.Types.ObjectId.isValid(rawDoctorId);
+    const doctorUser = await User.findOne({
+      $or: [
+        { doctorId: rawDoctorId },
+        { doctorId: rawDoctorId?.toUpperCase() },
+        ...(isMongo ? [{ _id: rawDoctorId }] : [])
+      ]
+    });
+
+    if (doctorUser?.doctorId) searchIds.push(doctorUser.doctorId, doctorUser.doctorId.toUpperCase());
+    if (doctorUser?._id) searchIds.push(doctorUser._id.toString());
+
+    const history = await ClinicalDiagnosis.find({
+      doctorId: { $in: searchIds }
+    }).sort({ consultationDate: -1, createdAt: -1 }).lean();
+
+    res.json(history || []);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

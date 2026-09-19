@@ -246,6 +246,11 @@ const ChatSystem = () => {
     const partner = getPartner(activeConversation);
     const partnerId = partner.userId || partner.humanId;
 
+    const isSpecialist = partner?.role === 'doctor' || (partner?.humanId && partner.humanId.toUpperCase().startsWith('DOC'));
+    if (isSpecialist) {
+      return toast.error("Calls are disabled for Specialist Peers. Available for Clinical Patients only.");
+    }
+
     const isP2P = user.role === 'doctor' && partner.role === 'doctor';
     // Use conversationId as deterministic roomCode
     const roomCode = activeConversation._id;
@@ -671,20 +676,30 @@ const ChatSystem = () => {
                 {!activeConversation.isLocked && (
                   <div className="flex items-center gap-2 sm:gap-3">
                     {initializing && <Loader2 size={16} className="animate-spin text-blue-500 mr-2" />}
-                    <button
-                      disabled={initializing}
-                      onClick={() => handleInitiateCall('voice')}
-                      className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
-                    >
-                      <PhoneIcon size={18} />
-                    </button>
-                    <button
-                      disabled={initializing}
-                      onClick={() => handleInitiateCall('video')}
-                      className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-purple-600/10 border border-purple-500/20 text-purple-500 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}
-                    >
-                      <Video size={18} />
-                    </button>
+                    {(() => {
+                      const partner = getPartner(activeConversation);
+                      const isSpecialist = partner?.role === 'doctor' || (partner?.humanId && partner.humanId.toUpperCase().startsWith('DOC'));
+                      return !isSpecialist && (
+                        <>
+                          <button
+                            disabled={initializing}
+                            onClick={() => handleInitiateCall('voice')}
+                            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
+                            title="Initiate Voice Call"
+                          >
+                            <PhoneIcon size={18} />
+                          </button>
+                          <button
+                            disabled={initializing}
+                            onClick={() => handleInitiateCall('video')}
+                            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-purple-600/10 border border-purple-500/20 text-purple-500 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}
+                            title="Initiate Video Call"
+                          >
+                            <Video size={18} />
+                          </button>
+                        </>
+                      );
+                    })()}
                   </div>
                 )}
               </div>

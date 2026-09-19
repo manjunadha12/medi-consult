@@ -46,16 +46,18 @@ const getInitialSettings = () => {
     const preference = localStorage.getItem('navigationType') || 'dock';
     const sidebarExpanded = localStorage.getItem('sidebarExpanded') !== 'false';
     const uiDensity = localStorage.getItem('uiDensity') || 'Comfortable';
+    const reportEngineMode = localStorage.getItem('reportEngineMode') || 'local';
     return {
       showNavbar: true,
       showNeuralDock: preference === 'dock',
       showSidebar: preference === 'sidebar',
       sidebarExpanded: false, // Default to hidden
       navigationType: preference,
-      uiDensity: uiDensity
+      uiDensity: uiDensity,
+      reportEngineMode: reportEngineMode
     };
   } catch (err) {
-    return { showNavbar: true, showNeuralDock: true, showSidebar: false, sidebarExpanded: false, navigationType: 'dock', uiDensity: 'Comfortable' };
+    return { showNavbar: true, showNeuralDock: true, showSidebar: false, sidebarExpanded: false, navigationType: 'dock', uiDensity: 'Comfortable', reportEngineMode: 'local' };
   }
 };
 
@@ -103,7 +105,7 @@ const useStore = create((set, get) => ({
       reconnectionAttempts: 20,
       reconnectionDelay: 3000,
       withCredentials: true,
-      forceNew: true,
+      autoConnect: true,
       timeout: 10000
     };
 
@@ -200,6 +202,16 @@ const useStore = create((set, get) => ({
   setShowNeuralDock: (show) => {
     localStorage.setItem('showNeuralDock', show);
     set({ showNeuralDock: show });
+  },
+
+  setReportEngineMode: (mode) => {
+    localStorage.setItem('reportEngineMode', mode);
+    set({ reportEngineMode: mode });
+  },
+
+  setUiDensity: (density) => {
+    localStorage.setItem('uiDensity', density);
+    set({ uiDensity: density });
   },
 
   setUser: (user) => {

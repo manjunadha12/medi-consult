@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
-  Settings, Brain, FileUp, Monitor, History as HistoryIcon, Search as SearchIcon, ShieldCheck, LogOut, ChevronRight, Menu, X,
-  Home, Activity, Pill, MessageSquare, MessageCircle, FileText, Video, Calculator, Clock, Clipboard, Layout, Users, Stethoscope, CreditCard, Shield, UserPlus
+  Brain, FileUp, Monitor, History as HistoryIcon, Search as SearchIcon, ShieldCheck,
+  Home, Activity, Pill, MessageSquare, MessageCircle, FileText, Video, Calculator, Clock, Clipboard, Layout, Users, Stethoscope, CreditCard, Shield, UserPlus, Building
 } from 'lucide-react';
 import useStore from '../../store/useStore';
 
@@ -17,6 +17,7 @@ const Sidebar = () => {
     patient: [
       { label: 'Home', icon: Home, path: '/patient/dashboard', color: 'text-blue-500' },
       { label: 'AI Analysis', icon: Brain, path: '/patient/ai-analysis', color: 'text-purple-500' },
+      { label: 'Consultation Details', icon: Stethoscope, path: '/patient/consultation-details', color: 'text-violet-500' },
       { label: 'Supplements', icon: Pill, path: '/patient/medicine-search', color: 'text-emerald-500' },
       { label: 'AI Chat', icon: MessageSquare, path: '/patient/ai-chat', color: 'text-indigo-500' },
       { label: 'Neural Messages', icon: MessageCircle, path: '/patient/chat', color: 'text-blue-400' },
@@ -31,6 +32,8 @@ const Sidebar = () => {
     doctor: [
       { label: 'Dashboard', icon: Layout, path: '/doc-dashboard', color: 'text-blue-500' },
       { label: 'Patient Queue', icon: Clock, path: '/doctor/queue', color: 'text-orange-500' },
+      { label: 'Offline OP Queue', icon: Building, path: '/doctor/offline-queue', color: 'text-emerald-400' },
+      { label: 'Consultation Details', icon: Stethoscope, path: '/doctor/consultation-details', color: 'text-violet-500' },
       { label: 'AI Swarm', icon: Brain, path: '/doctor/ai-report', color: 'text-purple-500' },
       { label: 'AI Chat', icon: MessageSquare, path: '/doctor/ai-chat', color: 'text-indigo-500' },
       { label: 'Neural Messages', icon: MessageCircle, path: '/doctor/chat', color: 'text-blue-400' },
@@ -58,73 +61,73 @@ const Sidebar = () => {
 
   return (
     <>
-      {/* Global Backdrop - Auto-hides sidebar when expanded */}
+      {/* Global Seamless Backdrop - Continuous gradient blur with no sharp vertical line */}
       {sidebarExpanded && (
         <div
           onClick={() => setSidebarExpanded(false)}
-          className="fixed inset-0 bg-black/40 backdrop-blur-[2px] z-[140] animate-in fade-in duration-300"
+          className="fixed inset-0 bg-gradient-to-r from-black/80 via-black/70 to-black/60 backdrop-blur-md z-[140] animate-in fade-in duration-300"
         ></div>
       )}
 
       <aside
-        className={`fixed left-0 top-0 h-screen z-[150] border-r transition-all duration-500 ease-in-out flex flex-col overflow-y-auto overflow-x-hidden ${
-        sidebarExpanded ? 'w-64 translate-x-0 shadow-[20px_0_60px_rgba(0,0,0,0.5)]' : 'w-64 -translate-x-full'
-      } ${
-        theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-200'
-      }`}>
+        className={`fixed left-0 top-0 h-screen z-[150] transition-all duration-500 ease-in-out flex flex-col justify-center bg-transparent py-4 ${
+          sidebarExpanded ? 'w-64 translate-x-0' : 'w-64 -translate-x-full'
+        }`}
+      >
+        {/* Nav Items - Vertically Centered */}
+        <nav className="px-3 my-auto space-y-1 custom-scrollbar flex flex-col justify-center">
+          {roleItems.map((item, i) => {
+            const isActive = location.pathname === item.path;
+            const bgClass = item.color.replace('text-', 'bg-');
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  navigate(item.path);
+                  setSidebarExpanded(false);
+                }}
+                className={`relative w-full flex items-center gap-2.5 px-3 py-2.5 rounded-2xl transition-all duration-300 group ${
+                  isActive
+                    ? 'opacity-100'
+                    : 'opacity-30 hover:opacity-100'
+                }`}
+              >
+                {/* Radial glow background for active item */}
+                {isActive && (
+                  <div
+                    className={`absolute inset-0 rounded-2xl opacity-40 blur-xl pointer-events-none transition-all duration-500 ${bgClass}`}
+                  />
+                )}
 
-        {/* Toggle Node */}
-        <div className="p-4 sm:p-6 flex items-center justify-between gap-3 shrink-0 border-b border-white/5 min-h-[80px]">
-           <div className="flex items-center gap-3 overflow-hidden">
-              <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center shrink-0 shadow-lg shadow-blue-600/20">
-                 <Menu size={22} className="text-white" />
-              </div>
-              <h2 className={`text-sm font-black uppercase tracking-tighter whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                 Medi <span className="text-blue-500">Consult</span>
-              </h2>
-           </div>
-           <button
-             onClick={() => setSidebarExpanded(false)}
-             className={`p-2 rounded-lg hover:bg-white/5 transition-all ${theme === 'dark' ? 'text-zinc-500 hover:text-white' : 'text-slate-400 hover:text-slate-800'}`}
-           >
-             <X size={20} />
-           </button>
-        </div>
+                {/* Left Side Active Indicator Dot */}
+                <div className="w-2.5 flex justify-center shrink-0 relative z-10">
+                  {isActive ? (
+                    <div
+                      className={`w-2 h-2 rounded-full animate-pulse ${bgClass}`}
+                      style={{ filter: 'drop-shadow(0 0 8px currentColor)', boxShadow: '0 0 10px currentColor' }}
+                    />
+                  ) : (
+                    <div className="w-1.5 h-1.5 rounded-full bg-zinc-700 opacity-0 group-hover:opacity-60 transition-opacity" />
+                  )}
+                </div>
 
-      {/* Nav Items */}
-      <nav className="flex-1 px-3 mt-6 space-y-2 custom-scrollbar flex flex-col">
-        {roleItems.map((item, i) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <button
-              key={i}
-              onClick={() => {
-                navigate(item.path);
-                setSidebarExpanded(false); // Auto-hide after selection
-              }}
-              className={`w-full flex items-center gap-4 p-4 rounded-2xl transition-all group relative shrink-0 ${
-                isActive
-                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/20'
-                  : `hover:bg-white/5 ${theme === 'dark' ? 'text-zinc-500 hover:text-zinc-200' : 'text-slate-500 hover:text-slate-800 hover:bg-slate-50'}`
-              }`}
-            >
-              <item.icon
-                size={20}
-                strokeWidth={isActive ? 3 : 2}
-                className={`${isActive ? 'animate-pulse text-white' : `${item.color} group-hover:scale-110`} transition-all duration-300`}
-              />
+                {/* Icon */}
+                <item.icon
+                  size={18}
+                  className={`shrink-0 transition-all duration-300 relative z-10 ${item.color} ${
+                    isActive ? 'scale-110 drop-shadow-[0_0_12px_currentColor]' : 'group-hover:scale-110'
+                  }`}
+                />
 
-              <span className="text-[11px] font-black uppercase tracking-widest text-left">
-                {item.label}
-              </span>
-
-              {isActive && <ChevronRight size={14} className="ml-auto" />}
-            </button>
-          );
-        })}
-      </nav>
-
-    </aside>
+                {/* Label */}
+                <span className={`text-[11px] uppercase tracking-wider text-left truncate relative z-10 ${isActive ? 'text-white font-black drop-shadow-[0_0_6px_rgba(255,255,255,0.4)]' : 'text-zinc-400 group-hover:text-white font-medium'}`}>
+                  {item.label}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
+      </aside>
     </>
   );
 };

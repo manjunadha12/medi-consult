@@ -22,7 +22,28 @@ if (!fs.existsSync(chatUploadDir)) {
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     const isChat = req.originalUrl.includes('/chat/');
-    cb(null, isChat ? chatUploadDir : uploadDir);
+    if (isChat) return cb(null, chatUploadDir);
+
+    let subFolder = 'general';
+    const user = req.user;
+
+    if (user) {
+      const role = user.role;
+      const id = user.patientId || user.doctorId || user.adminId || user._id.toString();
+      subFolder = path.join(role, id);
+    } else if (req.originalUrl.includes('/register/doctor')) {
+      // For doctor registration, use a temp or email-based folder since ID isn't generated yet
+      const emailHint = (req.body.email || 'pending').replace(/[^a-z0-9]/gi, '_');
+      subFolder = path.join('doctor', 'registration_' + emailHint);
+    }
+
+    const finalPath = path.join(uploadDir, subFolder);
+
+    if (!fs.existsSync(finalPath)) {
+      fs.mkdirSync(finalPath, { recursive: true });
+    }
+
+    cb(null, finalPath);
   },
   filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);

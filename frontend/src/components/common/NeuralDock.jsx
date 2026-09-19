@@ -63,184 +63,88 @@ const NeuralDock = () => {
       { label: 'AI Swarm', icon: Brain, path: '/doctor/ai-report', color: 'bg-purple-600' },
       { label: 'AI Chat', icon: MessageSquare, path: '/doctor/ai-chat', color: 'bg-indigo-600' },
       { label: 'Neural Messages', icon: MessageCircle, path: '/doctor/chat', color: 'bg-blue-600' },
-      { label: 'Rx Write', icon: FileUp, path: '/doctor/prescription', color: 'bg-indigo-600' },
+      { label: 'Rx Writer', icon: FileUp, path: '/doctor/prescription', color: 'bg-emerald-500' },
       { label: 'History', icon: HistoryIcon, path: '/doctor/history', color: 'bg-slate-600' },
-      { label: 'Rx List', icon: Clipboard, path: '/doctor/prescriptions', color: 'bg-blue-600' },
-      { label: 'Referrals', icon: Users, path: '/doctor/referral', color: 'bg-rose-500' },
+      { label: 'Rx List', icon: Clipboard, path: '/doctor/prescriptions', color: 'bg-indigo-500' },
+      { label: 'Referrals', icon: Users, path: '/doctor/referral', color: 'bg-teal-500' },
+      { label: 'Doctor Network', icon: Users, path: '/doctor/network', color: 'bg-sky-500' },
     ],
     admin: [
-      { label: 'Dashboard', icon: Home, path: '/admin-dashboard', color: 'bg-blue-500' },
-      { label: 'Specialist Approvals', icon: ShieldCheck, path: '/admin/approvals', color: 'bg-emerald-600' },
+      { label: 'Dashboard', icon: Layout, path: '/admin-dashboard', color: 'bg-blue-500' },
+      { label: 'Approvals', icon: ShieldCheck, path: '/admin/approvals', color: 'bg-emerald-600' },
       { label: 'Doctor Security', icon: Stethoscope, path: '/admin/doctors', color: 'bg-teal-600' },
       { label: 'Patient Security', icon: Users, path: '/admin/patients', color: 'bg-indigo-600' },
-      { label: 'OP Tokens', icon: Clock, path: '/admin/op-tokens', color: 'bg-amber-500' },
-      { label: 'Departments', icon: Layout, path: '/admin/departments', color: 'bg-indigo-500' },
-      { label: 'AI Monitor', icon: Monitor, path: '/admin/ai-monitoring', color: 'bg-purple-600' },
-      { label: 'Billing', icon: CreditCard, path: '/admin/billing', color: 'bg-rose-500' },
-      { label: 'Governance', icon: Shield, path: '/admin/profile-governance', color: 'bg-emerald-600' },
+      { label: 'OP Tokens', icon: Clock, path: '/admin/op-tokens', color: 'bg-amber-600' },
+      { label: 'Departments', icon: Layout, path: '/admin/departments', color: 'bg-purple-600' },
+      { label: 'AI Monitoring', icon: Monitor, path: '/admin/ai-monitoring', color: 'bg-sky-600' },
+      { label: 'Billing', icon: CreditCard, path: '/admin/billing', color: 'bg-rose-600' },
+      { label: 'Governance', icon: Shield, path: '/admin/profile-governance', color: 'bg-emerald-500' },
       { label: 'Audit Logs', icon: FileText, path: '/admin/audit-logs', color: 'bg-slate-600' },
     ]
   };
 
-  const roleItems = (user && menuItems[user.role]) ? menuItems[user.role] : menuItems.patient;
-
-  const getScale = (index) => {
-    if (window.innerWidth < 640) return 1; // Disable magnification on mobile for better usability
-    if (hoveredIndex === null) return 1;
-    const distance = Math.abs(index - hoveredIndex);
-    if (distance === 0) return 1.5;
-    if (distance === 1) return 1.25;
-    if (distance === 2) return 1.1;
-    return 1;
-  };
-
-  const getMargin = (index) => {
-    if (window.innerWidth < 640) return '2px';
-    if (hoveredIndex === null) return '4px';
-    const distance = Math.abs(index - hoveredIndex);
-    if (distance === 0) return '12px';
-    if (distance === 1) return '8px';
-    return '4px';
-  };
+  const currentRoleItems = (user && menuItems[user.role]) ? menuItems[user.role] : menuItems.patient;
 
   return (
-    <div className="fixed bottom-4 sm:bottom-6 left-1/2 -translate-x-1/2 z-[2000] print:hidden w-fit max-w-[95%] sm:max-w-none">
-      <div className={`flex items-end gap-1 px-3 sm:px-4 py-3 sm:py-4 backdrop-blur-3xl border rounded-[32px] sm:rounded-[48px] shadow-[0_40px_100px_-20px_rgba(0,0,0,0.8)] transition-all duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] scrollbar-hide ${
-        theme === 'dark' ? 'bg-zinc-950/90 border-white/10' : 'bg-white/90 border-slate-200 shadow-slate-300/50'
-      } ${hoveredIndex !== null ? 'overflow-visible' : 'overflow-x-auto'}`}>
-        {roleItems.map((item, i) => {
+    <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-[100] max-w-[95vw]">
+      <motion.nav
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+        className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 rounded-full border shadow-2xl backdrop-blur-xl transition-all duration-300 ${
+          theme === 'dark'
+            ? 'bg-zinc-950/80 border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.8)]'
+            : 'bg-white/80 border-slate-200 shadow-[0_20px_50px_rgba(0,0,0,0.15)]'
+        }`}
+      >
+        {currentRoleItems.map((item, index) => {
           const isActive = location.pathname === item.path;
-          const scale = getScale(i);
-          const margin = getMargin(i);
-          const baseWidth = window.innerWidth < 640 ? 38 : 44;
-          const baseHeight = window.innerWidth < 640 ? 48 : 56;
-
           return (
-            <div
-              key={i}
-              className="relative flex flex-col items-center shrink-0 transition-all duration-300 ease-out"
-              onMouseEnter={() => setHoveredIndex(i)}
-              onMouseLeave={() => setHoveredIndex(null)}
-              onClick={() => navigate(item.path)}
-              style={{
-                width: `${baseWidth * scale}px`,
-                marginLeft: margin,
-                marginRight: margin,
-                cursor: 'pointer'
-              }}
-            >
-              {/* Tooltip or Info Overlay */}
+            <div key={index} className="relative flex flex-col items-center">
+              <motion.button
+                onHoverStart={() => setHoveredIndex(index)}
+                onHoverEnd={() => setHoveredIndex(null)}
+                onClick={() => navigate(item.path)}
+                whileHover={{ scale: 1.15, y: -4 }}
+                whileTap={{ scale: 0.95 }}
+                className={`relative p-2 sm:p-2.5 rounded-full transition-all duration-300 flex items-center justify-center ${
+                  isActive
+                    ? `${item.color} text-white shadow-lg shadow-blue-500/30 ring-2 ring-white/20`
+                    : theme === 'dark'
+                    ? 'text-zinc-400 hover:text-white hover:bg-white/10'
+                    : 'text-slate-500 hover:text-slate-900 hover:bg-slate-100'
+                }`}
+              >
+                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+
+                {/* Info badge pulse for active nodes */}
+                {item.isInfo && latestAppt && (
+                  <span className="absolute top-0 right-0 w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                )}
+              </motion.button>
+
+              {/* Tooltip Label */}
               <AnimatePresence>
-                {hoveredIndex === i && (
+                {hoveredIndex === index && (
                   <motion.div
-                    initial={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
-                    animate={{ opacity: 1, y: 0, scale: 1, x: '-50%' }}
-                    exit={{ opacity: 0, y: 20, scale: 0.9, x: '-50%' }}
-                    className={`absolute bottom-full left-1/2 mb-6 z-[2100] ${item.isInfo && latestAppt ? 'w-[400px]' : 'w-auto'}`}
+                    initial={{ opacity: 0, y: 10, scale: 0.8 }}
+                    animate={{ opacity: 1, y: -45, scale: 1 }}
+                    exit={{ opacity: 0, y: 10, scale: 0.8 }}
+                    transition={{ duration: 0.15 }}
+                    className={`absolute pointer-events-none px-3 py-1 rounded-xl text-[9px] font-black uppercase tracking-wider whitespace-nowrap border shadow-xl z-50 ${
+                      theme === 'dark'
+                        ? 'bg-zinc-900 text-white border-white/10'
+                        : 'bg-white text-slate-800 border-slate-200'
+                    }`}
                   >
-                    {item.isInfo && latestAppt ? (
-                      <div className={`p-8 rounded-[40px] border shadow-[0_32px_80px_rgba(0,0,0,0.7)] backdrop-blur-3xl text-left space-y-6 relative overflow-hidden ${theme === 'dark' ? 'bg-zinc-950 border-emerald-500/20' : 'bg-white border-emerald-100 shadow-emerald-100/50'}`}>
-                         <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full -mr-16 -mt-16 blur-3xl"></div>
-
-                         <div className="flex justify-between items-start relative z-10">
-                            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-500 border border-emerald-500/20 shadow-inner">
-                               <Ticket size={28} />
-                            </div>
-                            <div className="flex flex-col items-end gap-2">
-                               <div className={`px-3 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.2em] flex items-center gap-2 ${latestAppt.isMeetingReady ? 'bg-blue-600 text-white animate-pulse shadow-[0_0_15px_rgba(37,99,235,0.4)]' : 'bg-white/5 text-zinc-500 border border-white/10'}`}>
-                                  <div className={`w-1.5 h-1.5 rounded-full ${latestAppt.isMeetingReady ? 'bg-white' : 'bg-zinc-600'}`}></div>
-                                  {latestAppt.isMeetingReady ? 'ARENA ACTIVE' : 'AWAITING NODE'}
-                               </div>
-                               <p className="text-[7px] font-black text-zinc-600 uppercase tracking-widest">Diagnostic Node: {latestAppt._id.slice(-8).toUpperCase()}</p>
-                            </div>
-                         </div>
-
-                         <div className="space-y-1 relative z-10">
-                            <p className="text-[8px] font-black text-zinc-500 uppercase tracking-[0.3em]">Authorized Session Operator</p>
-                            <h4 className={`text-2xl font-black uppercase tracking-tighter leading-none ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
-                               {user.role === 'patient' ? latestAppt.doctorName : latestAppt.patientName}
-                            </h4>
-                            <p className="text-blue-500 text-[11px] font-black uppercase tracking-[0.4em] pt-1">
-                               {latestAppt.specialization || 'Clinical Synthesis Review'}
-                            </p>
-                         </div>
-
-                         <div className="grid grid-cols-2 gap-4 pt-2 relative z-10">
-                            <div className="p-4 bg-white/5 border border-white/5 rounded-3xl group hover:border-emerald-500/20 transition-all">
-                               <p className="text-[7px] font-black text-zinc-500 uppercase mb-1.5 tracking-widest flex items-center gap-2">
-                                  <Clock size={10} className="text-amber-500"/> Sync Time
-                               </p>
-                               <p className="text-base font-black text-white tracking-tight">{latestAppt.scheduledVideoTime || latestAppt.time}</p>
-                            </div>
-                            <div className="p-4 bg-white/5 border border-white/5 rounded-3xl group hover:border-blue-500/20 transition-all">
-                               <p className="text-[7px] font-black text-zinc-500 uppercase mb-1.5 tracking-widest flex items-center gap-2">
-                                  <Shield size={10} className="text-blue-500"/> Node ID
-                               </p>
-                               <p className="text-base font-black text-white tracking-tight uppercase truncate">{latestAppt.meetingId || 'PENDING'}</p>
-                            </div>
-                         </div>
-
-                         {latestAppt.meetingPassword && (
-                           <div className="p-4 bg-white/5 border border-white/5 rounded-3xl flex items-center justify-between group hover:border-purple-500/20 transition-all relative z-10">
-                              <div className="flex items-center gap-3">
-                                 <div className="w-8 h-8 rounded-xl bg-purple-500/10 flex items-center justify-center text-purple-500 border border-purple-500/20">
-                                    <Lock size={14}/>
-                                 </div>
-                                 <span className="text-[9px] font-black text-zinc-400 uppercase tracking-[0.2em]">Access Passkey</span>
-                              </div>
-                              <span className="text-base font-black text-white tracking-[0.3em]">{latestAppt.meetingPassword}</span>
-                           </div>
-                         )}
-
-                         <button
-                            onClick={() => {
-                               const path = user.role === 'patient' ? '/patient/video-consult' : '/doctor/video-consult';
-                               navigate(`${path}?roomCode=${latestAppt._id}&appointmentId=${latestAppt._id}&peerName=${user.role === 'patient' ? latestAppt.doctorName : latestAppt.patientName}&peerId=${user.role === 'patient' ? latestAppt.doctorId : latestAppt.patientId}`);
-                            }}
-                            className={`w-full py-5 rounded-[24px] font-black text-[11px] uppercase tracking-[0.3em] transition-all shadow-2xl flex items-center justify-center gap-4 active:scale-95 ${latestAppt.isMeetingReady ? 'bg-blue-600 text-white shadow-blue-600/40 hover:bg-blue-500' : 'bg-white/5 text-zinc-600 border border-white/5 cursor-not-allowed grayscale'}`}
-                         >
-                            <Video size={18} /> Join Clinical Arena
-                         </button>
-                      </div>
-                    ) : (
-                      <div className={`px-3 py-1.5 bg-black/90 backdrop-blur-2xl border border-white/10 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] text-white whitespace-nowrap pointer-events-none transition-all duration-300`}>
-                        {item.label}
-                      </div>
-                    )}
+                    {item.label}
                   </motion.div>
                 )}
               </AnimatePresence>
-
-              {/* Icon Container */}
-              <div
-                className={`w-full rounded-[18px] sm:rounded-[24px] flex items-center justify-center transition-all duration-300 relative overflow-hidden border ${
-                  isActive
-                    ? 'border-blue-400 bg-blue-500/20 shadow-[0_0_25px_rgba(37,99,235,0.4)]'
-                    : 'border-white/5 bg-white/5 hover:border-white/20'
-                }`}
-                style={{
-                  height: `${baseHeight * scale}px`,
-                }}
-              >
-                {/* Background Color Overlay */}
-                <div className={`absolute inset-0 ${item.color} transition-opacity duration-300 ${isActive ? 'opacity-40' : 'opacity-10 group-hover:opacity-30'}`}></div>
-
-                {/* Icon */}
-                <item.icon
-                  size={window.innerWidth < 640 ? 18 : 20}
-                  className={`relative z-10 transition-all duration-300 ${isActive ? 'text-white' : 'text-zinc-400'}`}
-                  style={{ transform: `scale(${scale * 0.9})` }}
-                />
-
-                {/* Active Indicator Dot */}
-                {isActive && (
-                  <div className="absolute bottom-1.5 sm:bottom-2 w-1 sm:h-1.5 h-1 sm:w-1.5 rounded-full bg-white shadow-[0_0_12px_#fff]"></div>
-                )}
-              </div>
             </div>
           );
         })}
-      </div>
+      </motion.nav>
     </div>
   );
 };

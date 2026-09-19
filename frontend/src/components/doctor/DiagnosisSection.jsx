@@ -41,8 +41,28 @@ const DiagnosisSection = ({ patientId, patientName, initialHistory = [], onRecor
     if (initialHistory && initialHistory.length > 0) {
       setHistory(initialHistory);
       setExpandedId(initialHistory[0]._id);
+    } else if (patientId) {
+      fetchHistory();
     }
-  }, [initialHistory]);
+  }, [initialHistory, patientId]);
+
+  const fetchHistory = async () => {
+    if (!patientId) return;
+    try {
+      setLoading(true);
+      const res = await api.get(`/clinical-diagnosis/history/patient/${patientId}`);
+      if (Array.isArray(res.data)) {
+        setHistory(res.data);
+        if (res.data.length > 0 && !expandedId) {
+          setExpandedId(res.data[0]._id);
+        }
+      }
+    } catch (err) {
+      console.warn('[DIAGNOSIS_FETCH_WARN]:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleFileChange = (e) => {
     const files = Array.from(e.target.files);
@@ -71,13 +91,21 @@ const DiagnosisSection = ({ patientId, patientName, initialHistory = [], onRecor
         data.append('attachments', file);
       });
 
-      await api.post('/clinical-diagnosis/create', data, {
+      const res = await api.post('/clinical-diagnosis/create', data, {
         headers: { 'Content-Type': 'multipart/form-data' }
       });
 
       toast.success("Diagnosis node established");
       setShowAddForm(false);
       setSelectedFiles([]);
+
+      // Update local state immediately
+      if (res.data?.data) {
+        setHistory(prev => [res.data.data, ...prev]);
+        setExpandedId(res.data.data._id);
+      } else {
+        await fetchHistory();
+      }
 
       // Trigger parent refresh
       if (onRecordAdded) onRecordAdded();

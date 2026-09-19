@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import {
   Activity, Thermometer, Droplets, Heart, Plus, Brain,
   Loader2, Calendar, TrendingUp, X, Download, Shield,
-  Zap, AlertCircle, Trash2, CheckCircle, Scale, Wind, FileText, RefreshCw
+  Zap, AlertCircle, Trash2, CheckCircle, Scale, Wind, FileText, RefreshCw, Sparkles
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -13,6 +14,7 @@ import useStore from '../../store/useStore';
 
 const HealthProgress = () => {
   const { user, theme } = useStore();
+  const navigate = useNavigate();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('week');
@@ -45,7 +47,8 @@ const HealthProgress = () => {
     setLoading(true);
     try {
       const { data } = await api.get(`/health/logs/${user.userId}?range=${range}`);
-      const formatted = Array.isArray(data) ? data.map(l => ({
+      const logsArray = data.logs || [];
+      const formatted = Array.isArray(logsArray) ? logsArray.map(l => ({
         ...l,
         day: new Date(l.date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })
       })) : [];
@@ -62,7 +65,7 @@ const HealthProgress = () => {
     if (!user?.userId) return toast.error("Please login again");
 
     try {
-      await api.post('/health/log', { ...newLog, patientId: user.userId });
+      await api.post('/health/logs', { ...newLog, patientId: user.userId });
       toast.success("Health data synchronized!");
       setShowAddLog(false);
       fetchLogs();
@@ -75,11 +78,16 @@ const HealthProgress = () => {
     if (logs.length === 0) return toast.error("No data to analyze");
     setAnalyzing(true);
     try {
-      const { data } = await api.post('/health/analyze', { logs });
-      setAiResult(data);
-      toast.success("AI Synthesis Complete");
+      const { data } = await api.post('/health/analyze', {
+        patientId: user.userId,
+        range: range === 'all' ? 'month' : range // Local engine optimized for week/month
+      });
+
+      // Navigate to detailed report page with the results
+      toast.success("Health Synthesis Complete");
+      navigate('/patient/health/report', { state: { report: data } });
     } catch (error) {
-      toast.error("AI Analysis failed");
+      toast.error("Health Analysis failed");
     } finally {
       setAnalyzing(false);
     }
@@ -104,7 +112,7 @@ const HealthProgress = () => {
     if (!window.confirm("CRITICAL ACTION: Purge all health records from node memory? This cannot be undone.")) return;
     setCleaning(true);
     try {
-      await api.delete(`/health/all/${user.userId}`);
+      await api.delete(`/health/logs/${user.userId}`);
       toast.success("Node Memory Purged");
       setLogs([]);
       setAiResult(null);
@@ -302,57 +310,78 @@ const HealthProgress = () => {
               <div className={`p-8 rounded-[40px] shadow-2xl relative overflow-hidden group transition-all duration-500 ${theme === 'dark' ? 'bg-[#0F1115] border border-white/5' : 'bg-slate-900'} print:bg-white print:text-black print:shadow-none print:border-slate-200`}>
                 <div className="absolute top-0 right-0 w-32 h-32 bg-blue-600/10 rounded-full -mr-16 -mt-16 blur-3xl print:hidden"></div>
                 <h3 className={`text-[10px] font-black uppercase tracking-[0.3em] mb-8 flex items-center gap-2 ${theme === 'dark' || !aiResult ? 'text-blue-400' : 'text-blue-600'}`}>
-                   <Brain size={16} /> AI Swarm Synthesis
+                   <Brain size={16} /> Neural Progress Report
                 </h3>
 
                 {aiResult ? (
-                  <div className="space-y-8 animate-in fade-in duration-500 text-left">
-                     <div className="p-5 rounded-3xl bg-white/5 border border-white/5 space-y-4 print:bg-slate-50">
+                  <div className="space-y-8 animate-in fade-in duration-500 text-left pb-10">
+                     <div className="p-6 rounded-[32px] bg-white/5 border border-white/5 space-y-5 print:bg-slate-50">
                         <div className="flex justify-between items-center text-left">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Yesterday vs Today</p>
-                            <span className="text-xl">{aiResult?.comparison?.statusIcon || '🟡'}</span>
+                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current Health Node</p>
+                            <span className="text-xl">{aiResult?.overall?.icon || '🟡'}</span>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            <div className="text-left">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Heart Rate</p>
-                                <p className="text-xs font-black">{aiResult?.comparison?.heartRate || 'Stable'}</p>
+                        <div className="grid grid-cols-2 gap-6">
+                            <div className="text-left space-y-1">
+                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Status</p>
+                                <p className="text-xs font-black text-white">{aiResult?.overall?.status || 'Active'}</p>
                             </div>
-                            <div className="text-left">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Blood Pressure</p>
-                                <p className="text-xs font-black">{aiResult?.comparison?.bp || 'Stable'}</p>
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Oxygen</p>
-                                <p className="text-xs font-black">{aiResult?.comparison?.oxygen || 'Stable'}</p>
-                            </div>
-                            <div className="text-left">
-                                <p className="text-[8px] font-black text-slate-500 uppercase">Weight</p>
-                                <p className="text-xs font-black">{aiResult?.comparison?.weight || 'Stable'}</p>
+                            <div className="text-left space-y-1">
+                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Records</p>
+                                <p className="text-xs font-black text-white">{aiResult?.period?.recordsAnalyzed || '0'}</p>
                             </div>
                         </div>
                      </div>
 
                      <div className="space-y-4 text-left">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Weekly Trend Analysis</p>
-                        <div className="space-y-2">
-                           <div className="flex justify-between text-xs font-bold">
-                               <span className="text-slate-500 uppercase">Weekly Score</span>
-                               <span className="text-blue-500">{aiResult?.weeklyTrend?.healthScore || '--'}/100</span>
-                           </div>
-                           <div className="w-full h-1.5 bg-white/10 rounded-full overflow-hidden">
-                              <div className="h-full bg-blue-500" style={{width: `${aiResult?.weeklyTrend?.healthScore || 0}%`}}></div>
-                           </div>
-                           <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">{aiResult?.weeklyTrend?.weeklyStatus || 'Active'}</p>
-                        </div>
-                     </div>
-
-                     <div className="space-y-4 text-left">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">AI Recommendations</p>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Clinical Health Score</p>
                         <div className="space-y-3">
-                           {(aiResult?.recommendations || ["Maintain hydration", "Continue walking", "Monitor vitals"]).map((rec, i) => (
-                             <div key={i} className="flex gap-3 items-start text-left">
+                           <div className="flex justify-between text-xs font-bold">
+                               <span className="text-slate-500 uppercase tracking-widest">Safety Rating</span>
+                               <span className="text-blue-500">{(aiResult?.overall?.healthScore !== undefined && aiResult?.overall?.healthScore !== null) ? aiResult.overall.healthScore : '--'}/100</span>
+                           </div>
+                           <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden p-0.5 border border-white/5">
+                              <div className="h-full bg-blue-500 rounded-full shadow-[0_0_10px_rgba(59,130,246,0.5)] transition-all duration-1000" style={{width: `${aiResult?.overall?.healthScore || 0}%`}}></div>
+                           </div>
+                           <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest">Baseline Synchronized</p>
+                        </div>
+                     </div>
+
+                     {/* COMBINED PATTERN ANALYSIS */}
+                     {aiResult?.combinations && aiResult.combinations.length > 0 && (
+                       <div className="space-y-5 text-left border-t border-white/5 pt-8">
+                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Combined Pattern Analysis</p>
+                          <div className="space-y-4">
+                             {aiResult.combinations.map((comb, i) => (
+                               <div key={i} className={`p-5 rounded-[28px] border transition-all ${comb.severity === 'critical' ? 'bg-rose-500/10 border-rose-500/20' : comb.severity === 'high' ? 'bg-orange-500/10 border-orange-500/20' : 'bg-blue-600/10 border-blue-500/20'}`}>
+                                  <div className="flex items-center gap-3 mb-3">
+                                     <Sparkles size={14} className={comb.severity === 'critical' ? 'text-rose-500' : 'text-blue-500'} />
+                                     <p className="text-[10px] font-black uppercase text-white tracking-tight leading-tight">{comb.title}</p>
+                                  </div>
+                                  <p className="text-[10px] font-bold text-zinc-400 leading-relaxed uppercase tracking-tight">{comb.analysis}</p>
+                                  {comb.possibleAssociation && (
+                                    <div className="mt-3 p-3 bg-black/40 rounded-2xl border border-white/5">
+                                       <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">Correlation Node</p>
+                                       <p className="text-[9px] font-bold text-zinc-500 leading-relaxed italic">{comb.possibleAssociation}</p>
+                                    </div>
+                                  )}
+                               </div>
+                             ))}
+                          </div>
+                       </div>
+                     )}
+
+                     {/* SYSTEM RECOMMENDATIONS */}
+                     <div className="space-y-5 text-left border-t border-white/5 pt-8">
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Node Recommendations</p>
+                        <div className="space-y-4">
+                           {/* Combine individual and combination recommendations */}
+                           {[...(aiResult?.recommendations || []), ...(aiResult?.combinations?.flatMap(c => c.precautions.map(p => ({ title: c.title, message: p, isCombination: true }))) || [])].slice(0, 8).map((rec, i) => (
+                             <div key={i} className="flex gap-4 items-start text-left p-4 bg-white/5 border border-white/5 rounded-[24px] hover:bg-white/10 transition-colors">
                                 <Zap size={14} className="text-blue-500 shrink-0 mt-0.5" />
-                                <p className="text-xs font-bold leading-relaxed">{rec}</p>
+                                <div>
+                                   <p className="text-[10px] font-black uppercase text-blue-500 mb-1 tracking-tight">{rec.title}</p>
+                                   <p className="text-[10px] font-bold leading-relaxed text-zinc-400 tracking-tight">{rec.message}</p>
+                                </div>
                              </div>
                            ))}
                         </div>
@@ -360,21 +389,24 @@ const HealthProgress = () => {
 
                      <button
                        onClick={() => setAiResult(null)}
-                       className="w-full py-4 border border-white/10 rounded-2xl text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white transition-all print:hidden"
-                     >New Scan</button>
+                       className="w-full py-5 border border-white/10 rounded-[20px] text-[10px] font-black uppercase tracking-[0.3em] text-slate-500 hover:text-white transition-all print:hidden active:scale-95"
+                     >Reset Analysis Node</button>
                   </div>
                 ) : (
-                  <div className="text-center py-6">
-                    <p className={`text-xs mb-10 leading-relaxed font-bold uppercase tracking-wider ${theme === 'dark' ? 'text-zinc-500' : 'text-slate-500'}`}>
-                      Initialize Swarm analysis on biometric trends.
+                  <div className="text-center py-10">
+                    <div className="w-20 h-20 bg-blue-600/5 rounded-full flex items-center justify-center mx-auto mb-10 border border-blue-500/10">
+                       <Activity className="text-blue-600 animate-pulse" size={32} />
+                    </div>
+                    <p className={`text-xs mb-12 leading-relaxed font-bold uppercase tracking-[0.2em] ${theme === 'dark' ? 'text-zinc-500' : 'text-slate-500'}`}>
+                      Initialize local engine analysis on biometric trends.
                     </p>
                     <button
                       onClick={runAiAnalysis}
                       disabled={analyzing || logs.length === 0}
-                      className={`w-full py-5 rounded-3xl font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all disabled:opacity-30 active:scale-95 shadow-2xl ${theme === 'dark' ? 'bg-white text-slate-900 shadow-blue-500/10' : 'bg-white text-slate-900 shadow-blue-600/30'}`}
+                      className={`w-full py-6 rounded-[32px] font-black text-[11px] uppercase tracking-[0.3em] flex items-center justify-center gap-4 transition-all disabled:opacity-30 active:scale-95 shadow-2xl ${theme === 'dark' ? 'bg-white text-slate-900 shadow-blue-500/10' : 'bg-white text-slate-900 shadow-blue-600/30'}`}
                     >
-                      {analyzing ? <Loader2 className="animate-spin text-blue-600" size={16} /> : <Brain size={16} className="text-blue-600" />}
-                      Start Swarm
+                      {analyzing ? <Loader2 className="animate-spin text-blue-600" size={18} /> : <Brain size={18} className="text-blue-600" />}
+                      Start Swarm Analysis
                     </button>
                   </div>
                 )}

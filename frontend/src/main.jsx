@@ -25,9 +25,14 @@ if (typeof window.Buffer === 'undefined') {
 }
 
 // Global scope fallback for BACKEND_URL to prevent CORE_CRASH ReferenceErrors
-// This ensures that even if an import is missed, the app doesn't crash.
 if (typeof window.BACKEND_URL === 'undefined') {
-  const DEV_PC_IP = '192.168.1.17';
+  const getDevPcIp = () => {
+    if (typeof window !== 'undefined' && window.localStorage?.getItem('DEV_PC_IP')) {
+      return window.localStorage.getItem('DEV_PC_IP');
+    }
+    return '10.129.146.15';
+  };
+  const DEV_PC_IP = getDevPcIp();
   const BACKEND_PORT = '5001';
   const isNative = window.location.origin.startsWith('capacitor:') ||
                   (window.location.origin.includes('://localhost') && !window.location.port);

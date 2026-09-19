@@ -7,7 +7,8 @@ import {
   User as UserIcon, Calendar, Activity, FileText, Pill,
   ChevronLeft, ChevronRight, ArrowRight, Star, AlertTriangle,
   History as HistoryIcon, CreditCard, Brain, Download, ExternalLink, Loader2, CheckCircle,
-  MessageSquare, UserPlus, TrendingUp, ClipboardList, Video
+  MessageSquare, UserPlus, TrendingUp, ClipboardList, Video,
+  Trash2, Plus, Upload, Eye, X, Sparkles
 } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
 import { toast } from 'react-hot-toast';
@@ -23,6 +24,12 @@ const PatientDetails = () => {
   const [data, setData] = useState(null);
   const [activeTab, setActiveTab] = useState('summary');
   const [loading, setLoading] = useState(true);
+
+  // Report Upload / Delete State
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadingReport, setUploadingReport] = useState(false);
+  const [reportFile, setReportFile] = useState(null);
+  const [reportCategory, setReportCategory] = useState('Laboratory / Blood');
 
   useEffect(() => {
     fetchPatient();
@@ -41,6 +48,45 @@ const PatientDetails = () => {
       // navigate(currentUser?.role === 'admin' ? '/admin/patients' : '/doctor/search');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUploadReport = async (e) => {
+    e.preventDefault();
+    if (!reportFile) return toast.error("Please select a medical report file (PDF or image).");
+
+    const targetPatientId = user?.patientId || patientId;
+    const formData = new FormData();
+    formData.append('report', reportFile);
+    formData.append('patientId', targetPatientId);
+    formData.append('category', reportCategory);
+
+    setUploadingReport(true);
+    try {
+      const res = await api.post('/reports/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success(res.data.message || "Report uploaded and synchronized successfully");
+      setShowUploadModal(false);
+      setReportFile(null);
+      await fetchPatient();
+    } catch (err) {
+      console.error("[REPORT_UPLOAD_ERROR]:", err);
+      toast.error(err.response?.data?.message || "Failed to upload report");
+    } finally {
+      setUploadingReport(false);
+    }
+  };
+
+  const handleDeleteReport = async (reportId) => {
+    if (!window.confirm("Are you sure you want to delete this medical report? This cannot be undone.")) return;
+    try {
+      await api.delete(`/reports/${reportId}`);
+      toast.success("Medical report deleted from archive");
+      await fetchPatient();
+    } catch (err) {
+      console.error("[REPORT_DELETE_ERROR]:", err);
+      toast.error(err.response?.data?.message || "Failed to delete report");
     }
   };
 
@@ -303,27 +349,116 @@ const PatientDetails = () => {
                 )}
 
                 {activeTab === 'reports' && (
-                  <div className="space-y-4 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10">
+                  <div className="space-y-6 animate-in fade-in slide-in-from-bottom-6 duration-700 relative z-10">
+                    {/* Header Action Bar */}
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-white/5">
+                      <div>
+                        <h3 className={`text-base font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                          Diagnostic Reports & Lab Objects
+                        </h3>
+                        <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-0.5">
+                          {reports?.length || 0} Registered Medical Documents for {user?.name}
+                        </p>
+                      </div>
+
+                      <button
+                        onClick={() => setShowUploadModal(true)}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-black uppercase tracking-wider flex items-center gap-2 shadow-lg shadow-blue-500/25 transition-all active:scale-95"
+                      >
+                        <Plus size={16} /> Upload Medical Report
+                      </button>
+                    </div>
+
                     {reports?.length > 0 ? reports.map((report, i) => (
-                      <div key={i} className={`flex items-center justify-between p-6 border rounded-[32px] group transition-all shadow-sm ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30 hover:bg-white/10' : 'bg-slate-50 border-slate-100 hover:bg-white hover:shadow-lg'}`}>
-                        <div className="flex items-center gap-6">
-                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/10 text-zinc-500 group-hover:text-blue-400' : 'bg-white border-slate-200 text-slate-300 group-hover:text-blue-500'}`}>
+                      <div key={report._id || i} className={`flex flex-col sm:flex-row sm:items-center justify-between p-6 border rounded-[32px] gap-4 group transition-all shadow-sm ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30 hover:bg-white/10' : 'bg-slate-50 border-slate-100 hover:bg-white hover:shadow-lg'}`}>
+                        <div className="flex items-center gap-5">
+                          <div className={`w-14 h-14 rounded-2xl flex items-center justify-center border shadow-inner shrink-0 transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/10 text-zinc-400 group-hover:text-blue-400' : 'bg-white border-slate-200 text-slate-400 group-hover:text-blue-500'}`}>
                             <FileText size={28} />
                           </div>
-                          <div className="text-left">
-                            <p className={`text-base font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{report.fileName}</p>
-                            <p className="text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-1">{report.category} • {new Date(report.createdAt).toLocaleDateString()}</p>
+                          <div className="text-left space-y-1">
+                            <p className={`text-sm font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                              {report.fileName}
+                            </p>
+                            <div className="flex flex-wrap items-center gap-2 text-[9px] font-black uppercase tracking-wider">
+                              <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                {report.category || 'General'}
+                              </span>
+                              <span className="text-zinc-500">
+                                {new Date(report.createdAt).toLocaleDateString()}
+                              </span>
+                              {report.status && (
+                                <span className={`px-2 py-0.5 rounded-full text-[8px] font-black ${
+                                  report.status === 'Analyzed' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {report.status}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
-                        <div className="flex gap-3">
-                          <button className={`p-4 rounded-2xl transition-all shadow-sm ${theme === 'dark' ? 'bg-zinc-900 border border-white/10 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800' : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-slate-50'}`}><Download size={20} /></button>
-                          <a href={`${BACKEND_URL}${report.fileUrl}`} target="_blank" rel="noreferrer" className={`p-4 rounded-2xl transition-all shadow-sm flex items-center justify-center ${theme === 'dark' ? 'bg-zinc-900 border border-white/10 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800' : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-slate-50'}`}><ExternalLink size={20} /></a>
+
+                        <div className="flex items-center gap-2 self-end sm:self-center">
+                          <button
+                            title="Analyze with AI Engine"
+                            onClick={() => navigate('/patient/ai-analysis', { state: { reportContext: report, patientId: user?.patientId || patientId } })}
+                            className={`p-3.5 rounded-2xl transition-all shadow-sm flex items-center gap-1.5 text-xs font-black uppercase tracking-wider ${
+                              theme === 'dark'
+                                ? 'bg-purple-600/15 border border-purple-500/30 text-purple-300 hover:bg-purple-600 hover:text-white'
+                                : 'bg-purple-50 border border-purple-200 text-purple-600 hover:bg-purple-600 hover:text-white'
+                            }`}
+                          >
+                            <Sparkles size={16} />
+                            <span className="hidden md:inline">Analyze</span>
+                          </button>
+
+                          <a
+                            href={`${BACKEND_URL}${report.fileUrl}`}
+                            download={report.fileName}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Download Report File"
+                            className={`p-3.5 rounded-2xl transition-all shadow-sm ${
+                              theme === 'dark' ? 'bg-zinc-900 border border-white/10 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800' : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            <Download size={18} />
+                          </a>
+
+                          <a
+                            href={`${BACKEND_URL}${report.fileUrl}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            title="Open in New Tab"
+                            className={`p-3.5 rounded-2xl transition-all shadow-sm ${
+                              theme === 'dark' ? 'bg-zinc-900 border border-white/10 text-zinc-400 hover:text-blue-400 hover:bg-zinc-800' : 'bg-white border border-slate-200 text-slate-400 hover:text-blue-600 hover:bg-slate-50'
+                            }`}
+                          >
+                            <ExternalLink size={18} />
+                          </a>
+
+                          <button
+                            title="Delete Report"
+                            onClick={() => handleDeleteReport(report._id)}
+                            className={`p-3.5 rounded-2xl transition-all shadow-sm border ${
+                              theme === 'dark'
+                                ? 'bg-rose-500/10 border-rose-500/20 text-rose-400 hover:bg-rose-600 hover:text-white'
+                                : 'bg-rose-50 border-rose-200 text-rose-500 hover:bg-rose-600 hover:text-white'
+                            }`}
+                          >
+                            <Trash2 size={18} />
+                          </button>
                         </div>
                       </div>
                     )) : (
                       <div className="py-20 text-center space-y-4">
                         <FileText size={48} className="text-zinc-700 mx-auto opacity-20" />
-                        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.4em]">Lab Objects Empty</p>
+                        <p className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.4em]">No Lab Reports Registered</p>
+                        <button
+                          onClick={() => setShowUploadModal(true)}
+                          className="px-6 py-2.5 bg-blue-600/20 text-blue-400 border border-blue-500/30 rounded-2xl text-xs font-black uppercase tracking-wider hover:bg-blue-600 hover:text-white transition-all"
+                        >
+                          + Upload First Report
+                        </button>
                       </div>
                     )}
                   </div>
@@ -367,6 +502,108 @@ const PatientDetails = () => {
             </div>
 
           </div>
+          {/* UPLOAD REPORT MODAL */}
+          {showUploadModal && (
+            <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-xl flex items-center justify-center p-4">
+              <div className={`w-full max-w-lg p-8 rounded-[40px] border shadow-2xl space-y-6 ${
+                theme === 'dark' ? 'bg-[#0E0E12] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'
+              }`}>
+                <div className="flex items-center justify-between pb-4 border-b border-white/10">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 border border-blue-500/20 text-blue-400 flex items-center justify-center">
+                      <Upload size={20} />
+                    </div>
+                    <div>
+                      <h4 className="text-base font-black uppercase tracking-tight">Upload Medical Report</h4>
+                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">
+                        Patient: {user?.name} ({user?.patientId || patientId})
+                      </p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => { setShowUploadModal(false); setReportFile(null); }}
+                    className="p-2 rounded-xl text-zinc-500 hover:text-white transition-all"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUploadReport} className="space-y-5">
+                  {/* File Selector */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                      Medical File (PDF, PNG, JPG)
+                    </label>
+                    <label className={`border-2 border-dashed rounded-3xl p-6 flex flex-col items-center justify-center cursor-pointer transition-all ${
+                      reportFile
+                        ? 'border-emerald-500/40 bg-emerald-500/5'
+                        : 'border-white/10 hover:border-blue-500/40 bg-white/5'
+                    }`}>
+                      <input
+                        type="file"
+                        accept=".pdf,image/png,image/jpeg,image/jpg"
+                        className="hidden"
+                        onChange={(e) => setReportFile(e.target.files[0] || null)}
+                      />
+                      {reportFile ? (
+                        <div className="text-center space-y-1">
+                          <CheckCircle className="text-emerald-400 mx-auto" size={32} />
+                          <p className="text-xs font-black text-emerald-300">{reportFile.name}</p>
+                          <p className="text-[9px] font-mono text-zinc-500">{(reportFile.size / 1024).toFixed(1)} KB</p>
+                        </div>
+                      ) : (
+                        <div className="text-center space-y-1 text-zinc-500">
+                          <Upload className="mx-auto" size={32} />
+                          <p className="text-xs font-black uppercase">Click or Drag Document Here</p>
+                          <p className="text-[9px] text-zinc-600">Supports Plain X-Rays, Lab Reports, Sonograms & PDFs</p>
+                        </div>
+                      )}
+                    </label>
+                  </div>
+
+                  {/* Category Selector */}
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400">
+                      Diagnostic Category
+                    </label>
+                    <select
+                      value={reportCategory}
+                      onChange={(e) => setReportCategory(e.target.value)}
+                      className={`w-full p-4 rounded-2xl border outline-none font-bold text-xs ${
+                        theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'
+                      }`}
+                    >
+                      <option value="Laboratory / Blood">Laboratory / Hematology (CBC, LFT, KFT)</option>
+                      <option value="Digital Radiography (X-Ray)">Digital Radiography (X-Ray / Skeletal)</option>
+                      <option value="Ultrasound / Sonogram">Ultrasound / Sonogram (USG)</option>
+                      <option value="Computed Tomography (CT)">Computed Tomography (CT Scan)</option>
+                      <option value="Magnetic Resonance (MRI)">Magnetic Resonance Imaging (MRI)</option>
+                      <option value="General Diagnostics">General Clinical Diagnostics</option>
+                    </select>
+                  </div>
+
+                  <div className="flex items-center gap-3 pt-4 border-t border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => { setShowUploadModal(false); setReportFile(null); }}
+                      className="flex-1 py-4 bg-white/5 hover:bg-white/10 text-zinc-400 rounded-2xl text-xs font-black uppercase tracking-widest transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={uploadingReport || !reportFile}
+                      className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-2xl text-xs font-black uppercase tracking-widest shadow-lg shadow-blue-500/25 flex items-center justify-center gap-2 transition-all active:scale-95"
+                    >
+                      {uploadingReport ? <Loader2 className="animate-spin" size={16} /> : <Upload size={16} />}
+                      <span>{uploadingReport ? 'Processing Engine...' : 'Upload & Analyze'}</span>
+                    </button>
+                  </div>
+                </form>
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
     </div>

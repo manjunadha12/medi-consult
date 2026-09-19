@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Navbar from '../common/Navbar';
 import api from '../../utils/api';
 import useStore from '../../store/useStore';
-import { Home, Send, User as UserIcon, Loader2, Plus, Brain, Trash2, MessageSquare, Menu, X, Sparkles, Pill, Activity, ChevronRight, Settings, LogOut } from 'lucide-react';
+import { Home, Send, User as UserIcon, Loader2, Plus, Brain, Trash2, MessageSquare, Menu, X, Sparkles, Pill, Activity, ChevronRight, Settings, LogOut, Edit3, History as HistoryIcon } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { fullMedicinesDataset } from '../../utils/medicinesData';
 
@@ -58,15 +58,8 @@ const AIChat = () => {
   };
 
   const handleNewChat = () => {
-    const newChat = {
-      id: Date.now().toString(),
-      title: 'New Chat',
-      messages: [{ role: 'bot', content: 'Neural link established. How can I assist you with your health today?' }],
-      timestamp: new Date().toISOString()
-    };
-    const updated = [newChat, ...conversations];
-    saveConversations(updated);
-    setActiveChatId(newChat.id);
+    setActiveChatId(null);
+    setInput('');
     setSidebarOpen(false);
   };
 
@@ -271,25 +264,21 @@ const AIChat = () => {
   return (
     <div className={`flex h-screen transition-colors duration-500 overflow-hidden text-left ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'}`}>
       
-      <div className={`fixed inset-y-0 left-0 z-50 w-72 border-r flex flex-col transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${theme === 'dark' ? 'bg-zinc-950 border-zinc-900' : 'bg-white border-slate-200'}`}>
-        
-        <div className={`p-6 border-b flex items-center justify-between ${theme === 'dark' ? 'border-zinc-900' : 'border-slate-100'}`}>
-          <div className="flex items-center gap-3">
-            <Brain className="text-blue-500 animate-pulse" size={24} />
-            <span className={`font-black uppercase tracking-[0.2em] text-xs ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Swarm Core</span>
-          </div>
-          <button onClick={() => setSidebarOpen(false)} className="p-2 hover:bg-zinc-900 rounded-xl md:hidden text-slate-400">
-            <X size={18} />
-          </button>
-        </div>
+      <div className={`fixed inset-y-0 left-0 z-50 w-72 border-r flex flex-col transform transition-transform duration-300 ease-out shadow-2xl ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${theme === 'dark' ? 'bg-black/80 backdrop-blur-2xl border-white/10' : 'bg-white/90 backdrop-blur-2xl border-slate-200'}`}>
 
-        <div className="p-4">
+        <div className="p-4 pt-20 sm:pt-24 flex items-center justify-between gap-2">
           <button 
             onClick={handleNewChat}
-            className="w-full py-4 px-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[20px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-3 shadow-lg shadow-blue-950/50 transition-all hover:scale-[1.02] active:scale-95"
+            className="flex-1 py-3.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-[20px] font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 shadow-lg shadow-blue-950/50 transition-all hover:scale-[1.02] active:scale-95"
           >
             <Plus size={16} strokeWidth={3} />
             New Session
+          </button>
+          <button
+            onClick={() => setSidebarOpen(false)}
+            className={`p-3 rounded-2xl border transition-all ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-500'}`}
+          >
+            <X size={18} />
           </button>
         </div>
 
@@ -322,16 +311,9 @@ const AIChat = () => {
           )}
         </div>
 
-        <div className={`p-6 border-t space-y-4 ${theme === 'dark' ? 'border-zinc-900' : 'border-slate-100'}`}>
-          <button 
-            onClick={() => navigate('/patient/dashboard')}
-            className={`w-full py-4 text-center rounded-[20px] font-black uppercase tracking-widest text-[10px] transition-all flex items-center justify-center gap-2 hover:scale-[1.02] active:scale-95 shadow-md ${theme === 'dark' ? 'bg-zinc-900/60 hover:bg-zinc-800 hover:text-white text-zinc-300 border border-zinc-800' : 'bg-slate-50 hover:bg-slate-100 text-slate-600 border border-slate-200'}`}
-          >
-            <Home size={14} className="text-blue-500" />
-            Dashboard
-          </button>
-          <button 
-            onClick={handleClearHistory}
+        <div className={`p-6 pb-28 sm:pb-32 border-t space-y-4 ${theme === 'dark' ? 'border-white/10' : 'border-slate-100'}`}>
+          <button
+            onClick={() => { handleClearHistory(); setSidebarOpen(false); }}
             className="w-full py-4 text-center rounded-[20px] bg-transparent hover:text-red-400 font-black uppercase tracking-widest text-[9px] text-zinc-500 transition-all"
           >
             Clear All History
@@ -342,23 +324,34 @@ const AIChat = () => {
       {sidebarOpen && (
         <div 
           onClick={() => setSidebarOpen(false)}
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-all duration-300"
         ></div>
       )}
 
       <div className="flex-1 flex flex-col h-full overflow-hidden relative">
         <Navbar />
 
-        <div className={`p-4 border-b flex items-center gap-3 md:hidden shrink-0 ${theme === 'dark' ? 'bg-zinc-950 border-zinc-900' : 'bg-white border-slate-100'}`}>
-          <button 
-            onClick={() => setSidebarOpen(true)}
-            className={`p-3 rounded-xl transition-all ${theme === 'dark' ? 'bg-zinc-900 text-zinc-400' : 'bg-slate-50 text-slate-600'}`}
+        <div className="p-3 px-6 flex items-center justify-between gap-3 shrink-0 bg-transparent">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-wider shrink-0 ${theme === 'dark' ? 'bg-zinc-900 text-zinc-400 hover:text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+            >
+              <HistoryIcon size={18} />
+              <span className="text-[10px]">History</span>
+            </button>
+            <span className="font-black text-xs uppercase tracking-widest truncate">
+              {activeChat ? activeChat.title : 'AI Chat'}
+            </span>
+          </div>
+
+          <button
+            onClick={handleNewChat}
+            className={`p-2.5 px-4 rounded-xl transition-all flex items-center gap-2 text-xs font-black tracking-wider shrink-0 hover:scale-105 active:scale-95 ${theme === 'dark' ? 'bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30' : 'bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100'}`}
           >
-            <Menu size={18} />
+            <Edit3 size={16} />
+            <span className="text-[11px] font-bold">New chat</span>
           </button>
-          <span className="font-black text-xs uppercase tracking-widest">
-            {activeChat ? activeChat.title : 'AI Chat'}
-          </span>
         </div>
 
         <div className="flex-1 overflow-y-auto px-6 py-8 md:p-10 space-y-8 custom-scrollbar relative z-10">

@@ -57,9 +57,10 @@ const PatientHistory = () => {
   const fetchHistory = async () => {
     setLoading(true);
     try {
+      const patientKey = user?.patientId || user?._id || user?.userId;
       const [historyRes, diagnosisRes] = await Promise.all([
         api.get('/appointments/patient-summary'),
-        api.get(`/clinical-diagnosis/history/patient/${user.userId}`)
+        api.get(`/clinical-diagnosis/history/patient/${patientKey}`)
       ]);
       setHistoryData(historyRes.data.appointments || []);
       setDiagnosisData(diagnosisRes.data || []);

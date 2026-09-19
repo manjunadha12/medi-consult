@@ -1,0 +1,37 @@
+{
+  "id": "radiology",
+  "name": "Radiology & Diagnostic Imaging",
+  "icon": "🩻",
+  "items": [
+    {
+      "code": "ORTHO_XRAY",
+      "canonicalName": "Diagnostic Radiograph (Plain X-Ray Film)",
+      "aliases": ["radiograph", "x-ray", "xray", "plain film", "knee radiograph", "chest x-ray", "fracture locator", "skeletal film"],
+      "category": "Radiology"
+    },
+    {
+      "code": "NEUR_CT_BRAIN",
+      "canonicalName": "Computed Tomography (CT Brain / Head)",
+      "aliases": ["ct brain", "ct head", "ncct head", "computed tomography brain", "cect head"],
+      "category": "Radiology"
+    },
+    {
+      "code": "GAST_USG_ABDOMEN",
+      "canonicalName": "Ultrasound Examination of Abdomen and Pelvis (USG)",
+      "aliases": ["ultrasound abdomen", "usg abdomen", "usg abdomen & pelvis", "abdominal ultrasound", "sonography abdomen"],
+      "category": "Radiology"
+    },
+    {
+      "code": "ENT_TYMP",
+      "canonicalName": "Tympanometry & Acoustic Reflex Examination",
+      "aliases": ["tympanometry", "tympanogram", "acoustic reflex", "middle ear compliance", "ent tympanometry"],
+      "category": "Radiology"
+    },
+    {
+      "code": "RAD_MRI",
+      "canonicalName": "Magnetic Resonance Imaging (MRI)",
+      "aliases": ["mri", "mri brain", "mri spine", "magnetic resonance imaging"],
+      "category": "Radiology"
+    }
+  ]
+}

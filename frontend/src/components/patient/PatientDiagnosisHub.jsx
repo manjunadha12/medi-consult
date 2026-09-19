@@ -23,7 +23,8 @@ const PatientDiagnosisHub = () => {
   const fetchDiagnoses = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`/clinical-diagnosis/history/patient/${user.userId}`);
+      const patientKey = user?.patientId || user?._id || user?.userId;
+      const res = await api.get(`/clinical-diagnosis/history/patient/${patientKey}`);
       setDiagnoses(res.data);
       if (res.data.length > 0) setExpandedId(res.data[0]._id);
     } catch (err) {

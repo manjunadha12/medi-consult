@@ -1,0 +1,52 @@
+{
+  "modelName": "MediConsult-BoneFracture-YOLOv8-JS",
+  "architecture": "Multi-Scale Computer Vision & YOLO Spatial Anomaly Classifier",
+  "classes": [
+    "elbow positive",
+    "fingers positive",
+    "forearm fracture",
+    "humerus fracture",
+    "humerus",
+    "shoulder fracture",
+    "wrist positive"
+  ],
+  "numClasses": 7,
+  "trainedOnDataset": "E:/clone app/backend/bone",
+  "trainingMetrics": {
+    "precision": 0.932,
+    "recall": 0.914,
+    "mAP50": 0.941,
+    "mAP50_95": 0.786,
+    "epochs": 50,
+    "imageSize": 416,
+    "batchSize": 32
+  },
+  "datasetStatistics": {
+    "totalImages": 4148,
+    "totalAnnotations": 2388,
+    "classCounts": {
+      "elbow positive": 385,
+      "fingers positive": 606,
+      "forearm fracture": 373,
+      "humerus fracture": 3,
+      "humerus": 362,
+      "shoulder fracture": 397,
+      "wrist positive": 262
+    },
+    "splitStats": {
+      "train": {
+        "images": 3631,
+        "annotations": 2088
+      },
+      "valid": {
+        "images": 348,
+        "annotations": 204
+      },
+      "test": {
+        "images": 169,
+        "annotations": 96
+      }
+    }
+  },
+  "lastTrainedAt": "2026-08-30T14:13:12.492Z"
+}

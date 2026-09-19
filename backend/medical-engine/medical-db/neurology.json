@@ -1,0 +1,87 @@
+{
+  "id": "neurology",
+  "name": "Neurology & Neuroimaging",
+  "icon": "🧠",
+  "reference_source": {
+    "title": "Bradley and Daroff's Neurology in Clinical Practice",
+    "edition": "8th Edition",
+    "editors": "Joseph Jankovic, MD; John C. Mazziotta, MD, PhD; Scott L. Pomeroy, MD, PhD; Nancy J. Newman, MD",
+    "publisher": "Elsevier",
+    "pdf_file": "medical-db/neurology/bradley-and-daroffs-neurology-in-clinical-practice-8th-ed.pdf",
+    "local_path": "medical-db/neurology/neurology_in_clinical_practice.json"
+  },
+  "items": [
+    {
+      "id": "ct_brain",
+      "code": "NEUR_CT_BRAIN",
+      "canonicalName": "Computed Tomography (CT Brain / Head)",
+      "aliases": ["ct brain", "ct head", "ncct brain", "brain parenchyma", "ncct head", "cect head"],
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠"
+    },
+    {
+      "id": "mri_brain",
+      "code": "NEUR_MRI_BRAIN",
+      "canonicalName": "Magnetic Resonance Imaging (MRI Brain / Spine)",
+      "aliases": ["mri brain", "brain mri", "cranial mri", "mri spine", "mr angiography", "mra"],
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠"
+    },
+    {
+      "id": "eeg",
+      "code": "NEUR_EEG",
+      "canonicalName": "Electroencephalogram (EEG)",
+      "aliases": ["eeg", "electroencephalogram", "routine eeg", "video eeg", "sleep eeg"],
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠"
+    },
+    {
+      "id": "emg_ncs",
+      "code": "NEUR_EMG_NCS",
+      "canonicalName": "Electromyography & Nerve Conduction Studies (EMG / NCS)",
+      "aliases": ["emg", "ncs", "electromyography", "nerve conduction study", "nerve conduction velocity", "ncv"],
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠"
+    },
+    {
+      "id": "csf_protein",
+      "code": "NEUR_CSF_PROT",
+      "canonicalName": "CSF Total Protein",
+      "aliases": ["csf protein", "cerebrospinal fluid protein", "csf total protein"],
+      "unit": "mg/dL",
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠",
+      "ranges": { "standard": { "min": 15, "max": 45, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 5, "max": 2000 }
+    },
+    {
+      "id": "csf_glucose",
+      "code": "NEUR_CSF_GLUC",
+      "canonicalName": "CSF Glucose",
+      "aliases": ["csf glucose", "cerebrospinal fluid glucose", "csf sugar"],
+      "unit": "mg/dL",
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠",
+      "ranges": { "standard": { "min": 50, "max": 80, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 0, "max": 500 }
+    },
+    {
+      "id": "csf_opening_pressure",
+      "code": "NEUR_CSF_PRESS",
+      "canonicalName": "CSF Opening Pressure",
+      "aliases": ["csf opening pressure", "lumbar puncture pressure", "opening pressure"],
+      "unit": "mm H2O",
+      "category": "Neurology & Neuroimaging",
+      "categoryId": "neurology",
+      "categoryIcon": "🧠",
+      "ranges": { "standard": { "min": 70, "max": 200, "unit": "mm H2O" } },
+      "plausibilityRange": { "min": 0, "max": 600 }
+    }
+  ]
+}

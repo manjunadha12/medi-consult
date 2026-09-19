@@ -1,0 +1,147 @@
+{
+  "id": "hematology",
+  "name": "Hematology & Hemogram",
+  "icon": "🩸",
+  "items": [
+    {
+      "id": "cbc",
+      "code": "HEM_CBC",
+      "canonicalName": "Complete Blood Count (CBC)",
+      "aliases": ["complete blood count", "cbc", "complete hemogram", "hemogram", "full blood count", "fbc", "cp"],
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸"
+    },
+    {
+      "id": "hemoglobin",
+      "code": "HEM_HGB",
+      "canonicalName": "Hemoglobin",
+      "aliases": ["hemoglobin", "haemoglobin", "hb", "hgb", "total hemoglobin"],
+      "unit": "g/dL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": {
+        "standard": { "min": 12.0, "max": 17.5, "unit": "g/dL" },
+        "male": { "min": 13.5, "max": 17.5, "unit": "g/dL" },
+        "female": { "min": 12.0, "max": 15.5, "unit": "g/dL" }
+      },
+      "plausibilityRange": { "min": 3.0, "max": 25.0 }
+    },
+    {
+      "id": "rbc_count",
+      "code": "HEM_RBC",
+      "canonicalName": "RBC Count",
+      "aliases": ["rbc count", "rbc", "red blood cell count", "total rbc", "erythrocyte count"],
+      "unit": "10^6/uL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": {
+        "standard": { "min": 3.8, "max": 5.8, "unit": "10^6/uL" },
+        "male": { "min": 4.5, "max": 5.9, "unit": "10^6/uL" },
+        "female": { "min": 3.8, "max": 5.2, "unit": "10^6/uL" }
+      },
+      "plausibilityRange": { "min": 1.0, "max": 9.0 }
+    },
+    {
+      "id": "hematocrit",
+      "code": "HEM_HCT",
+      "canonicalName": "Packed Cell Volume (Hematocrit)",
+      "aliases": ["packed cell volume", "pcv", "hematocrit", "hct", "pcv / hematocrit"],
+      "unit": "%",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": {
+        "standard": { "min": 36.0, "max": 50.0, "unit": "%" },
+        "male": { "min": 40.0, "max": 50.0, "unit": "%" },
+        "female": { "min": 36.0, "max": 46.0, "unit": "%" }
+      },
+      "plausibilityRange": { "min": 10.0, "max": 70.0 }
+    },
+    {
+      "id": "wbc_count",
+      "code": "HEM_WBC",
+      "canonicalName": "Total WBC Count",
+      "aliases": ["total wbc count", "wbc", "white blood cell count", "total leucocyte count", "tlc", "total white count"],
+      "unit": "10^3/uL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 4.0, "max": 11.0, "unit": "10^3/uL" } },
+      "plausibilityRange": { "min": 0.5, "max": 80.0 }
+    },
+    {
+      "id": "platelets",
+      "code": "HEM_PLT",
+      "canonicalName": "Platelet Count",
+      "aliases": ["platelet count", "platelets", "total platelets", "plt", "thrombocyte count"],
+      "unit": "10^3/uL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 150.0, "max": 450.0, "unit": "10^3/uL" } },
+      "plausibilityRange": { "min": 10.0, "max": 1500.0 }
+    },
+    {
+      "id": "mcv",
+      "code": "HEM_MCV",
+      "canonicalName": "Mean Corpuscular Volume (MCV)",
+      "aliases": ["mcv", "mean corpuscular volume"],
+      "unit": "fL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 80.0, "max": 100.0, "unit": "fL" } }
+    },
+    {
+      "id": "mch",
+      "code": "HEM_MCH",
+      "canonicalName": "Mean Corpuscular Hemoglobin (MCH)",
+      "aliases": ["mch", "mean corpuscular hemoglobin"],
+      "unit": "pg",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 27.0, "max": 33.0, "unit": "pg" } }
+    },
+    {
+      "id": "mchc",
+      "code": "HEM_MCHC",
+      "canonicalName": "MCHC",
+      "aliases": ["mchc", "mean corpuscular hemoglobin conc"],
+      "unit": "g/dL",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 32.0, "max": 36.0, "unit": "g/dL" } }
+    },
+    {
+      "id": "rdw",
+      "code": "HEM_RDW",
+      "canonicalName": "RDW-CV",
+      "aliases": ["rdw", "rdw-cv", "red cell distribution width"],
+      "unit": "%",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": { "standard": { "min": 11.5, "max": 14.5, "unit": "%" } }
+    },
+    {
+      "id": "esr",
+      "code": "HEM_ESR",
+      "canonicalName": "Erythrocyte Sedimentation Rate (ESR)",
+      "aliases": ["erythrocyte sedimentation rate", "esr", "westergren esr", "sed rate"],
+      "unit": "mm/hr",
+      "category": "Hematology & Hemogram",
+      "categoryId": "hematology",
+      "categoryIcon": "🩸",
+      "ranges": {
+        "standard": { "min": 0, "max": 20, "unit": "mm/hr" },
+        "male": { "min": 0, "max": 15, "unit": "mm/hr" },
+        "female": { "min": 0, "max": 20, "unit": "mm/hr" }
+      }
+    }
+  ]
+}

@@ -1,0 +1,248 @@
+{
+  "book_metadata": {
+    "title": "Cardiology Explained",
+    "authors": [
+      "Euan A. Ashley, MRCP, DPhil",
+      "Josef Niebauer, MD, PhD, MBA"
+    ],
+    "publisher": "Remedica Publishing / NCBI Bookshelf",
+    "ncbi_bookshelf_id": "NBK2204",
+    "isbn": "1-901346-22-6",
+    "domain": "Cardiology & Cardiovascular Medicine",
+    "version": "3.0.0",
+    "total_chapters": 14,
+    "full_text_reference_path": "medical-db/cardiology/cardiology_explained.md"
+  },
+  "chapters": [
+    {
+      "chapter_number": 1,
+      "title": "Cardiac Arrest & Cardiopulmonary Resuscitation",
+      "slug": "cardiac-arrest",
+      "summary": "Management of sudden cardiac arrest via Basic and Advanced Life Support algorithms, shockable vs non-shockable pathways, 4 Hs & 4 Ts reversible causes, and targeted post-resuscitation care.",
+      "key_topics": [
+        "Chain of Survival",
+        "High-Quality CPR (100-120 bpm, 5-6 cm depth, 30:2 ratio)",
+        "Defibrillation (Biphasic 150-200J)",
+        "Shockable Rhythms: VF & Pulseless VT",
+        "Non-Shockable Rhythms: Asystole & PEA",
+        "Reversible Causes: 4 Hs & 4 Ts",
+        "Targeted Temperature Management (32-36°C)"
+      ],
+      "clinical_algorithms": {
+        "shockable_rhythms": ["Ventricular Fibrillation (VF)", "Pulseless Ventricular Tachycardia (pVT)"],
+        "shockable_protocol": "1 Shock (150-200J Biphasic) -> Immediate CPR for 2 min -> IV/IO Epinephrine 1 mg every 3-5 min -> Amiodarone 300 mg bolus after 3rd shock (150 mg after 5th shock)",
+        "non_shockable_rhythms": ["Asystole", "Pulseless Electrical Activity (PEA)"],
+        "non_shockable_protocol": "Immediate CPR for 2 min -> IV/IO Epinephrine 1 mg ASAP, repeat every 3-5 min -> Identify and treat 4 Hs & 4 Ts",
+        "reversible_causes_4_hs": [
+          "Hypoxia (Airway/100% O2)",
+          "Hypovolemia (IV/IO crystalloid boluses, blood products)",
+          "Hypo/Hyperkalemia & Metabolic acidosis (Calcium gluconate, Insulin+Dextrose, Bicarbonate)",
+          "Hypothermia (Active rewarming)"
+        ],
+        "reversible_causes_4_ts": [
+          "Thrombosis - Coronary (Primary PCI) or Pulmonary (Alteplase/Tenecteplase)",
+          "Tension Pneumothorax (Needle decompression, chest tube)",
+          "Tamponade - Cardiac (Emergency ultrasound-guided pericardiocentesis)",
+          "Toxins / Overdose (Specific antidotes: Naloxone, Flumazenil, Glucagon)"
+        ]
+      }
+    },
+    {
+      "chapter_number": 2,
+      "title": "Cardiovascular Examination & Bedside Physical Diagnosis",
+      "slug": "cardiovascular-examination",
+      "summary": "Bedside physical diagnosis focusing on arterial pulse character, JVP wave analysis, heart sounds, murmurs, and peripheral signs of cardiovascular disease.",
+      "pulse_characters": {
+        "pulsus_parvus_et_tardus": "Slow-rising, low-amplitude pulse with delayed peak; diagnostic of severe Aortic Stenosis",
+        "water_hammer_corrigan": "Rapid upstroke with abrupt collapse; characteristic of severe Aortic Regurgitation, PDA, and hyperdynamic states",
+        "bisferiens_pulse": "Double systolic peak; seen in mixed aortic valve disease and HOCM",
+        "pulsus_alternans": "Beat-to-beat alternation in pulse amplitude; diagnostic of severe Left Ventricular Systolic Failure",
+        "pulsus_paradoxus": "Inspiratory fall in systolic BP > 10 mmHg; classic sign of Cardiac Tamponade and severe airway obstruction"
+      },
+      "jvp_waveform_analysis": {
+        "a_wave": "Right atrial active end-diastolic contraction; absent in AFib; giant in pulmonary HTN, tricuspid stenosis; cannon a waves in complete heart block",
+        "c_wave": "Tricuspid valve closure and bulging into RA during isovolumetric ventricular contraction",
+        "x_descent": "Atrial relaxation and downward displacement of tricuspid valve during ejection",
+        "v_wave": "Passive venous filling of RA during ventricular systole; giant systolic v-wave in tricuspid regurgitation",
+        "y_descent": "Tricuspid opening and passive RV filling; deep steep y-descent in constrictive pericarditis (Friedreich's sign)"
+      },
+      "heart_sounds": {
+        "s1": "Mitral and Tricuspid closure (Loud in Mitral Stenosis; Soft in Mitral Regurgitation)",
+        "s2": "Aortic (A2) and Pulmonary (P2) closure (Physiological splitting on inspiration; Fixed splitting in ASD; Reversed paradoxical splitting in LBBB / Severe AS)",
+        "s3": "Ventricular gallop; early diastole rapid passive filling deceleration in dilated non-compliant ventricle (Left Ventricular Failure)",
+        "s4": "Atrial gallop; late diastole active atrial kick into stiff hypertrophied ventricle (LVH, AS, HOCM, Ischemic Heart Disease)"
+      }
+    },
+    {
+      "chapter_number": 3,
+      "title": "Conquering the 12-Lead Electrocardiogram (ECG)",
+      "slug": "conquering-the-ecg",
+      "summary": "Step-by-step ECG interpretation: rate, rhythm, electrical axis, PR/QRS/QTc intervals, bundle branch blocks, hypertrophy criteria, and anatomical STEMI localization.",
+      "calibration": {
+        "paper_speed_mm_s": 25,
+        "small_square_ms": 40,
+        "large_square_ms": 200,
+        "voltage_calibration_mm_mv": 10
+      },
+      "standard_reference_ranges": {
+        "pr_interval_ms": { "min": 120, "max": 200 },
+        "qrs_duration_ms": { "min": 60, "max": 120 },
+        "qtc_interval_men_ms": { "max": 440 },
+        "qtc_interval_women_ms": { "max": 460 }
+      },
+      "ischemia_localization": {
+        "anteroseptal": { "leads": ["V1", "V2", "V3", "V4"], "coronary_artery": "Left Anterior Descending (LAD)" },
+        "inferior": { "leads": ["II", "III", "aVF"], "coronary_artery": "Right Coronary Artery (RCA) or LCx" },
+        "lateral": { "leads": ["I", "aVL", "V5", "V6"], "coronary_artery": "Left Circumflex (LCx) or Diagonal LAD" },
+        "posterior": { "leads": ["V7", "V8", "V9"], "coronary_artery": "Distal LCx or PDA" },
+        "right_ventricular": { "leads": ["V3R", "V4R"], "coronary_artery": "Proximal RCA" }
+      }
+    },
+    {
+      "chapter_number": 4,
+      "title": "Understanding the Echocardiogram (2D, M-Mode & Doppler)",
+      "slug": "understanding-the-echocardiogram",
+      "summary": "Principles of transthoracic and transesophageal echocardiography, standard acoustic windows, quantitative chamber dimensions, systolic LVEF calculation, and diastolic dysfunction grading.",
+      "quantitative_reference_ranges": {
+        "lvef_percent": { "normal": ">= 55", "mild_reduction": "45-54", "moderate_reduction": "35-44", "severe_reduction": "< 35" },
+        "lvidd_cm": { "min": 3.5, "max": 5.6 },
+        "lvids_cm": { "min": 2.0, "max": 4.0 },
+        "ivsd_cm": { "min": 0.6, "max": 1.1 },
+        "lpwvd_cm": { "min": 0.6, "max": 1.1 },
+        "e_a_ratio": { "normal": "0.8 - 1.5", "impaired_relaxation_grade1": "< 0.8", "pseudonormal_grade2": "0.8 - 2.0 with elevated E/e'", "restrictive_grade3": "> 2.0" }
+      }
+    },
+    {
+      "chapter_number": 5,
+      "title": "Coronary Artery Disease & Acute Coronary Syndromes",
+      "slug": "coronary-artery-disease",
+      "summary": "Pathophysiology of atherosclerotic plaque rupture, stable angina vs acute coronary syndromes (Unstable Angina, NSTEMI, STEMI), high-sensitivity cardiac troponins, and primary PCI protocols.",
+      "diagnostic_biomarkers": [
+        { "name": "High-Sensitivity Cardiac Troponin I / T", "unit": "ng/mL", "cutoff": 0.04, "clinical_utility": "Gold standard biomarker of myocardial necrosis" },
+        { "name": "CK-MB", "unit": "U/L", "cutoff": 25, "clinical_utility": "Detects acute early re-infarction" },
+        { "name": "Lipid Profile Panel", "target_ldl_mg_dl": "< 55 in very high risk ACS patients" }
+      ],
+      "acute_management_protocol": "Aspirin 300 mg loading + Ticagrelor 180 mg loading -> Unfractionated Heparin / Enoxaparin -> Emergent Primary PCI within 90 min door-to-balloon time"
+    },
+    {
+      "chapter_number": 6,
+      "title": "Systemic Hypertension & Target Organ Damage",
+      "slug": "hypertension",
+      "summary": "ACC/AHA blood pressure classification, primary vs secondary hypertension, target organ damage screening (heart, brain, kidney, eye), and single-pill dual/triple combination pharmacotherapy.",
+      "blood_pressure_categories": {
+        "normal": "< 120 / < 80 mmHg",
+        "elevated": "120-129 / < 80 mmHg",
+        "stage_1_hypertension": "130-139 / 80-89 mmHg",
+        "stage_2_hypertension": ">= 140 / >= 90 mmHg",
+        "hypertensive_crisis": "> 180 / > 120 mmHg"
+      },
+      "pharmacotherapy_algorithm": "Step 1: Single-pill combination ACEi/ARB + DHP-CCB (Amlodipine) or Thiazide-like diuretic -> Step 2: Triple combination ACEi/ARB + CCB + Thiazide -> Step 3 (Resistant): Add Spironolactone 25-50 mg"
+    },
+    {
+      "chapter_number": 7,
+      "title": "Heart Failure & Neurohormonal Activation",
+      "slug": "heart-failure",
+      "summary": "HFrEF vs HFmrEF vs HFpEF classification, NYHA functional classes, ACC/AHA stages, neurohormonal pathophysiology, and the Four Pillars of GDMT.",
+      "four_pillars_of_gdmt": [
+        "1. ARNI (Sacubitril/Valsartan) or ACE-Inhibitor/ARB",
+        "2. Evidence-Based Beta-Blocker (Bisoprolol, Carvedilol, Metoprolol Succinate)",
+        "3. Mineralocorticoid Receptor Antagonist (Spironolactone or Eplerenone)",
+        "4. SGLT2 Inhibitor (Dapagliflozin 10 mg or Empagliflozin 10 mg)"
+      ],
+      "diagnostic_biomarkers": [
+        { "name": "NT-proBNP", "unit": "pg/mL", "cutoff_rule_out": 125, "clinical_utility": "Distinguishes cardiac dyspnea from non-cardiac pulmonary causes" }
+      ]
+    },
+    {
+      "chapter_number": 8,
+      "title": "Cardiac Arrhythmias & Conduction Disturbances",
+      "slug": "arrhythmia",
+      "summary": "Mechanisms of arrhythmogenesis, Supraventricular Tachycardias, Atrial Fibrillation stroke risk (CHA2DS2-VASc), Ventricular Tachycardia, Torsades de Pointes, and AV blocks.",
+      "afib_stroke_score": "CHA2DS2-VASc (CHF [1], HTN [1], Age>=75 [2], Diabetes [1], Stroke/TIA [2], Vascular [1], Age 65-74 [1], Female [1]). Score >= 2 (men) or >= 3 (women) indicates DOAC anticoagulation",
+      "av_blocks": {
+        "first_degree": "PR > 200 ms; benign",
+        "second_degree_mobitz_1": "Wenckebach; progressive PR lengthening until dropped QRS; benign AV nodal",
+        "second_degree_mobitz_2": "Constant PR with intermittent dropped QRS; infranodal; pacemaker indicated",
+        "third_degree_complete": "Complete AV dissociation; regular slow escape; urgent permanent pacemaker indicated"
+      }
+    },
+    {
+      "chapter_number": 9,
+      "title": "Valvular Heart Disease",
+      "slug": "valve-disease",
+      "summary": "Clinical evaluation and severity grading of Aortic Stenosis (triad: angina, syncope, dyspnea; AVA < 1.0 cm2), Aortic Regurgitation, Mitral Stenosis (opening snap + diastolic rumble), and Mitral Regurgitation.",
+      "aortic_stenosis_severity": {
+        "severe_ava_cm2": "< 1.0",
+        "severe_mean_gradient_mmhg": "> 40",
+        "severe_peak_velocity_m_s": "> 4.0",
+        "indications_for_intervention": "Symptomatic severe AS or asymptomatic severe AS with LVEF < 50% (SAVR vs TAVI/TAVR)"
+      }
+    },
+    {
+      "chapter_number": 10,
+      "title": "Infective Endocarditis",
+      "slug": "infective-endocarditis",
+      "summary": "Pathogenesis, common microbiological pathogens (S. aureus, Viridans Streptococci, Enterococci), Modified Duke Criteria, antibiotic regimens, and surgical indications.",
+      "modified_duke_criteria": {
+        "major_criteria": [
+          "1. Positive blood cultures for typical organisms from 2 separate bottles",
+          "2. Evidence of endocardial involvement on Echo (vegetation, abscess, new prosthetic dehiscence, new regurgitation)"
+        ],
+        "minor_criteria": [
+          "1. Predisposition (prosthetic valve, congenital heart disease, IV drug use)",
+          "2. Fever >= 38.0°C (100.4°F)",
+          "3. Vascular phenomena (arterial emboli, septic infarcts, Janeway lesions)",
+          "4. Immunologic phenomena (Osler's nodes, Roth's spots, glomerulonephritis, RF+)",
+          "5. Microbiological evidence not meeting major criterion"
+        ],
+        "diagnostic_rule": "Definitive IE: 2 Major OR 1 Major + 3 Minor OR 5 Minor"
+      }
+    },
+    {
+      "chapter_number": 11,
+      "title": "Cardiomyopathies & Myocardial Diseases",
+      "slug": "cardiomyopathy",
+      "summary": "Classification and pathophysiology of Hypertrophic Cardiomyopathy (HCM / HOCM with SAM), Dilated Cardiomyopathy (DCM, Titin mutations), Restrictive Cardiomyopathy (RCM, Amyloidosis), and Takotsubo Syndrome.",
+      "hcm_features": {
+        "murmur_behavior": "Harsh systolic murmur that increases with Valsalva/standing (decreased preload) and decreases with squatting/handgrip (increased afterload/preload)",
+        "first_line_medical_therapy": "Beta-Blockers (Bisoprolol, Metoprolol, Atenolol) or Non-DHP CCBs (Verapamil); avoid digitalis, nitrates, and high-dose diuretics"
+      }
+    },
+    {
+      "chapter_number": 12,
+      "title": "Diseases of the Aorta & Aortic Dissection",
+      "slug": "aneurysm-and-dissection-of-the-aorta",
+      "summary": "Pathogenesis of aortic dissection, Stanford Type A vs Type B classification, tearing back pain presentation, emergency CTA diagnosis, and immediate BP/HR control with IV Beta-blockers.",
+      "stanford_classification": {
+        "type_a": "Involves ascending aorta; surgical emergency requiring immediate open surgical repair (mortality 1-2% per hour if untreated)",
+        "type_b": "Involves descending aorta distal to left subclavian artery; medical management with IV Beta-blockers (Labetalol/Esmolol, target SBP 100-120 mmHg, HR < 60 bpm); TEVAR for complicated cases"
+      }
+    },
+    {
+      "chapter_number": 13,
+      "title": "Pericardial Disease, Effusion & Cardiac Tamponade",
+      "slug": "pericardial-disease",
+      "summary": "Acute pericarditis diagnostic criteria (diffuse concave ST elevation, PR depression), NSAIDs + Colchicine treatment, and Cardiac Tamponade with Beck's Triad and Pulsus Paradoxus.",
+      "pericarditis_treatment": "High-dose NSAIDs (Ibuprofen 600-800 mg tid or Aspirin 650-1000 mg tid) + Colchicine (0.5 mg daily to bid for 3 months to prevent recurrence)",
+      "tamponade_becks_triad": [
+        "1. Hypotension",
+        "2. Elevated JVP (distended neck veins)",
+        "3. Muffled / distant heart sounds"
+      ],
+      "tamponade_pathognomonic_signs": "Pulsus paradoxus (> 10 mmHg inspiratory drop in SBP), electrical alternans on ECG, diastolic RA/RV collapse on Echo. Immediate emergency pericardiocentesis required."
+    },
+    {
+      "chapter_number": 14,
+      "title": "Adult Congenital Heart Disease (ACHD)",
+      "slug": "adult-congenital-heart-disease",
+      "summary": "Clinical presentations and auscultatory signs of ASD (fixed split S2), VSD (harsh pansystolic murmur), PDA (continuous machinery murmur), Coarctation of the Aorta (radio-femoral delay, rib notching), and Eisenmenger syndrome.",
+      "lesions": {
+        "asd": "Ostium secundum (75%); widely split and fixed S2; pulmonary flow systolic murmur; incomplete RBBB on ECG",
+        "vsd": "Harsh pansystolic murmur at left lower sternal border with systolic thrill",
+        "pda": "Continuous machinery murmur at left infraclavicular area with wide pulse pressure",
+        "coarctation": "Upper extremity hypertension with delayed/weak femoral pulses (radio-femoral delay); figure-of-3 sign and rib notching on CXR",
+        "eisenmenger_syndrome": "Reversal of initial left-to-right shunt to right-to-left due to severe irreversible pulmonary vascular remodeling; presents with cyanosis, clubbing, and polycythemia; surgical repair contraindicated"
+      }
+    }
+  ]
+}

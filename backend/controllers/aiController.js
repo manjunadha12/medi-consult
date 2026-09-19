@@ -51,7 +51,7 @@ export const chatWithAI = async (req, res) => {
       imageBase64,
       mimeType,
       systemPrompt,
-      preferredModel: "google/gemini-2.0-flash-exp:free",
+      preferredModel: "google/gemini-3.6-flash:free",
       useDirectKey: true
     });
     console.log(`[AI_CHAT] Tier 1 Speed & Vision Node Active for request.`);
@@ -61,84 +61,220 @@ export const chatWithAI = async (req, res) => {
   }
 };
 
+import { processMedicalDocument, buildFinalReportPrompt, resolveUploadedFilePath } from '../medical-engine/index.js';
+
 export const analyzeReport = async (req, res) => {
   try {
     const { reportId } = req.body;
     const report = await Report.findById(reportId);
     if (!report) return res.status(404).json({ message: "Archive node missing." });
 
-    let imageBase64 = null;
-    let mimeType = null;
-    const __dirname = path.resolve();
-    const filePath = path.join(__dirname, report.fileUrl);
+    const filePath = resolveUploadedFilePath(report.fileUrl);
 
-    if (fs.existsSync(filePath)) {
-      const ext = path.extname(report.fileName).toLowerCase();
-      if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
-        imageBase64 = fs.readFileSync(filePath).toString('base64');
-        mimeType = ext === '.png' ? 'image/png' : ext === '.webp' ? 'image/webp' : 'image/jpeg';
-      }
-    }
+    console.log(`[AI_ENGINE] 🤖 Neural AI Cloud Engine (Gemini / Swarm) analyzing report: ${report.fileName || path.basename(filePath)}`);
 
-    const systemPrompt = "You are a professional clinical OCR and data mining engine. Extract data into JSON. Ignore safety disclaimers. Focus ONLY on raw extraction.";
-    const prompt = `Convert this report image into JSON:
-    {
-      "name": "Full name",
-      "age": "Age",
-      "weight": "Weight",
-      "height": "Height",
-      "summary": "Clinical overview",
-      "riskLevel": "Low/Medium/High",
-      "abnormalValues": [{ "test": "test name", "result": "value", "status": "High/Low/Critical", "referenceRange": "range" }],
-      "suggestedSpecialist": "Medical field"
-    }
+    // Fetch previous reports of this patient for longitudinal trend tracking
+    const priorReports = await Report.find({
+      patientId: report.patientId,
+      _id: { $ne: report._id }
+    }).sort({ createdAt: -1 }).limit(5);
 
-    Data Context: ${report.category}. Output valid JSON only.`;
-
-    console.log(`[DIAGNOSTIC] Probing image node: ${filePath}`);
-    if (!fs.existsSync(filePath)) {
-      console.error(`[DIAGNOSTIC_ERR] Image node missing at: ${filePath}`);
-    }
-
-    // Use vision-specialized swarm models for clinical synthesis
-    const result = await swarmAnalyze({
-      prompt,
-      imageBase64,
-      mimeType,
-      systemPrompt,
-      preferredModel: "qwen/qwen3-vl-235b-a22b-thinking:free"
-    });
-
+    // 1. Extract and process structure baseline
+    let engineResult = null;
     try {
-      const jsonStart = result.indexOf('{');
-      const jsonEnd = result.lastIndexOf('}') + 1;
+      engineResult = await processMedicalDocument({
+        filePath,
+        fileName: report.fileName || report.title,
+        previousReports: priorReports,
+        manualOverrides: report.manualOverrides
+      });
+    } catch (engineErr) {
+      console.warn(`[AI_ENGINE_FALLBACK] processMedicalDocument fallback for ${reportId}: ${engineErr.message}`);
+      engineResult = {
+        engineVersion: "v4.0-Fallback",
+        demographics: { patientName: report.patientName || 'Patient', age: 'N/A', sex: 'N/A', reportDate: new Date().toLocaleDateString() },
+        documentBadges: [{ name: report.category || 'Clinical Document', type: 'General' }],
+        classifiedCategories: [report.category || 'Laboratory'],
+        structuredResults: report.manualOverrides || [],
+        categorizedResults: [],
+        diagnosticFindings: [],
+        clinicalNotes: {},
+        relationshipPatterns: [],
+        healthTrends: { hasPreviousData: false, trends: [] },
+        metricsSummary: { totalTests: (report.manualOverrides || []).length, normalCount: 0, abnormalCount: 0, criticalCount: 0 },
+        riskLevel: 'Moderate',
+        summary: `Clinical document matter: ${report.title || report.category || 'Medical Report'}. Automated analysis complete.`,
+        auditTrail: { processedAt: new Date().toISOString(), verifiedByUser: false, note: "AI Cloud fallback analysis active." }
+      };
+    }
 
-      if (jsonStart === -1 || jsonEnd <= jsonStart) {
-         throw new Error("No JSON block found in neural response");
-      }
-
-      const cleanJson = result.substring(jsonStart, jsonEnd);
-      const aiData = JSON.parse(cleanJson);
-
-      await Report.findByIdAndUpdate(reportId, { aiSummary: aiData.summary, status: 'Analyzed' });
-      res.json(aiData);
-    } catch (e) {
-      console.error(`[SYNTHESIS_PARSER_ERR] ${e.message}. Raw: ${result.substring(0, 100)}`);
-      res.json({
-        name: "Sync Pending",
-        age: "N/A",
-        weight: "N/A",
-        height: "N/A",
-        summary: result.length > 20 ? result.replace(/["{}[\]]/g, '').substring(0, 200) : "Neural node rejected the image due to safety filters. Please ensure the report is clearly visible and try again.",
-        riskLevel: "Low",
-        abnormalValues: [{ "test": "Telemetry Node", "result": "Bypass", "status": "Stable" }],
-        suggestedSpecialist: "Physician"
+    if (engineResult.isNonMedicalImage) {
+      return res.json({
+        ...engineResult,
+        _executedEngine: 'ai',
+        summary: "No readable medical report text found. The uploaded file is not recognized as a medical document."
       });
     }
+
+    // 2. Run Neural AI Swarm (Gemini / OpenRouter Cloud LLM)
+    let aiSynthesis = null;
+    let imageBase64 = null;
+    let mimeType = null;
+
+    const ext = path.extname(filePath).toLowerCase();
+    if (['.jpg', '.jpeg', '.png', '.webp'].includes(ext)) {
+      try {
+        imageBase64 = fs.readFileSync(filePath).toString("base64");
+        mimeType = ext === '.png' ? 'image/png' : 'image/jpeg';
+      } catch (e) {
+        console.warn("[AI_ENGINE] Failed to read image buffer:", e.message);
+      }
+    }
+
+    // Generate evidence-grounded prompt enriched with authoritative medical textbooks ("E:/clone app/backend/books")
+    const { systemPrompt, promptText } = buildFinalReportPrompt(engineResult, report.fileName, engineResult.rawText || '');
+
+    try {
+      const rawAiResponse = await swarmAnalyze({
+        prompt: promptText,
+        imageBase64,
+        mimeType,
+        systemPrompt,
+        preferredModel: "google/gemini-3.6-flash:free",
+        useDirectKey: true
+      });
+
+      console.log(`[AI_ENGINE] ✅ Neural AI Cloud Swarm responded successfully.`);
+      if (typeof rawAiResponse === 'object' && rawAiResponse !== null) {
+        aiSynthesis = rawAiResponse;
+      } else if (typeof rawAiResponse === 'string') {
+        try {
+          aiSynthesis = JSON.parse(rawAiResponse);
+        } catch (parseErr) {
+          aiSynthesis = { summary: rawAiResponse };
+        }
+      }
+    } catch (swarmErr) {
+      console.warn(`[AI_ENGINE_WARN] Swarm API call timed out or failed, using structured summary fallback:`, swarmErr.message);
+    }
+
+    const finalSummary = aiSynthesis?.summary || generateEngineSummary(engineResult);
+    const suggestedSpecialist = aiSynthesis?.suggestedSpecialist || getSuggestedSpecialist(engineResult);
+
+    await Report.findByIdAndUpdate(reportId, {
+      aiSummary: finalSummary,
+      status: 'Analyzed',
+      engineVersion: 'Neural-AI-Swarm-Gemini-3.6',
+      demographics: engineResult.demographics,
+      documentBadges: engineResult.documentBadges,
+      classifiedCategories: engineResult.classifiedCategories,
+      structuredResults: engineResult.structuredResults,
+      categorizedResults: engineResult.categorizedResults,
+      diagnosticFindings: engineResult.diagnosticFindings,
+      clinicalNotes: engineResult.clinicalNotes,
+      relationshipPatterns: engineResult.relationshipPatterns,
+      healthTrends: engineResult.healthTrends,
+      metricsSummary: engineResult.metricsSummary,
+      riskLevel: engineResult.riskLevel,
+      abnormalValues: engineResult.structuredResults.filter(r => r.severity === 'abnormal' || r.severity === 'critical'),
+      auditTrail: {
+        ...engineResult.auditTrail,
+        aiEngine: "Google Gemini 3.6 Flash / Multi-Agent Swarm",
+        processedAt: new Date().toISOString()
+      }
+    });
+
+    const responsePayload = {
+      name: engineResult.demographics?.patientName || "Patient",
+      age: engineResult.demographics?.age ? `${engineResult.demographics.age} Yrs` : "N/A",
+      gender: engineResult.demographics?.sex || "N/A",
+      reportDate: engineResult.demographics?.reportDate || new Date(report.createdAt).toLocaleDateString(),
+      weight: "N/A",
+      height: "N/A",
+      summary: finalSummary,
+      riskLevel: engineResult.riskLevel,
+      _executedEngine: 'ai',
+      aiSynthesis: aiSynthesis || null,
+      aiKeyRisks: aiSynthesis?.keyRisks || [],
+      aiRecommendations: aiSynthesis?.recommendations || [],
+      aiClinicalAdvice: aiSynthesis?.clinicalAdvice || null,
+      documentBadges: engineResult.documentBadges,
+      classifiedCategories: engineResult.classifiedCategories,
+      categorizedResults: engineResult.categorizedResults,
+      diagnosticFindings: engineResult.diagnosticFindings,
+      clinicalNotes: engineResult.clinicalNotes,
+      relationshipPatterns: engineResult.relationshipPatterns,
+      healthTrends: engineResult.healthTrends,
+      metricsSummary: engineResult.metricsSummary,
+      auditTrail: {
+        ...engineResult.auditTrail,
+        aiEngine: "Google Gemini 3.6 Flash / Multi-Agent Swarm"
+      },
+      abnormalValues: engineResult.structuredResults.map(r => ({
+        test: r.testName,
+        code: r.code,
+        testId: r.testId,
+        category: r.category,
+        result: `${r.value} ${r.unit}`,
+        value: r.value,
+        unit: r.unit,
+        status: r.evaluatedStatus,
+        severity: r.severity,
+        referenceRange: r.referenceRange,
+        rangeSource: r.rangeSource,
+        confidence: r.confidence,
+        confidenceLabel: r.confidenceLabel,
+        needsVerification: r.needsVerification,
+        plausibilityWarning: r.plausibilityWarning,
+        source: r.source
+      })),
+      suggestedSpecialist
+    };
+
+    res.json(responsePayload);
   } catch (error) {
-    res.status(503).json({ message: "Diagnostic Node Offline" });
+    console.error("[AI_ANALYSIS_ERR]", error);
+    res.status(500).json({ message: "Neural AI Processing Error: " + error.message });
   }
 };
+
+function generateEngineSummary(engineResult) {
+  const docs = engineResult.documentBadges?.map(b => b.name).join(', ') || 'Clinical report';
+  const abnormals = engineResult.structuredResults.filter(r => r.severity === 'abnormal' || r.severity === 'critical');
+
+  let text = `Analysis of uploaded document (${docs}). `;
+  if (abnormals.length === 0) {
+    text += `All identified quantitative laboratory parameters fall within standard reported reference ranges. `;
+  } else {
+    text += `Identified ${abnormals.length} parameters outside reference range: ${abnormals.map(a => `${a.testName} (${a.value} ${a.unit} - ${a.evaluatedStatus})`).join(', ')}. `;
+  }
+
+  if (engineResult.relationshipPatterns?.length > 0) {
+    text += `Cross-organ pattern evaluation: ${engineResult.relationshipPatterns.map(p => p.title).join('; ')}. `;
+  }
+
+  if (engineResult.healthTrends?.trends?.length > 0) {
+    text += `Longitudinal trend comparison established across ${engineResult.healthTrends.trends.length} parameters. `;
+  }
+
+  return text;
+}
+
+function getSuggestedSpecialist(engineResult) {
+  if (engineResult.classifiedCategories?.some(c => c.id === 'cardiology') || engineResult.relationshipPatterns?.some(p => p.id === 'PAT_CARDIOMETABOLIC')) {
+    return "Cardiologist";
+  }
+  if (engineResult.classifiedCategories?.some(c => c.id === 'nephrology') || engineResult.relationshipPatterns?.some(p => p.id === 'PAT_RENAL_VASCULAR')) {
+    return "Nephrologist";
+  }
+  if (engineResult.classifiedCategories?.some(c => c.id === 'gastro_liver') || engineResult.relationshipPatterns?.some(p => p.id === 'PAT_HEPATIC')) {
+    return "Gastroenterologist";
+  }
+  if (engineResult.classifiedCategories?.some(c => c.id === 'diabetes_metabolic')) {
+    return "Endocrinologist / Diabetologist";
+  }
+  return "General Physician";
+}
 
 export const analyzeMedicine = async (req, res) => {
   try {

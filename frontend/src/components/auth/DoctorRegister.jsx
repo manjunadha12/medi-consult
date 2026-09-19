@@ -54,6 +54,7 @@ const SPECIALIZATIONS = [
   { name: "Family Medicine Physician", sub: "Healthcare for all ages" },
   { name: "Fertility Specialist (IVF)", sub: "Infertility and IVF treatment" },
   { name: "Forensic Pathologist", sub: "Cause of death and legal investigations" },
+  { name: "Forensic Pathologist", sub: "Cause of death and legal investigations" },
   { name: "Gastroenterologist", sub: "Stomach, intestine, liver, pancreas diseases" },
   { name: "General Physician", sub: "Fever, cold, infections, diabetes, blood pressure" },
   { name: "General Surgeon", ph: "Hernia, appendix, gallbladder, abdominal surgery" },
@@ -403,124 +404,130 @@ const DoctorRegister = () => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col bg-black font-sans overflow-hidden relative">
+    <div className="min-h-screen flex flex-col bg-black font-sans overflow-x-hidden relative text-left">
       <div className="absolute inset-0 z-0 overflow-hidden text-left">
-          <img src="https://images.unsplash.com/photo-1576091160550-2173db999c1d?q=80&w=2000&auto=format&fit=crop" alt="Background" className="w-full h-full object-cover opacity-60 mix-blend-screen scale-105" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black md:bg-gradient-to-r md:from-black/60 md:to-transparent"></div>
+          <img src="/login-bg.png" alt="Background" className="w-full h-full object-cover opacity-50 scale-105" />
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+             <div className="relative flex items-center justify-center">
+                <div className="absolute w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[140px] animate-pulse"></div>
+                <div className="absolute w-[400px] h-[400px] bg-blue-500/15 rounded-full blur-[100px]"></div>
+             </div>
+          </div>
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-black md:bg-gradient-to-r md:from-black/60 md:to-transparent z-[15]"></div>
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row relative z-20 overflow-y-auto custom-scrollbar">
          <div className="hidden md:flex flex-[1.3] p-12 lg:p-20 flex flex-col h-full w-full text-left">
              <div className="flex items-center gap-3 mb-16">
-               <div className="w-12 h-12 bg-blue-600/30 border border-blue-500/50 rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]"><ShieldCheckIcon size={24} /></div>
+               <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Logo" className="w-12 h-12 object-contain" />
                <div className="text-left"><h2 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">MEDI <span className="text-blue-500 font-black">CONSULT</span></h2><p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mt-1">Clinical Authentication Gateway</p></div>
              </div>
              <div className="max-w-lg space-y-10">
                <div className="space-y-6">
                  <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.05] tracking-tighter uppercase">Join Our <span className="text-blue-500">Expert</span>,<br /> Network</h1>
-                 <div className="w-24 h-1.5 bg-blue-600 rounded-full"></div>
+                 <div className="w-24 h-1.5 bg-blue-600 rounded-[20px]"></div>
                  <p className="text-base font-bold text-zinc-400 max-w-sm leading-relaxed uppercase tracking-[0.15em]">Provision your clinical node and start delivering advanced healthcare.</p>
                </div>
              </div>
          </div>
 
-         <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-12 relative z-30">
-           <div className="max-w-[600px] w-full bg-white p-8 lg:p-10 rounded-[48px] shadow-2xl flex flex-col items-center">
-              <div className="w-14 h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 border border-blue-100 shadow-inner">
-                 {step === 1 ? <Stethoscope size={28} strokeWidth={4} /> : <ShieldCheckIcon size={28} />}
+         <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-14 relative z-30">
+           <div className="max-w-[620px] w-full bg-white/5 backdrop-blur-2xl p-8 lg:p-12 rounded-[20px] shadow-2xl border border-white/10 flex flex-col items-center">
+              <div className="mb-8 flex justify-center">
+                 <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Medi Consult Logo" className="w-32 sm:w-36 h-auto object-contain" />
               </div>
 
               <div className="text-center mb-8">
-                 <h2 className="text-2xl font-black text-slate-900 tracking-tighter uppercase leading-none">{step === 1 ? 'Provision Node' : 'Clinical Archives'}</h2>
-                 <p className="text-[9px] font-black text-slate-400 mt-2 uppercase tracking-widest">{step === 1 ? 'Step 1: Professional Identity' : 'Step 2: Security & Credentials'}</p>
+                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">{step === 1 ? 'Provision Node' : 'Clinical Archives'}</h2>
+                 <p className="text-[9px] sm:text-[10px] font-black text-zinc-500 mt-2 uppercase tracking-widest">{step === 1 ? 'Step 1: Professional Identity' : 'Step 2: Security & Credentials'}</p>
               </div>
 
-              <form onSubmit={handleSubmit} className="w-full space-y-8">
+              <form onSubmit={handleSubmit} className="w-full space-y-8 text-left">
                  {step === 1 ? (
                    <>
                      <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><UserIcon size={14}/> Professional Identity</h3>
+                        <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><UserIcon size={14}/> Professional Identity</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Full Name</label><div className="relative mt-1"><UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="name" placeholder="Dr. John Smith" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Email Address</label><div className="relative mt-1"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="email" type="email" placeholder="official@node.com" value={formData.email} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Full Name</label><div className="relative mt-1 text-left"><UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="name" placeholder="Dr. John Smith" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-bold text-sm text-white placeholder:text-zinc-600" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Email Address</label><div className="relative mt-1 text-left"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="email" type="email" placeholder="official@node.com" value={formData.email} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-bold text-sm text-white placeholder:text-zinc-600" required /></div></div>
                         </div>
 
-                        <div className="space-y-1 relative" ref={specDropdownRef}>
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Specialization</label>
-                           <div className="relative mt-1"><Award className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input value={specQuery} onFocus={() => setShowSpecDropdown(true)} onChange={(e) => { setSpecQuery(e.target.value); setShowSpecDropdown(true); setFormData(prev => ({ ...prev, specialization: e.target.value })); }} onKeyDown={handleSpecKeyDown} placeholder="Search Expertise..." className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div>
-                           {showSpecDropdown && specSuggestions.length > 0 && (<div className="absolute z-[110] left-0 right-0 mt-2 bg-white border border-slate-100 rounded-2xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2">{specSuggestions.map((spec, i) => (<div key={i} onClick={() => handleSpecSelect(spec)} className={`p-4 cursor-pointer border-b border-slate-50 last:border-0 transition-all flex flex-col text-left ${focusedSpecIndex === i ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}><p className="text-[10px] font-black text-slate-900 uppercase tracking-tight">{highlightMatch(spec.name, specQuery)}</p><p className="text-[8px] font-bold text-slate-400 uppercase tracking-widest mt-1 line-clamp-1">{spec.sub}</p></div>))}</div>)}
+                        <div className="space-y-1 relative text-left" ref={specDropdownRef}>
+                           <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1 text-left">Specialization</label>
+                           <div className="relative mt-1 text-left"><Award className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input value={specQuery} onFocus={() => setShowSpecDropdown(true)} onChange={(e) => { setSpecQuery(e.target.value); setShowSpecDropdown(true); setFormData(prev => ({ ...prev, specialization: e.target.value })); }} onKeyDown={handleSpecKeyDown} placeholder="Search Expertise..." className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-bold text-sm text-white placeholder:text-zinc-600" required /></div>
+                           {showSpecDropdown && specSuggestions.length > 0 && (<div className="absolute z-[110] left-0 right-0 mt-2 bg-[#0A0A0C] border border-white/10 rounded-[20px] shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2">{specSuggestions.map((spec, i) => (<div key={i} onClick={() => handleSpecSelect(spec)} className={`p-4 cursor-pointer border-b border-white/5 last:border-0 transition-all flex flex-col text-left ${focusedSpecIndex === i ? 'bg-white/10' : 'hover:bg-white/5'}`}><p className="text-[10px] font-black text-white uppercase tracking-tight">{highlightMatch(spec.name, specQuery)}</p><p className="text-[8px] font-bold text-zinc-500 uppercase tracking-widest mt-1 line-clamp-1">{spec.sub}</p></div>))}</div>)}
                         </div>
 
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Total Experience</label><div className="relative mt-1"><Activity className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="experience" type="number" placeholder="Years" value={formData.experience} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Medical Reg Num</label><div className="relative mt-1"><ShieldCheckIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="medicalRegistrationNumber" placeholder="KMC-xxxxx" value={formData.medicalRegistrationNumber} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Total Experience</label><div className="relative mt-1 text-left"><Activity className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="experience" type="number" placeholder="Years" value={formData.experience} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-bold text-sm text-white placeholder:text-zinc-600" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Medical Reg Num</label><div className="relative mt-1 text-left"><ShieldCheckIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="medicalRegistrationNumber" placeholder="KMC-xxxxx" value={formData.medicalRegistrationNumber} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-bold text-sm text-white placeholder:text-zinc-600" required /></div></div>
                         </div>
                      </div>
 
-                     <div className="space-y-4 relative" ref={instDropdownRef}>
-                        <div className="flex items-center justify-between"><h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><Building size={14}/> Institutional Node</h3><div className="flex items-center gap-2"><div className={`w-2 h-2 rounded-full ${currentLocation ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div><span className={`text-[8px] font-black uppercase tracking-widest ${currentLocation ? 'text-emerald-600' : 'text-slate-400'}`}>{currentLocation ? 'GPS Active' : 'GPS Offline'}</span></div></div>
-                        {!currentLocation && (<button type="button" onClick={verifyLocation} disabled={locationVerifying} className="w-full p-4 bg-slate-50 border border-dashed border-slate-200 rounded-2xl flex items-center justify-center gap-3 hover:bg-blue-50 transition-all">{locationVerifying ? <Loader2 size={16} className="animate-spin text-blue-500" /> : <MapPin size={16} />}<span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Verify Physical Presence</span></button>)}
+                     <div className="space-y-4 relative text-left" ref={instDropdownRef}>
+                        <div className="flex items-center justify-between text-left"><h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><Building size={14}/> Institutional Node</h3><div className="flex items-center gap-2 text-left"><div className={`w-2 h-2 rounded-full ${currentLocation ? 'bg-emerald-500 animate-pulse' : 'bg-slate-300'}`}></div><span className={`text-[8px] font-black uppercase tracking-widest ${currentLocation ? 'text-emerald-500' : 'text-zinc-500'}`}>{currentLocation ? 'GPS Active' : 'GPS Offline'}</span></div></div>
+                        {!currentLocation && (<button type="button" onClick={verifyLocation} disabled={locationVerifying} className="w-full p-4 bg-white/5 border border-dashed border-white/10 rounded-[20px] flex items-center justify-center gap-3 hover:bg-white/10 transition-all">{locationVerifying ? <Loader2 size={16} className="animate-spin text-blue-500" /> : <MapPin size={16} />}<span className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Verify Physical Presence</span></button>)}
                         <div className="relative group text-left">
-                           <label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1 block mb-2">Search Institution</label>
-                           <div className="relative"><SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input value={instQuery} onFocus={() => { setShowInstDropdown(true); if (!currentLocation && !locationVerifying) verifyLocation(); }} onKeyDown={handleKeyDown} onChange={(e) => { setInstQuery(e.target.value); setShowInstDropdown(true); }} placeholder="E.g. Apollo, Narayana..." className="w-full pl-11 pr-12 py-4 bg-slate-50 border border-slate-100 rounded-2xl outline-none focus:border-blue-500 font-black text-xs uppercase tracking-widest shadow-inner transition-all" />{isSearching && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />}</div>
+                           <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1 block mb-2 text-left">Search Institution</label>
+                           <div className="relative text-left"><SearchIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input value={instQuery} onFocus={() => { setShowInstDropdown(true); if (!currentLocation && !locationVerifying) verifyLocation(); }} onKeyDown={handleKeyDown} onChange={(e) => { setInstQuery(e.target.value); setShowInstDropdown(true); }} placeholder="E.g. Apollo, Narayana..." className="w-full pl-11 pr-12 py-4 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 font-black text-xs uppercase tracking-widest shadow-inner transition-all text-white" />{isSearching && <Loader2 className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-blue-500" />}</div>
                         </div>
-                        {showInstDropdown && (instSuggestions.length > 0 || instQuery.length >= 2) && !isSearching && (<div className="absolute z-[100] left-0 right-0 mt-2 bg-white border border-slate-100 rounded-3xl shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">{instSuggestions.map((inst, i) => (<div key={i} onClick={() => handleInstSelect(inst)} className={`p-4 cursor-pointer border-b border-slate-50 last:border-0 transition-all flex gap-4 text-left ${focusedIndex === i ? 'bg-blue-50' : 'hover:bg-blue-50/50'}`}><div className={`w-10 h-10 rounded-xl border flex items-center justify-center ${focusedIndex === i ? 'bg-blue-600 text-white' : 'bg-blue-50 text-blue-600'}`}><Building size={18} /></div><div className="flex-1 overflow-hidden"><h4 className="text-sm font-black text-slate-900 uppercase">{highlightMatch(inst.name, instQuery)}</h4><p className="text-[9px] font-black text-blue-500 uppercase">{inst.type}</p><p className="text-[8px] font-bold text-slate-500 uppercase flex items-center gap-1"><MapPin size={8}/> {inst.city}</p></div></div>))}</div>)}
+                        {showInstDropdown && (instSuggestions.length > 0 || instQuery.length >= 2) && !isSearching && (<div className="absolute z-[100] left-0 right-0 mt-2 bg-[#0A0A0C] border border-white/10 rounded-[20px] shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">{instSuggestions.map((inst, i) => (<div key={i} onClick={() => handleInstSelect(inst)} className={`p-4 cursor-pointer border-b border-white/5 last:border-0 transition-all flex gap-4 text-left ${focusedIndex === i ? 'bg-white/10' : 'hover:bg-white/5'}`}><div className={`w-10 h-10 rounded-[20px] border flex items-center justify-center ${focusedIndex === i ? 'bg-blue-600 text-white' : 'bg-white/5 text-blue-500'}`}><Building size={18} /></div><div className="flex-1 overflow-hidden text-left"><h4 className="text-sm font-black text-white uppercase">{highlightMatch(inst.name, instQuery)}</h4><p className="text-[9px] font-black text-blue-400 uppercase">{inst.type}</p><p className="text-[8px] font-bold text-zinc-500 uppercase flex items-center gap-1"><MapPin size={8}/> {inst.city}</p></div></div>))}</div>)}
                         {hospitalDetails && (
-                          <div className="p-5 bg-blue-50 border border-blue-100 rounded-3xl space-y-4 text-left relative overflow-hidden">
-                             <div className="flex justify-between items-start relative z-10"><div><h4 className="text-xs font-black text-slate-900 uppercase">{hospitalDetails.name}</h4><p className="text-[8px] font-bold text-slate-500 uppercase flex items-center gap-1 mt-1"><MapPin size={8}/> {hospitalDetails.address}</p></div><button type="button" onClick={() => {setHospitalDetails(null); setInstQuery('');}} className="p-1 bg-white rounded-lg border border-blue-100 text-slate-400 hover:text-red-500"><X size={12}/></button></div>
-                             <div className={`p-3 rounded-xl border flex items-center justify-between ${isLocationMatched ? 'bg-emerald-50 border-emerald-100' : 'bg-rose-50 border-rose-100'}`}><div className="flex items-center gap-2"><div className={`w-6 h-6 rounded-full flex items-center justify-center ${isLocationMatched ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}><MapPin size={12} /></div><div><p className="text-[7px] font-black text-slate-400 uppercase">Geospatial Link</p><p className={`text-[9px] font-black uppercase ${isLocationMatched ? 'text-emerald-700' : 'text-rose-700'}`}>{currentLocation ? `Distance: ${distanceToHosp?.toFixed(2)} km` : 'Waiting for GPS...'}</p></div></div><button type="button" onClick={verifyLocation} className="text-[7px] font-black uppercase bg-white px-2 py-1 rounded-md border border-slate-100 text-blue-600">Re-Sync</button></div>
+                          <div className="p-5 bg-blue-500/5 border border-blue-500/20 rounded-[20px] space-y-4 text-left relative overflow-hidden">
+                             <div className="flex justify-between items-start relative z-10 text-left"><div><h4 className="text-xs font-black text-white uppercase">{hospitalDetails.name}</h4><p className="text-[8px] font-bold text-zinc-500 uppercase flex items-center gap-1 mt-1"><MapPin size={8}/> {hospitalDetails.address}</p></div><button type="button" onClick={() => {setHospitalDetails(null); setInstQuery('');}} className="p-1.5 bg-white/5 rounded-[20px] border border-white/10 text-zinc-400 hover:text-red-400"><X size={14}/></button></div>
+                             <div className={`p-3 rounded-[20px] border flex items-center justify-between ${isLocationMatched ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}><div className="flex items-center gap-2 text-left"><div className={`w-6 h-6 rounded-[20px] flex items-center justify-center ${isLocationMatched ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}><MapPin size={12} /></div><div><p className="text-[7px] font-black text-zinc-400 uppercase">Geospatial Link</p><p className={`text-[9px] font-black uppercase ${isLocationMatched ? 'text-emerald-400' : 'text-rose-400'}`}>{currentLocation ? `Distance: ${distanceToHosp?.toFixed(2)} km` : 'Waiting for GPS...'}</p></div></div><button type="button" onClick={verifyLocation} className="text-[7px] font-black uppercase bg-white/5 px-2.5 py-1 rounded-[20px] border border-white/10 text-blue-400">Re-Sync</button></div>
                           </div>
                         )}
                      </div>
 
-                     <button type="button" onClick={handleNextStep} className={`w-full py-5 rounded-[28px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 mt-4 ${isLocationMatched ? 'bg-blue-600 text-white shadow-blue-500/20 shadow-xl' : 'bg-slate-100 text-slate-400 cursor-not-allowed border'}`}>Initialize Phase 2 <ArrowRight size={18}/></button>
+                     <button type="button" onClick={handleNextStep} className={`w-full py-4 rounded-[20px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 mt-4 ${isLocationMatched ? 'bg-blue-600 text-white shadow-blue-500/25 shadow-xl' : 'bg-white/5 text-zinc-600 cursor-not-allowed border border-white/5'}`}>Initialize Phase 2 <ArrowRight size={18}/></button>
                    </>
                  ) : (
                    <>
-                     <div className="space-y-4">
-                        <h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><Lock size={14}/> Security Schema</h3>
+                     <div className="space-y-4 text-left">
+                        <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><Lock size={14}/> Security Schema</h3>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-left">
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Encryption Key</label><div className="relative mt-1"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="password" type="password" placeholder="••••••••" onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
-                           <div className="space-y-1"><label className="text-[8px] font-black text-slate-400 uppercase tracking-widest ml-1">Confirm Key</label><div className="relative mt-1"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4" /><input name="confirmPassword" type="password" placeholder="••••••••" onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 font-bold text-sm text-slate-800" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1 text-left">Encryption Key</label><div className="relative mt-1 text-left"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="password" type="password" placeholder="••••••••" onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 font-bold text-sm text-white" required /></div></div>
+                           <div className="space-y-1 text-left"><label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1 text-left">Confirm Key</label><div className="relative mt-1 text-left"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" /><input name="confirmPassword" type="password" placeholder="••••••••" onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 font-bold text-sm text-white" required /></div></div>
                         </div>
                      </div>
 
-                     <div className="space-y-6">
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-2"><h3 className="text-[10px] font-black text-blue-600 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><FileText size={14}/> Verification Archives</h3><span className="text-[8px] font-black text-slate-400 uppercase">Max 10MB per file</span></div>
+                     <div className="space-y-6 text-left">
+                        <div className="flex items-center justify-between border-b border-white/5 pb-2 text-left"><h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2 text-left"><FileText size={14}/> Verification Archives</h3><span className="text-[8px] font-black text-zinc-600 uppercase">Max 10MB per file</span></div>
                         <div className="space-y-6 text-left">
-                           <div className="space-y-4">
-                              <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2"><Shield size={10} className="text-blue-500"/> Mandatory Protocol</p>
-                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                           <div className="space-y-4 text-left">
+                              <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest flex items-center gap-2 text-left"><Shield size={10} className="text-blue-500"/> Mandatory Protocol</p>
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-left">
                                  {MANDATORY_DOCS.map(doc => (
-                                    <div key={doc} className="relative">{documents[doc] ? (<div className="flex items-center justify-between p-4 bg-emerald-50 border border-emerald-100 rounded-2xl animate-in fade-in zoom-in-95"><div className="flex items-center gap-3 overflow-hidden"><FileText className="text-emerald-500 shrink-0" size={16} /><p className="text-[9px] font-black uppercase text-emerald-700 truncate">{doc}</p></div><button type="button" onClick={() => removeFile(doc)} className="p-2 hover:bg-emerald-100 rounded-lg"><Trash2 size={12} className="text-emerald-600"/></button></div>) : (<label className="flex items-center gap-3 p-4 bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl cursor-pointer hover:border-blue-300 hover:bg-blue-50 transition-all group"><Upload size={16} className="text-slate-300 group-hover:text-blue-500" /><span className="text-[9px] font-black uppercase text-slate-400 group-hover:text-blue-600 truncate">{doc}</span><input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(doc, e.target.files[0])} /></label>)}</div>
+                                    <div key={doc} className="relative text-left">{documents[doc] ? (<div className="flex items-center justify-between p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-[20px] animate-in fade-in zoom-in-95 text-left"><div className="flex items-center gap-3 overflow-hidden text-left"><FileText className="text-emerald-400 shrink-0" size={16} /><p className="text-[9px] font-black uppercase text-emerald-400 truncate">{doc}</p></div><button type="button" onClick={() => removeFile(doc)} className="p-2 hover:bg-emerald-500/20 rounded-[20px]"><Trash2 size={12} className="text-emerald-400"/></button></div>) : (<label className="flex items-center gap-3 p-4 bg-white/5 border-2 border-dashed border-white/10 rounded-[20px] cursor-pointer hover:border-blue-500/50 hover:bg-white/10 transition-all group text-left"><Upload size={16} className="text-zinc-600 group-hover:text-blue-500" /><span className="text-[9px] font-black uppercase text-zinc-500 group-hover:text-blue-400 truncate">{doc}</span><input type="file" className="hidden" accept=".pdf,.jpg,.jpeg,.png" onChange={(e) => handleFileChange(doc, e.target.files[0])} /></label>)}</div>
                                  ))}
                               </div>
                            </div>
                         </div>
                      </div>
 
-                     <div className="flex gap-4 mt-10">
-                        <button type="button" onClick={() => setStep(1)} className="px-6 py-5 border border-slate-200 rounded-[28px] font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all flex items-center gap-2"><ChevronLeft size={18}/> Back</button>
-                        <button type="submit" disabled={loading} className="flex-1 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-[28px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3">{loading ? <Loader2 className="animate-spin" /> : <ShieldCheckIcon size={20}/>}{loading ? 'Transmitting...' : 'Initialize Provisioning'}</button>
+                     <div className="flex gap-4 mt-10 text-left">
+                        <button type="button" onClick={() => setStep(1)} className="px-6 py-4 border border-white/10 rounded-[20px] font-black text-xs uppercase tracking-widest hover:bg-white/5 transition-all flex items-center gap-2 text-white"><ChevronLeft size={18}/> Back</button>
+                        <button type="submit" disabled={loading} className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[20px] font-black text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3">{loading ? <Loader2 className="animate-spin" /> : <ShieldCheckIcon size={20}/>}{loading ? 'Transmitting...' : 'Initialize Provisioning'}</button>
                      </div>
                    </>
                  )}
               </form>
 
-              <p className="mt-12 text-[10px] font-bold text-slate-400 uppercase tracking-widest">Already have an active node? <Link to="/" className="text-blue-600 font-black hover:underline ml-1">Sign in terminal</Link></p>
+              <p className="mt-12 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Already have an active node? <Link to="/" className="text-blue-400 font-black hover:underline ml-1">Sign in terminal</Link></p>
            </div>
          </div>
       </div>
 
-      <div className="bg-zinc-950/50 backdrop-blur-xl border-t border-white/5 py-8 px-6 lg:px-20 z-30 relative shrink-0">
-         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8">
+      <div className="bg-zinc-950/50 backdrop-blur-xl border-t border-white/5 py-8 px-6 lg:px-20 z-30 relative shrink-0 text-left">
+         <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-left">
             {[
                { icon: ShieldCheckIcon, label: '256-bit', sub: 'Data Encryption', color: 'text-blue-500', bg: 'bg-blue-500/10' },
                { icon: Users, label: '10K+', sub: 'Happy Users', color: 'text-indigo-500', bg: 'bg-indigo-500/10' },
                { icon: Globe, label: '500+', sub: 'Hospitals', color: 'text-cyan-500', bg: 'bg-cyan-500/10' },
                { icon: Headphones, label: '24/7', sub: 'Support', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
             ].map((s, i) => (
-               <div key={i} className="flex items-center gap-4">
+               <div key={i} className="flex items-center gap-4 text-left">
                   <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center ${s.color} shrink-0 shadow-sm border border-white/5`}><s.icon size={20} /></div>
                   <div className="text-left"><p className="text-base font-black text-white leading-none">{s.label}</p><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5">{s.sub}</p></div>
                </div>

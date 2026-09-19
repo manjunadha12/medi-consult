@@ -1,0 +1,130 @@
+{
+  "id": "cardiology",
+  "name": "Cardiology & Cardiovascular",
+  "icon": "🫀",
+  "reference_source": {
+    "title": "Cardiology Explained",
+    "authors": "Euan A. Ashley, MRCP, DPhil and Josef Niebauer, MD, PhD, MBA",
+    "publisher": "Remedica / NCBI Bookshelf",
+    "ncbi_id": "NBK2204",
+    "local_path": "medical-db/cardiology/cardiology_explained.json"
+  },
+  "items": [
+    {
+      "id": "echo",
+      "code": "CARD_ECHO",
+      "canonicalName": "Echocardiogram (2D Echo / Doppler)",
+      "aliases": ["2d echo", "echocardiogram", "echocardiography", "transthoracic echocardiogram", "tte", "color doppler echo"],
+      "unit": "%",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "plausibilityRange": { "min": 10, "max": 90 }
+    },
+    {
+      "id": "ecg",
+      "code": "CARD_ECG",
+      "canonicalName": "12-Lead Electrocardiogram (ECG)",
+      "aliases": ["ecg", "ekg", "12 lead ecg", "resting ecg", "electrocardiogram", "rhythm trace"],
+      "unit": "bpm",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀"
+    },
+    {
+      "id": "total_cholesterol",
+      "code": "LIP_CHOL",
+      "canonicalName": "Total Cholesterol",
+      "aliases": ["total cholesterol", "cholesterol total", "serum cholesterol", "s.cholesterol", "cholesterol"],
+      "unit": "mg/dL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 200, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 50, "max": 600 }
+    },
+    {
+      "id": "triglycerides",
+      "code": "LIP_TRIG",
+      "canonicalName": "Triglycerides",
+      "aliases": ["triglycerides", "serum triglycerides", "s.triglycerides", "tg", "trigs"],
+      "unit": "mg/dL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 150, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 20, "max": 1500 }
+    },
+    {
+      "id": "hdl_cholesterol",
+      "code": "LIP_HDL",
+      "canonicalName": "HDL Cholesterol",
+      "aliases": ["hdl cholesterol", "hdl-c", "high density lipoprotein", "serum hdl", "hdl"],
+      "unit": "mg/dL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 40, "max": 60, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 10, "max": 150 }
+    },
+    {
+      "id": "ldl_cholesterol",
+      "code": "LIP_LDL",
+      "canonicalName": "LDL Cholesterol",
+      "aliases": ["ldl cholesterol", "ldl-c", "low density lipoprotein", "calculated ldl", "ldl"],
+      "unit": "mg/dL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 100, "unit": "mg/dL" } },
+      "plausibilityRange": { "min": 10, "max": 400 }
+    },
+    {
+      "id": "troponin",
+      "code": "CARD_TROP",
+      "canonicalName": "Troponin I / T",
+      "aliases": ["troponin i", "troponin t", "hs-trop", "cardiac troponin"],
+      "unit": "ng/mL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 0.04, "unit": "ng/mL" } }
+    },
+    {
+      "id": "nt_probnp",
+      "code": "CARD_NT_PROBNP",
+      "canonicalName": "NT-proBNP (N-Terminal Pro-B-Type Natriuretic Peptide)",
+      "aliases": ["nt-probnp", "nt probnp", "probnp", "bnp", "b-type natriuretic peptide"],
+      "unit": "pg/mL",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 125, "unit": "pg/mL" } },
+      "plausibilityRange": { "min": 5, "max": 35000 }
+    },
+    {
+      "id": "ck_mb",
+      "code": "CARD_CKMB",
+      "canonicalName": "Creatine Kinase-MB (CK-MB)",
+      "aliases": ["ck-mb", "ckmb", "creatine kinase mb", "cpk-mb"],
+      "unit": "U/L",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 25, "unit": "U/L" } },
+      "plausibilityRange": { "min": 0, "max": 500 }
+    },
+    {
+      "id": "hs_crp",
+      "code": "CARD_HSCRP",
+      "canonicalName": "High-Sensitivity C-Reactive Protein (hs-CRP)",
+      "aliases": ["hs-crp", "hscrp", "cardiac crp", "high sensitivity crp"],
+      "unit": "mg/L",
+      "category": "Cardiology & Cardiovascular",
+      "categoryId": "cardiology",
+      "categoryIcon": "🫀",
+      "ranges": { "standard": { "min": 0, "max": 3.0, "unit": "mg/L" } },
+      "plausibilityRange": { "min": 0.1, "max": 100.0 }
+    }
+  ]
+}

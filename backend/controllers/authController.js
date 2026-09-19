@@ -127,12 +127,15 @@ export const registerDoctor = async (req, res) => {
       applicationNumber
     });
 
-    const documents = req.files ? req.files.map(file => ({
-      name: file.originalname,
-      fileUrl: `/uploads/${file.filename}`,
-      fileType: path.extname(file.originalname),
-      isMandatory: true // Simplified for now
-    })) : [];
+    const documents = req.files ? req.files.map(file => {
+      const relativeUrl = file.path.replace(/\\/g, '/').split('/uploads/')[1];
+      return {
+        name: file.originalname,
+        fileUrl: `/uploads/${relativeUrl}`,
+        fileType: path.extname(file.originalname),
+        isMandatory: true
+      };
+    }) : [];
 
     await DoctorProfile.create({
       userId: user._id,

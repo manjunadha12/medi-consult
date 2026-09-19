@@ -208,27 +208,33 @@ const LoginPage = () => {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-[#000] font-sans overflow-hidden relative">
+    <div className="min-h-screen flex flex-col bg-black font-sans overflow-x-hidden relative text-left">
 
-      {/* GLOBAL BACKGROUND */}
-      <div
-        className="absolute inset-0 z-0 overflow-hidden bg-black"
-        style={{
-          backgroundImage: `url('/login-bg.jpg')`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          opacity: 0.7
-        }}
-      >
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black md:bg-gradient-to-r md:from-black/40 md:to-transparent"></div>
+      {/* GLOBAL BACKGROUND NODE */}
+      <div className="absolute inset-0 z-0 overflow-hidden">
+          {/* Your local background image */}
+          <img
+            src="/login-bg.png"
+            alt="Hand Sync"
+            className="w-full h-full object-cover opacity-50 scale-105"
+          />
+
+          {/* Dynamic Glow Overlay for that specific "Neural Handshake" vibe */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10 pointer-events-none">
+             <div className="relative flex items-center justify-center">
+                <div className="absolute w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[140px] animate-pulse"></div>
+                <div className="absolute w-[400px] h-[400px] bg-blue-500/15 rounded-full blur-[100px]"></div>
+             </div>
+          </div>
+
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-black md:bg-gradient-to-r md:from-black/60 md:to-transparent z-[15]"></div>
       </div>
 
-      <div className="flex-1 flex flex-col md:flex-row relative z-20">
+      <div className="flex-1 flex flex-col md:flex-row relative z-20 overflow-y-auto custom-scrollbar">
          {/* LEFT SECTION - Branding */}
          <div className="hidden md:flex flex-[1.3] p-12 lg:p-20 flex flex-col h-full w-full text-left">
              <div className="flex items-center gap-3 mb-16">
-               <div className="w-12 h-12 bg-blue-600/30 border border-blue-500/50 rounded-xl flex items-center justify-center text-white shadow-[0_0_20px_rgba(37,99,235,0.4)]"><ShieldCheckIcon size={24} /></div>
+               <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Logo" className="w-12 h-12 object-contain" />
                <div className="text-left">
                   <h2 className="text-2xl font-black text-white tracking-tighter uppercase leading-none">MEDI <span className="text-blue-500">CONSULT</span></h2>
                   <div className="flex items-center gap-2 mt-1">
@@ -243,14 +249,14 @@ const LoginPage = () => {
              <div className="max-w-lg space-y-10">
                <div className="space-y-6">
                  <h1 className="text-5xl lg:text-7xl font-black text-white leading-[1.1] tracking-tighter uppercase">Connecting <span className="text-blue-500">Care</span>,<br /> Changing <span className="text-blue-500">Lives</span></h1>
-                 <div className="w-16 h-1 bg-blue-600 rounded-full"></div>
+                 <div className="w-16 h-1 bg-blue-600 rounded-[20px]"></div>
                  <p className="text-base font-medium text-zinc-400 max-w-sm leading-relaxed">Bridging the gap between patients and doctors with secure technology and better outcomes.</p>
                </div>
              </div>
 
              <div className="mt-auto">
-               <div className="inline-flex items-center gap-4 p-5 px-6 bg-white/5 backdrop-blur-xl rounded-[28px] border border-white/10">
-                  <div className="w-10 h-10 rounded-full border-2 border-blue-500 flex items-center justify-center text-blue-500"><Shield size={18} /></div>
+               <div className="inline-flex items-center gap-4 p-5 px-6 bg-white/5 backdrop-blur-xl rounded-[20px] border border-white/10">
+                  <div className="w-10 h-10 rounded-[20px] border-2 border-blue-500 flex items-center justify-center text-blue-500"><Shield size={18} /></div>
                   <div className="text-left">
                      <p className="text-[11px] font-black text-blue-400 uppercase tracking-widest">HIPAA Compliant</p>
                      <p className="text-[10px] font-bold text-zinc-500 uppercase leading-none mt-1">Your privacy and security are our top priority.</p>
@@ -260,30 +266,65 @@ const LoginPage = () => {
          </div>
 
          {/* RIGHT SECTION - Login Card */}
-         <div className="flex-1 flex flex-col items-center justify-center p-4 sm:p-6 lg:p-12">
-           <div className="max-w-[420px] w-full bg-white p-6 sm:p-8 lg:p-12 rounded-[20px] sm:rounded-[24px] shadow-2xl flex flex-col items-center relative">
+         <div className="flex-1 flex flex-col items-center justify-center p-6 sm:p-8 lg:p-14">
+           <div className="max-w-[520px] w-full bg-white/5 backdrop-blur-2xl p-8 sm:p-10 lg:p-12 rounded-[20px] shadow-2xl border border-white/10 flex flex-col items-center relative">
 
-              <div className="absolute top-4 right-6 md:hidden">
+              <div className="absolute top-6 right-6 md:hidden">
                  <div className={`w-2.5 h-2.5 rounded-full animate-pulse ${backendStatus === 'online' ? 'bg-emerald-500 shadow-[0_0_8px_#10b981]' : (backendStatus === 'offline' ? 'bg-red-500 shadow-[0_0_8px_#ef4444]' : 'bg-amber-500')}`}></div>
               </div>
 
-              <div className="w-12 h-12 sm:w-14 sm:h-14 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600 mb-6 sm:mb-8 border border-blue-100 shadow-inner"><Plus size={28} strokeWidth={4} className="sm:w-8 sm:h-8" /></div>
-              <div className="text-center mb-8 sm:mb-10">
-                 <h2 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tighter uppercase leading-none">Welcome Back</h2>
-                 <p className="text-[8px] sm:text-[9px] font-black text-slate-400 mt-2 sm:mt-3 uppercase tracking-widest">Clinical Synchronization Node</p>
+              <div className="mb-8 flex justify-center">
+                 <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Medi Consult Logo" className="w-32 sm:w-36 h-auto object-contain" />
               </div>
-              <div className="w-full flex bg-slate-50 border border-slate-100 p-1 rounded-xl mb-8 sm:mb-10">
-                 <button onClick={() => setActiveTab('patient')} className={`flex-1 py-2.5 sm:py-3 flex items-center justify-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === 'patient' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-600'}`}>Patient</button>
-                 <button onClick={() => setActiveTab('staff')} className={`flex-1 py-2.5 sm:py-3 flex items-center justify-center gap-2 text-[9px] sm:text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-slate-400 hover:text-slate-600'}`}>Operator</button>
+
+              <div className="text-center mb-8">
+                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">Welcome Back</h2>
+                 <p className="text-[9px] sm:text-[10px] font-black text-zinc-500 mt-2 sm:mt-3 uppercase tracking-widest">Clinical Synchronization Node</p>
               </div>
-              <form onSubmit={handleLogin} className="w-full space-y-4 sm:space-y-6">
-                 <div className="space-y-1.5 text-left"><label className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">Identity Code</label><div className="relative group"><Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 sm:w-5 sm:h-5 group-focus-within:text-blue-600 transition-colors" /><input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder={activeTab === 'patient' ? "Email / ID" : "DOC / ADM ID"} className="w-full pl-10 sm:pl-11 pr-6 py-3 sm:py-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all font-bold text-xs sm:text-sm text-slate-800 placeholder:text-slate-300" required /></div></div>
-                 <div className="space-y-1.5 text-left"><div className="flex justify-between items-center px-1"><label className="text-[8px] sm:text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">Encryption Key</label><Link to="/forgot-password" title="Recover key" className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-blue-600 hover:underline">Lost key?</Link></div><div className="relative group"><Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 w-4 h-4 sm:w-5 sm:h-5 group-focus-within:text-blue-600 transition-colors" /><input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••••" className="w-full pl-10 sm:pl-11 pr-12 py-3 sm:py-4 bg-slate-50 border border-slate-100 rounded-xl outline-none focus:border-blue-500 focus:bg-white transition-all font-bold text-xs sm:text-sm text-slate-800 placeholder:text-slate-300" required /><button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">{showPassword ? <EyeOff size={16} /> : <Eye size={16} />}</button></div></div>
-                 <button type="submit" disabled={loading} className="w-full py-3 sm:py-3.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-black text-[10px] sm:text-xs uppercase tracking-[0.2em] shadow-2xl shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50">{loading ? 'Processing Node...' : <>Sign In <ArrowRight size={16} sm:size={18} /></>}</button>
-                 <div className="relative my-6 sm:my-8 flex items-center justify-center"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-100"></div></div><span className="relative px-3 bg-white text-[8px] sm:text-[9px] font-black text-slate-300 uppercase tracking-widest whitespace-nowrap">or continue with</span></div>
-                 <button type="button" onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-2.5 sm:py-3 border border-slate-200 rounded-xl font-bold text-xs sm:text-sm text-slate-900 hover:bg-slate-50 transition-all active:scale-[0.98]"><img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4 sm:w-5 sm:h-5" alt="Google" /> Continue with Google</button>
+
+              <div className="w-full flex bg-white/5 border border-white/10 p-1.5 rounded-[20px] mb-8 sm:mb-9 gap-1">
+                 <button onClick={() => setActiveTab('patient')} className={`flex-1 py-3 sm:py-3.5 flex items-center justify-center gap-2 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-[20px] transition-all ${activeTab === 'patient' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-zinc-500 hover:text-white'}`}>Patient</button>
+                 <button onClick={() => setActiveTab('staff')} className={`flex-1 py-3 sm:py-3.5 flex items-center justify-center gap-2 text-[10px] sm:text-xs font-black uppercase tracking-widest rounded-[20px] transition-all ${activeTab === 'staff' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/25' : 'text-zinc-500 hover:text-white'}`}>Operator</button>
+              </div>
+
+              <form onSubmit={handleLogin} className="w-full space-y-5 sm:space-y-6">
+                 <div className="space-y-2 text-left">
+                   <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em] ml-1">Identity Code</label>
+                   <div className="relative group">
+                     <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
+                     <input type="text" value={loginId} onChange={(e) => setLoginId(e.target.value)} placeholder={activeTab === 'patient' ? "Email / Patient ID" : "DOC / ADM ID"} className="w-full pl-12 pr-6 py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-xs sm:text-sm text-white placeholder:text-zinc-600" required />
+                   </div>
+                 </div>
+
+                 <div className="space-y-2 text-left">
+                   <div className="flex justify-between items-center px-1">
+                     <label className="text-[9px] sm:text-[10px] font-black text-zinc-400 uppercase tracking-[0.2em]">Encryption Key</label>
+                     <Link to="/forgot-password" title="Recover key" className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-blue-400 hover:underline">Lost key?</Link>
+                   </div>
+                   <div className="relative group">
+                     <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-5 h-5 group-focus-within:text-blue-500 transition-colors" />
+                     <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••••••" className="w-full pl-12 pr-12 py-3.5 sm:py-4 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-xs sm:text-sm text-white placeholder:text-zinc-600" required />
+                     <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-zinc-300 transition-colors">{showPassword ? <EyeOff size={18} /> : <Eye size={18} />}</button>
+                   </div>
+                 </div>
+
+                 <button type="submit" disabled={loading} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[20px] font-black text-xs sm:text-sm uppercase tracking-[0.2em] shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 disabled:opacity-50 mt-2">
+                   {loading ? 'Processing Node...' : <>Sign In <ArrowRight size={18} /></>}
+                 </button>
+
+                 <div className="relative my-6 sm:my-8 flex items-center justify-center">
+                   <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+                   <span className="relative px-3 bg-black/40 text-[9px] sm:text-[10px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">or continue with</span>
+                 </div>
+
+                 <button type="button" onClick={handleGoogleLogin} className="w-full flex items-center justify-center gap-3 py-3.5 sm:py-4 border border-white/10 rounded-[20px] font-bold text-xs sm:text-sm text-white hover:bg-white/5 transition-all active:scale-[0.98]">
+                   <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" /> Continue with Google
+                 </button>
               </form>
-              <p className="mt-8 sm:mt-10 text-[10px] sm:text-[11px] font-bold text-slate-400 uppercase tracking-widest">New to Medi Consult? <Link to="/register" className="text-blue-600 font-black hover:underline ml-1">Create Account</Link></p>
+
+              <p className="mt-8 sm:mt-10 text-[10px] sm:text-xs font-bold text-zinc-500 uppercase tracking-widest">
+                New to Medi Consult? <Link to="/register" className="text-blue-400 font-black hover:underline ml-1">Create Account</Link>
+              </p>
            </div>
          </div>
       </div>
@@ -298,7 +339,7 @@ const LoginPage = () => {
                { icon: Headphones, label: '24/7', sub: 'Support', color: 'text-emerald-500', bg: 'bg-emerald-500/10' }
             ].map((s, i) => (
                <div key={i} className="flex items-center gap-4">
-                  <div className={`w-10 h-10 rounded-xl ${s.bg} flex items-center justify-center ${s.color} shrink-0 shadow-sm border border-white/5`}><s.icon size={20} /></div>
+                  <div className={`w-11 h-11 rounded-[20px] ${s.bg} flex items-center justify-center ${s.color} shrink-0 shadow-sm border border-white/5`}><s.icon size={20} /></div>
                   <div className="text-left"><p className="text-base font-black text-white leading-none">{s.label}</p><p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest mt-1.5">{s.sub}</p></div>
                </div>
             ))}

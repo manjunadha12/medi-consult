@@ -1,0 +1,58 @@
+{
+  "id": "pathology",
+  "name": "Pathology & Urinalysis",
+  "icon": "🔬",
+  "items": [
+    {
+      "id": "urine_protein",
+      "code": "URI_PROT",
+      "canonicalName": "Urine Protein / Albumin",
+      "aliases": ["urine protein", "urine albumin", "albumin urine", "protein urine", "u.protein"],
+      "category": "Nephrology & Renal Function",
+      "categoryId": "nephrology",
+      "categoryIcon": "🫘",
+      "ranges": { "standard": { "min": 0, "max": 0, "unit": "" } }
+    },
+    {
+      "id": "urine_sugar",
+      "code": "URI_SUG",
+      "canonicalName": "Urine Sugar / Glucose",
+      "aliases": ["urine sugar", "urine glucose", "glucose urine", "sugar urine"],
+      "category": "Nephrology & Renal Function",
+      "categoryId": "nephrology",
+      "categoryIcon": "🫘",
+      "ranges": { "standard": { "min": 0, "max": 0, "unit": "" } }
+    },
+    {
+      "id": "urine_ph",
+      "code": "URI_PH",
+      "canonicalName": "Urine pH",
+      "aliases": ["urine ph", "ph urine", "reaction / ph"],
+      "unit": "units",
+      "category": "Nephrology & Renal Function",
+      "categoryId": "nephrology",
+      "categoryIcon": "🫘",
+      "ranges": { "standard": { "min": 5.0, "max": 8.0, "unit": "units" } }
+    },
+    {
+      "id": "pus_cells",
+      "code": "URI_PUS",
+      "canonicalName": "Pus Cells (WBC)",
+      "aliases": ["pus cells", "wbc urine", "pus cells (wbc)", "leukocytes urine"],
+      "unit": "/hpf",
+      "category": "Nephrology & Renal Function",
+      "categoryId": "nephrology",
+      "categoryIcon": "🫘",
+      "ranges": { "standard": { "min": 0, "max": 5, "unit": "/hpf" } }
+    },
+    {
+      "id": "dental_exam",
+      "code": "DENT_EXAM",
+      "canonicalName": "Dental Examination & Assessment",
+      "aliases": ["dental report", "dentist", "oral health", "tooth assessment", "gingivitis", "caries", "teeth"],
+      "category": "Dental Examination & Odontology",
+      "categoryId": "dental",
+      "categoryIcon": "🦷"
+    }
+  ]
+}

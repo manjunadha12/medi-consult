@@ -3,7 +3,7 @@ import Navbar from '../common/Navbar';
 import {
   Send, Brain, User as UserIcon, Sparkles, Shield,
   MessageSquare, History as HistoryIcon, Trash2, Plus,
-  ChevronRight, Search as SearchIcon, Zap, Loader2, Bot, Info, Maximize2
+  ChevronRight, Search as SearchIcon, Zap, Loader2, Bot, Info, Maximize2, Edit3
 } from 'lucide-react';
 import useStore from '../../store/useStore';
 import api from '../../utils/api';
@@ -37,6 +37,15 @@ const DoctorAIChat = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
+  const handleNewChat = () => {
+    setMessages([
+      { role: 'assistant', content: "Dr. " + (user?.name?.split(' ')[0] || 'Specialist') + ", Medi AI Swarm initialized. I am ready to assist with differential diagnosis, clinical research, or biometric analysis.", time: new Date() }
+    ]);
+    setInput('');
+    setSidebarOpen(false);
+    toast.success("New Session Initialized");
+  };
+
   useEffect(() => {
     scrollToBottom();
   }, [messages]);
@@ -64,31 +73,33 @@ const DoctorAIChat = () => {
     <div className={`flex h-screen overflow-hidden transition-colors duration-500 ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'}`}>
 
       {/* SIDEBAR: HISTORY */}
-      <div className={`fixed inset-y-0 left-0 z-50 w-80 border-r flex flex-col transform transition-transform duration-300 ease-out md:relative md:translate-x-0 ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${theme === 'dark' ? 'bg-zinc-950 border-zinc-900' : 'bg-white border-slate-200'}`}>
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-           <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white">
-                 <Brain size={18} />
-              </div>
-              <h2 className="text-[10px] font-black uppercase tracking-[0.2em]">Swarm Archive</h2>
-           </div>
-           <button onClick={() => setSidebarOpen(false)} className="md:hidden p-2 hover:bg-white/5 rounded-xl"><Plus className="rotate-45" size={20} /></button>
+      <div className={`fixed inset-y-0 left-0 z-50 w-80 border-r flex flex-col transform transition-transform duration-300 ease-out shadow-2xl ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'} ${theme === 'dark' ? 'bg-black/80 backdrop-blur-2xl border-white/10' : 'bg-white/90 backdrop-blur-2xl border-slate-200'}`}>
+
+        <div className="p-4 pt-20 sm:pt-24 flex items-center justify-between gap-2 border-b border-white/5">
+           <button
+             onClick={handleNewChat}
+             className="flex-1 p-3.5 rounded-2xl border-2 border-dashed border-blue-500/20 text-blue-500 font-black text-[9px] uppercase tracking-widest hover:bg-blue-500/5 transition-all flex items-center justify-center gap-2"
+           >
+              <Plus size={14} /> Initialize New Node
+           </button>
+           <button
+             onClick={() => setSidebarOpen(false)}
+             className={`p-3 rounded-2xl border transition-all ${theme === 'dark' ? 'bg-zinc-900 border-zinc-800 text-zinc-400 hover:text-white' : 'bg-slate-50 border-slate-200 text-slate-500'}`}
+           >
+             <X size={18} />
+           </button>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
-           <button className="w-full p-4 rounded-2xl border-2 border-dashed border-blue-500/20 text-blue-500 font-black text-[9px] uppercase tracking-widest hover:bg-blue-500/5 transition-all mb-6 flex items-center justify-center gap-2">
-              <Plus size={14} /> Initialize New Node
-           </button>
-
            {chatHistory.map(chat => (
-              <div key={chat.id} className={`p-4 rounded-2xl border transition-all cursor-pointer group ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30' : 'bg-slate-50 border-slate-100 hover:bg-white'}`}>
+              <div key={chat.id} onClick={() => setSidebarOpen(false)} className={`p-4 rounded-2xl border transition-all cursor-pointer group ${theme === 'dark' ? 'bg-white/5 border-white/5 hover:border-blue-500/30' : 'bg-slate-50 border-slate-100 hover:bg-white'}`}>
                  <p className="text-[10px] font-black uppercase tracking-tight truncate">{chat.title}</p>
                  <p className="text-[8px] font-bold text-zinc-500 uppercase mt-1">{chat.date}</p>
               </div>
            ))}
         </div>
 
-        <div className="p-4 border-t border-white/5">
+        <div className="p-4 pb-28 sm:pb-32 border-t border-white/10">
            <div className={`p-4 rounded-2xl border flex items-center gap-4 ${theme === 'dark' ? 'bg-zinc-900 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
               <div className="w-10 h-10 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-500 shrink-0">
                  <Shield size={20} />
@@ -101,8 +112,38 @@ const DoctorAIChat = () => {
         </div>
       </div>
 
+      {sidebarOpen && (
+        <div
+          onClick={() => setSidebarOpen(false)}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 transition-all duration-300"
+        ></div>
+      )}
+
       <div className="flex-1 flex flex-col relative">
         <Navbar />
+
+        <div className="p-3 px-6 flex items-center justify-between gap-3 shrink-0 bg-transparent">
+          <div className="flex items-center gap-3 min-w-0">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className={`p-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-wider shrink-0 ${theme === 'dark' ? 'bg-zinc-900 text-zinc-400 hover:text-white' : 'bg-slate-50 text-slate-600 hover:bg-slate-100'}`}
+            >
+              <HistoryIcon size={18} />
+              <span className="text-[10px]">Swarm Archive</span>
+            </button>
+            <span className="font-black text-xs uppercase tracking-widest truncate">
+              Doctor AI Swarm
+            </span>
+          </div>
+
+          <button
+            onClick={handleNewChat}
+            className={`p-2.5 px-4 rounded-xl transition-all flex items-center gap-2 text-xs font-black tracking-wider shrink-0 hover:scale-105 active:scale-95 ${theme === 'dark' ? 'bg-blue-600/20 border border-blue-500/30 text-blue-400 hover:bg-blue-600/30' : 'bg-blue-50 border border-blue-200 text-blue-600 hover:bg-blue-100'}`}
+          >
+            <Edit3 size={16} />
+            <span className="text-[11px] font-bold">New chat</span>
+          </button>
+        </div>
 
         <div className="flex-1 overflow-y-auto p-6 md:p-10 space-y-8 custom-scrollbar pb-32">
           {messages.map((m, i) => (

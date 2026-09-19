@@ -1,0 +1,4463 @@
+{
+  "system": "MediConsult-Medical-Knowledge-Engine",
+  "version": "2.0.0",
+  "categories": [
+    {
+      "id": "cardiology",
+      "name": "Cardiology",
+      "icon": "🫀",
+      "items": [
+        {
+          "code": "CARD_ECG",
+          "canonicalName": "Electrocardiogram (ECG / EKG)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ecg",
+            "ekg",
+            "electrocardiogram",
+            "12 lead ecg",
+            "resting ecg",
+            "electro cardiogram"
+          ],
+          "keyParameters": [
+            "heart_rate",
+            "pr_interval",
+            "qrs_duration",
+            "qt_interval",
+            "qtc_interval",
+            "rhythm",
+            "axis",
+            "st_t_changes"
+          ],
+          "criticalKeywords": [
+            "st elevation",
+            "st depression",
+            "stemi",
+            "nstemi",
+            "ventricular fibrillation",
+            "ventricular tachycardia",
+            "complete heart block",
+            "asystole",
+            "acute mi",
+            "myocardial infarction"
+          ]
+        },
+        {
+          "code": "CARD_ECHO",
+          "canonicalName": "Echocardiogram (2D Echo / Doppler)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "2d echo",
+            "echocardiography",
+            "transthoracic echocardiogram",
+            "tte",
+            "color doppler echocardiography",
+            "2d echocardiography"
+          ],
+          "keyParameters": [
+            "lvef",
+            "lvedd",
+            "lvesd",
+            "la_size",
+            "e_a_ratio",
+            "pasp",
+            "wall_motion_abnormality",
+            "mitral_regurgitation",
+            "aortic_stenosis"
+          ],
+          "standardRanges": {
+            "lvef": {
+              "min": 52,
+              "max": 72,
+              "unit": "%",
+              "criticalLow": 35
+            }
+          }
+        },
+        {
+          "code": "CARD_TMT",
+          "canonicalName": "Treadmill Test (TMT / Stress Test)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "tmt",
+            "treadmill test",
+            "exercise stress test",
+            "cardiac stress test",
+            "bruce protocol"
+          ],
+          "keyParameters": [
+            "mets_achieved",
+            "target_heart_rate_percentage",
+            "peak_blood_pressure",
+            "exercise_capacity",
+            "ecg_changes",
+            "conclusion"
+          ],
+          "criticalKeywords": [
+            "strongly positive for inducible ischemia",
+            "arrhythmia during peak stress",
+            "hypotensive response to exercise"
+          ]
+        },
+        {
+          "code": "CARD_HOLTER",
+          "canonicalName": "Holter Monitoring (24-48h ECG)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "holter",
+            "holter monitoring",
+            "24 hour ecg monitor",
+            "ambulatory ecg",
+            "extended cardiac monitoring"
+          ],
+          "keyParameters": [
+            "total_beats",
+            "average_heart_rate",
+            "minimum_heart_rate",
+            "maximum_heart_rate",
+            "vpc_count",
+            "apc_count",
+            "pauses_greater_than_2s",
+            "episodes_of_vt_svt"
+          ]
+        },
+        {
+          "code": "CARD_CAG",
+          "canonicalName": "Coronary Angiography",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "coronary angiography",
+            "cag",
+            "cardiac catheterization",
+            "coronary angiogram",
+            "cath lab report"
+          ],
+          "keyParameters": [
+            "lad_stenosis",
+            "lcx_stenosis",
+            "rca_stenosis",
+            "lmca_stenosis",
+            "dominance",
+            "recommendation"
+          ],
+          "criticalKeywords": [
+            "left main disease",
+            "triple vessel disease",
+            "critical stenosis >90%",
+            "thrombotic occlusion"
+          ]
+        },
+        {
+          "code": "CARD_CT_ANGIO",
+          "canonicalName": "CT Coronary Angiogram",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ct coronary angiogram",
+            "ct ca",
+            "coronary cta",
+            "cardiac ct angiography",
+            "multislice ct coronary"
+          ],
+          "keyParameters": [
+            "calcium_score",
+            "cad_rads_category",
+            "plaque_characteristics",
+            "luminal_narrowing"
+          ],
+          "standardRanges": {
+            "calcium_score": {
+              "min": 0,
+              "max": 0,
+              "unit": "Agatston",
+              "criticalHigh": 400
+            }
+          }
+        },
+        {
+          "code": "CARD_MRI",
+          "canonicalName": "Cardiac MRI (CMR)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "cardiac mri",
+            "cmr",
+            "cardiovascular magnetic resonance",
+            "stress cardiac mri"
+          ],
+          "keyParameters": [
+            "late_gadolinium_enhancement",
+            "myocardial_edema",
+            "rv_ejection_fraction",
+            "lv_ejection_fraction",
+            "extracellular_volume_fraction"
+          ]
+        },
+        {
+          "code": "CARD_TROP",
+          "canonicalName": "Troponin (hs-cTnI / hs-cTnT)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "troponin",
+            "trop i",
+            "trop t",
+            "hs-trop",
+            "troponin i",
+            "troponin t",
+            "high sensitivity troponin",
+            "hs-ctni",
+            "hs-ctnt"
+          ],
+          "standardUnit": "ng/L",
+          "allowedUnits": [
+            "ng/L",
+            "pg/mL",
+            "ng/mL",
+            "ug/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 0,
+              "max": 14
+            },
+            "high": {
+              "min": 14.1,
+              "max": 99999
+            }
+          },
+          "plausibilityRange": {
+            "min": 0,
+            "max": 50000
+          },
+          "criticalThresholds": {
+            "high": 50
+          }
+        },
+        {
+          "code": "CARD_CKMB",
+          "canonicalName": "Creatine Kinase-MB (CK-MB)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "ck-mb",
+            "ckmb",
+            "creatine kinase myocardial band",
+            "cpk-mb",
+            "ck-mb mass"
+          ],
+          "standardUnit": "U/L",
+          "allowedUnits": [
+            "U/L",
+            "ng/mL",
+            "ug/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 0,
+              "max": 25
+            },
+            "high": {
+              "min": 25.1,
+              "max": 1000
+            }
+          },
+          "plausibilityRange": {
+            "min": 0,
+            "max": 2000
+          },
+          "criticalThresholds": {
+            "high": 50
+          }
+        },
+        {
+          "code": "CARD_BNP",
+          "canonicalName": "BNP / NT-proBNP",
+          "type": "quantitative_lab",
+          "aliases": [
+            "bnp",
+            "nt-probnp",
+            "brain natriuretic peptide",
+            "pro-bnp",
+            "n-terminal probnp"
+          ],
+          "standardUnit": "pg/mL",
+          "allowedUnits": [
+            "pg/mL",
+            "ng/L",
+            "pmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 0,
+              "max": 125
+            },
+            "borderline": {
+              "min": 126,
+              "max": 450
+            },
+            "high": {
+              "min": 451,
+              "max": 50000
+            }
+          },
+          "plausibilityRange": {
+            "min": 0,
+            "max": 75000
+          },
+          "criticalThresholds": {
+            "high": 1800
+          }
+        },
+        {
+          "code": "CARD_LIPID",
+          "canonicalName": "Lipid Profile Panel",
+          "type": "panel_lab",
+          "aliases": [
+            "lipid profile",
+            "lipid panel",
+            "complete lipid screen",
+            "serum lipid profile",
+            "lipid profile screen"
+          ],
+          "subTests": [
+            {
+              "testId": "total_cholesterol",
+              "name": "Total Cholesterol",
+              "aliases": [
+                "cholesterol total",
+                "serum cholesterol",
+                "total chol",
+                "cholesterol",
+                "s.cholesterol"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "desirable": {
+                  "max": 200
+                },
+                "borderline": {
+                  "min": 200,
+                  "max": 239
+                },
+                "high": {
+                  "min": 240,
+                  "max": 1000
+                }
+              },
+              "plausibilityRange": {
+                "min": 40,
+                "max": 1000
+              }
+            },
+            {
+              "testId": "ldl_cholesterol",
+              "name": "LDL Cholesterol",
+              "aliases": [
+                "ldl",
+                "ldl-c",
+                "low density lipoprotein",
+                "bad cholesterol",
+                "ldl direct",
+                "calculated ldl"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "optimal": {
+                  "max": 100
+                },
+                "near_optimal": {
+                  "min": 100,
+                  "max": 129
+                },
+                "borderline": {
+                  "min": 130,
+                  "max": 159
+                },
+                "high": {
+                  "min": 160,
+                  "max": 189
+                },
+                "very_high": {
+                  "min": 190,
+                  "max": 800
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 800
+              }
+            },
+            {
+              "testId": "hdl_cholesterol",
+              "name": "HDL Cholesterol",
+              "aliases": [
+                "hdl",
+                "hdl-c",
+                "high density lipoprotein",
+                "good cholesterol",
+                "hdl direct"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "low": {
+                  "max": 40
+                },
+                "acceptable": {
+                  "min": 40,
+                  "max": 59
+                },
+                "optimal": {
+                  "min": 60,
+                  "max": 200
+                }
+              },
+              "plausibilityRange": {
+                "min": 5,
+                "max": 200
+              }
+            },
+            {
+              "testId": "triglycerides",
+              "name": "Triglycerides",
+              "aliases": [
+                "tg",
+                "trigs",
+                "serum triglycerides",
+                "triglyceride",
+                "s.triglycerides"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "max": 150
+                },
+                "borderline": {
+                  "min": 150,
+                  "max": 199
+                },
+                "high": {
+                  "min": 200,
+                  "max": 499
+                },
+                "very_high": {
+                  "min": 500,
+                  "max": 3000
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 3000
+              }
+            },
+            {
+              "testId": "vldl_cholesterol",
+              "name": "VLDL Cholesterol",
+              "aliases": [
+                "vldl",
+                "vldl-c",
+                "very low density lipoprotein"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 5,
+                  "max": 30
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 300
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "hematology",
+      "name": "Hematology",
+      "icon": "🩸",
+      "items": [
+        {
+          "code": "HEM_CBC",
+          "canonicalName": "Complete Blood Count (CBC / Hemogram)",
+          "type": "panel_lab",
+          "aliases": [
+            "cbc",
+            "complete blood count",
+            "hemogram",
+            "cbe",
+            "full blood count",
+            "fbc",
+            "complete hemogram",
+            "blood count"
+          ],
+          "subTests": [
+            {
+              "testId": "hemoglobin",
+              "name": "Hemoglobin",
+              "aliases": [
+                "hb",
+                "hgb",
+                "haemoglobin",
+                "hb level"
+              ],
+              "unit": "g/dL",
+              "defaultRanges": {
+                "male": {
+                  "min": 13.0,
+                  "max": 17.0
+                },
+                "female": {
+                  "min": 12.0,
+                  "max": 15.5
+                }
+              },
+              "plausibilityRange": {
+                "min": 2.0,
+                "max": 25.0
+              },
+              "criticalThresholds": {
+                "low": 6.5,
+                "high": 20.0
+              }
+            },
+            {
+              "testId": "rbc_count",
+              "name": "RBC Count",
+              "aliases": [
+                "rbc",
+                "red blood cell count",
+                "erythrocytes",
+                "total rbc",
+                "total erythrocytes"
+              ],
+              "unit": "million/mcL",
+              "defaultRanges": {
+                "male": {
+                  "min": 4.5,
+                  "max": 5.9
+                },
+                "female": {
+                  "min": 4.0,
+                  "max": 5.2
+                }
+              },
+              "plausibilityRange": {
+                "min": 1.0,
+                "max": 10.0
+              }
+            },
+            {
+              "testId": "wbc_count",
+              "name": "Total WBC Count",
+              "aliases": [
+                "wbc",
+                "total leucocyte count",
+                "tlc",
+                "white blood cells",
+                "total wbc",
+                "leucocytes"
+              ],
+              "unit": "cells/mcL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 4000,
+                  "max": 11000
+                }
+              },
+              "plausibilityRange": {
+                "min": 100,
+                "max": 200000
+              },
+              "criticalThresholds": {
+                "low": 1500,
+                "high": 30000
+              }
+            },
+            {
+              "testId": "platelets",
+              "name": "Platelet Count",
+              "aliases": [
+                "platelets",
+                "plt",
+                "thrombocytes",
+                "total platelets",
+                "platelet"
+              ],
+              "unit": "cells/mcL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 150000,
+                  "max": 450000
+                }
+              },
+              "plausibilityRange": {
+                "min": 5000,
+                "max": 2000000
+              },
+              "criticalThresholds": {
+                "low": 20000,
+                "high": 1000000
+              }
+            },
+            {
+              "testId": "pcv",
+              "name": "Packed Cell Volume (Hematocrit)",
+              "aliases": [
+                "pcv",
+                "hct",
+                "hematocrit",
+                "haematocrit"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "male": {
+                  "min": 40,
+                  "max": 50
+                },
+                "female": {
+                  "min": 36,
+                  "max": 46
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 75
+              }
+            },
+            {
+              "testId": "mcv",
+              "name": "Mean Corpuscular Volume",
+              "aliases": [
+                "mcv"
+              ],
+              "unit": "fL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 80,
+                  "max": 100
+                }
+              },
+              "plausibilityRange": {
+                "min": 40,
+                "max": 150
+              }
+            },
+            {
+              "testId": "mch",
+              "name": "Mean Corpuscular Hemoglobin",
+              "aliases": [
+                "mch"
+              ],
+              "unit": "pg",
+              "defaultRanges": {
+                "normal": {
+                  "min": 27,
+                  "max": 33
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 60
+              }
+            },
+            {
+              "testId": "mchc",
+              "name": "MCHC",
+              "aliases": [
+                "mchc"
+              ],
+              "unit": "g/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 32,
+                  "max": 36
+                }
+              },
+              "plausibilityRange": {
+                "min": 20,
+                "max": 45
+              }
+            },
+            {
+              "testId": "rdw",
+              "name": "Red Cell Distribution Width",
+              "aliases": [
+                "rdw",
+                "rdw-cv",
+                "rdw-sd"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 11.5,
+                  "max": 14.5
+                }
+              },
+              "plausibilityRange": {
+                "min": 5,
+                "max": 35
+              }
+            },
+            {
+              "testId": "neutrophils",
+              "name": "Neutrophils (DLC)",
+              "aliases": [
+                "neutrophils",
+                "polymorphs",
+                "segs",
+                "absolute neutrophil count",
+                "anc"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 40,
+                  "max": 70
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 100
+              }
+            },
+            {
+              "testId": "lymphocytes",
+              "name": "Lymphocytes (DLC)",
+              "aliases": [
+                "lymphocytes",
+                "lymphs",
+                "alc"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 20,
+                  "max": 40
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 100
+              }
+            },
+            {
+              "testId": "monocytes",
+              "name": "Monocytes (DLC)",
+              "aliases": [
+                "monocytes",
+                "monos"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 2,
+                  "max": 8
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 50
+              }
+            },
+            {
+              "testId": "eosinophils",
+              "name": "Eosinophils (DLC)",
+              "aliases": [
+                "eosinophils",
+                "eos",
+                "aec"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 1,
+                  "max": 6
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 50
+              }
+            },
+            {
+              "testId": "basophils",
+              "name": "Basophils (DLC)",
+              "aliases": [
+                "basophils",
+                "basos"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 2
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 20
+              }
+            }
+          ]
+        },
+        {
+          "code": "HEM_ESR",
+          "canonicalName": "Erythrocyte Sedimentation Rate (ESR)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "esr",
+            "erythrocyte sedimentation rate",
+            "sed rate",
+            "westergren esr"
+          ],
+          "standardUnit": "mm/hr",
+          "allowedUnits": [
+            "mm/hr",
+            "mm/1st hr"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 0,
+              "max": 15
+            },
+            "female": {
+              "min": 0,
+              "max": 20
+            }
+          },
+          "plausibilityRange": {
+            "min": 0,
+            "max": 150
+          },
+          "criticalThresholds": {
+            "high": 100
+          }
+        },
+        {
+          "code": "HEM_ABO_RH",
+          "canonicalName": "Blood Group and Rh Factor",
+          "type": "qualitative_lab",
+          "aliases": [
+            "blood group",
+            "abo rh",
+            "blood grouping and typing",
+            "rh factor",
+            "abo group & rh type"
+          ],
+          "allowedValues": [
+            "A Positive",
+            "A Negative",
+            "B Positive",
+            "B Negative",
+            "AB Positive",
+            "AB Negative",
+            "O Positive",
+            "O Negative",
+            "Bombay Phenotype"
+          ]
+        },
+        {
+          "code": "HEM_COAG",
+          "canonicalName": "Coagulation Profile (PT / INR / aPTT)",
+          "type": "panel_lab",
+          "aliases": [
+            "pt inr",
+            "prothrombin time",
+            "coagulation profile",
+            "inr",
+            "aptt",
+            "clotting profile"
+          ],
+          "subTests": [
+            {
+              "testId": "pt_test",
+              "name": "Prothrombin Time",
+              "aliases": [
+                "pt",
+                "prothrombin time test"
+              ],
+              "unit": "seconds",
+              "defaultRanges": {
+                "normal": {
+                  "min": 11.0,
+                  "max": 13.5
+                }
+              },
+              "plausibilityRange": {
+                "min": 5,
+                "max": 120
+              }
+            },
+            {
+              "testId": "inr",
+              "name": "International Normalized Ratio",
+              "aliases": [
+                "inr",
+                "pt/inr"
+              ],
+              "unit": "ratio",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.8,
+                  "max": 1.1
+                },
+                "therapeutic_warfarin": {
+                  "min": 2.0,
+                  "max": 3.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.5,
+                "max": 20.0
+              },
+              "criticalThresholds": {
+                "high": 4.5
+              }
+            },
+            {
+              "testId": "aptt",
+              "name": "Activated Partial Thromboplastin Time",
+              "aliases": [
+                "aptt",
+                "ptt"
+              ],
+              "unit": "seconds",
+              "defaultRanges": {
+                "normal": {
+                  "min": 25.0,
+                  "max": 35.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 180
+              },
+              "criticalThresholds": {
+                "high": 80.0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "diabetes_metabolic",
+      "name": "Diabetes / Metabolic",
+      "icon": "🍬",
+      "items": [
+        {
+          "code": "DIAB_FBS",
+          "canonicalName": "Fasting Blood Sugar (FBS)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "fasting blood sugar",
+            "fbs",
+            "fasting blood glucose",
+            "fbg",
+            "plasma glucose fasting",
+            "fasting glucose",
+            "sugar fasting"
+          ],
+          "standardUnit": "mg/dL",
+          "allowedUnits": [
+            "mg/dL",
+            "mmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 70,
+              "max": 99
+            },
+            "impaired_prediabetes": {
+              "min": 100,
+              "max": 125
+            },
+            "diabetic": {
+              "min": 126,
+              "max": 1000
+            }
+          },
+          "plausibilityRange": {
+            "min": 20,
+            "max": 1200
+          },
+          "criticalThresholds": {
+            "low": 50,
+            "high": 400
+          }
+        },
+        {
+          "code": "DIAB_PPBS",
+          "canonicalName": "Postprandial Blood Sugar (PPBS)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "post prandial blood sugar",
+            "ppbs",
+            "ppbg",
+            "post meal blood sugar",
+            "2 hour postprandial glucose",
+            "pp blood sugar"
+          ],
+          "standardUnit": "mg/dL",
+          "allowedUnits": [
+            "mg/dL",
+            "mmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 70,
+              "max": 139
+            },
+            "impaired_prediabetes": {
+              "min": 140,
+              "max": 199
+            },
+            "diabetic": {
+              "min": 200,
+              "max": 1000
+            }
+          },
+          "plausibilityRange": {
+            "min": 20,
+            "max": 1200
+          },
+          "criticalThresholds": {
+            "low": 50,
+            "high": 450
+          }
+        },
+        {
+          "code": "DIAB_RBS",
+          "canonicalName": "Random Blood Sugar (RBS)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "random blood sugar",
+            "rbs",
+            "random blood glucose",
+            "rbg",
+            "casual glucose",
+            "blood sugar random"
+          ],
+          "standardUnit": "mg/dL",
+          "allowedUnits": [
+            "mg/dL",
+            "mmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 70,
+              "max": 140
+            },
+            "suspicious_diabetic": {
+              "min": 200,
+              "max": 1000
+            }
+          },
+          "plausibilityRange": {
+            "min": 20,
+            "max": 1200
+          },
+          "criticalThresholds": {
+            "low": 50,
+            "high": 400
+          }
+        },
+        {
+          "code": "DIAB_HBA1C",
+          "canonicalName": "Glycated Hemoglobin (HbA1c)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "hba1c",
+            "a1c",
+            "glycated hemoglobin",
+            "glycosylated hemoglobin",
+            "hb a1c",
+            "glycohemoglobin"
+          ],
+          "standardUnit": "%",
+          "allowedUnits": [
+            "%",
+            "mmol/mol"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 4.0,
+              "max": 5.6
+            },
+            "prediabetes": {
+              "min": 5.7,
+              "max": 6.4
+            },
+            "diabetic": {
+              "min": 6.5,
+              "max": 20.0
+            }
+          },
+          "plausibilityRange": {
+            "min": 3.0,
+            "max": 25.0
+          },
+          "criticalThresholds": {
+            "high": 12.0
+          }
+        },
+        {
+          "code": "DIAB_INSULIN",
+          "canonicalName": "Fasting Serum Insulin",
+          "type": "quantitative_lab",
+          "aliases": [
+            "fasting insulin",
+            "serum insulin",
+            "insulin level",
+            "plasma insulin"
+          ],
+          "standardUnit": "uIU/mL",
+          "allowedUnits": [
+            "uIU/mL",
+            "pmol/L",
+            "mIU/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 2.6,
+              "max": 24.9
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.5,
+            "max": 300
+          }
+        },
+        {
+          "code": "DIAB_GTT",
+          "canonicalName": "Oral Glucose Tolerance Test (OGTT / GTT)",
+          "type": "panel_lab",
+          "aliases": [
+            "ogtt",
+            "gtt",
+            "oral glucose tolerance test",
+            "75g ogtt",
+            "glucose tolerance curve"
+          ],
+          "subTests": [
+            {
+              "testId": "ogtt_fasting",
+              "name": "OGTT 0-hr (Fasting)",
+              "aliases": [
+                "fasting ogtt"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 70,
+                  "max": 99
+                }
+              }
+            },
+            {
+              "testId": "ogtt_1hr",
+              "name": "OGTT 1-hr",
+              "aliases": [
+                "1 hour ogtt"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "max": 179
+                }
+              }
+            },
+            {
+              "testId": "ogtt_2hr",
+              "name": "OGTT 2-hr",
+              "aliases": [
+                "2 hour ogtt"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "max": 139
+                },
+                "impaired": {
+                  "min": 140,
+                  "max": 199
+                },
+                "diabetic": {
+                  "min": 200
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "biochemistry",
+      "name": "Biochemistry",
+      "icon": "🧪",
+      "items": [
+        {
+          "code": "BIO_LFT",
+          "canonicalName": "Liver Function Test (LFT)",
+          "type": "panel_lab",
+          "aliases": [
+            "lft",
+            "liver function test",
+            "hepatic function panel",
+            "liver panel",
+            "complete lft",
+            "liver profile"
+          ],
+          "subTests": [
+            {
+              "testId": "bilirubin_total",
+              "name": "Total Bilirubin",
+              "aliases": [
+                "t. bili",
+                "bilirubin total",
+                "serum bilirubin total",
+                "total bilirubin"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.2,
+                  "max": 1.2
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.1,
+                "max": 40.0
+              },
+              "criticalThresholds": {
+                "high": 15.0
+              }
+            },
+            {
+              "testId": "bilirubin_direct",
+              "name": "Direct (Conjugated) Bilirubin",
+              "aliases": [
+                "d. bili",
+                "conjugated bilirubin",
+                "direct bilirubin"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.0,
+                  "max": 0.3
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.0,
+                "max": 30.0
+              }
+            },
+            {
+              "testId": "bilirubin_indirect",
+              "name": "Indirect Bilirubin",
+              "aliases": [
+                "unconjugated bilirubin",
+                "indirect bilirubin"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.1,
+                  "max": 0.9
+                }
+              }
+            },
+            {
+              "testId": "sgot_ast",
+              "name": "AST / SGOT",
+              "aliases": [
+                "ast",
+                "sgot",
+                "aspartate aminotransferase",
+                "serum glutamic oxaloacetic transaminase",
+                "s.g.o.t"
+              ],
+              "unit": "U/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 5,
+                  "max": 40
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 10000
+              },
+              "criticalThresholds": {
+                "high": 500
+              }
+            },
+            {
+              "testId": "sgpt_alt",
+              "name": "ALT / SGPT",
+              "aliases": [
+                "alt",
+                "sgpt",
+                "alanine aminotransferase",
+                "serum glutamic pyruvic transaminase",
+                "s.g.p.t"
+              ],
+              "unit": "U/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 7,
+                  "max": 56
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 10000
+              },
+              "criticalThresholds": {
+                "high": 500
+              }
+            },
+            {
+              "testId": "alkaline_phosphatase",
+              "name": "Alkaline Phosphatase (ALP)",
+              "aliases": [
+                "alp",
+                "alk phos",
+                "alkaline phosphatase",
+                "s.alkaline phosphatase"
+              ],
+              "unit": "U/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 44,
+                  "max": 147
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 3000
+              }
+            },
+            {
+              "testId": "ggt",
+              "name": "Gamma-Glutamyl Transferase (GGT)",
+              "aliases": [
+                "ggt",
+                "ggtp",
+                "gamma gt"
+              ],
+              "unit": "U/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 9,
+                  "max": 48
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 2000
+              }
+            },
+            {
+              "testId": "total_protein",
+              "name": "Total Protein",
+              "aliases": [
+                "total protein",
+                "protein total",
+                "serum total protein"
+              ],
+              "unit": "g/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 6.0,
+                  "max": 8.3
+                }
+              },
+              "plausibilityRange": {
+                "min": 2.0,
+                "max": 14.0
+              }
+            },
+            {
+              "testId": "albumin",
+              "name": "Albumin",
+              "aliases": [
+                "serum albumin",
+                "alb",
+                "s.albumin"
+              ],
+              "unit": "g/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 3.5,
+                  "max": 5.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 1.0,
+                "max": 7.0
+              },
+              "criticalThresholds": {
+                "low": 2.0
+              }
+            },
+            {
+              "testId": "globulin",
+              "name": "Globulin",
+              "aliases": [
+                "serum globulin",
+                "s.globulin"
+              ],
+              "unit": "g/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 2.0,
+                  "max": 3.5
+                }
+              }
+            },
+            {
+              "testId": "ag_ratio",
+              "name": "A/G Ratio",
+              "aliases": [
+                "albumin globulin ratio",
+                "a/g ratio"
+              ],
+              "unit": "ratio",
+              "defaultRanges": {
+                "normal": {
+                  "min": 1.0,
+                  "max": 2.2
+                }
+              }
+            }
+          ]
+        },
+        {
+          "code": "BIO_KFT",
+          "canonicalName": "Kidney Function Test (KFT / RFT)",
+          "type": "panel_lab",
+          "aliases": [
+            "kft",
+            "rft",
+            "renal function test",
+            "kidney panel",
+            "renal panel",
+            "complete kft",
+            "kidney profile"
+          ],
+          "subTests": [
+            {
+              "testId": "serum_creatinine",
+              "name": "Serum Creatinine",
+              "aliases": [
+                "creatinine",
+                "s. creatinine",
+                "sr creatinine",
+                "s.creatinine",
+                "serum creat"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "male": {
+                  "min": 0.7,
+                  "max": 1.3
+                },
+                "female": {
+                  "min": 0.6,
+                  "max": 1.1
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.1,
+                "max": 30.0
+              },
+              "criticalThresholds": {
+                "high": 5.0
+              }
+            },
+            {
+              "testId": "blood_urea",
+              "name": "Blood Urea",
+              "aliases": [
+                "urea",
+                "s. urea",
+                "serum urea",
+                "blood urea"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 15,
+                  "max": 45
+                }
+              },
+              "plausibilityRange": {
+                "min": 2,
+                "max": 400
+              },
+              "criticalThresholds": {
+                "high": 100
+              }
+            },
+            {
+              "testId": "bun",
+              "name": "Blood Urea Nitrogen (BUN)",
+              "aliases": [
+                "bun"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 7,
+                  "max": 20
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 200
+              }
+            },
+            {
+              "testId": "uric_acid",
+              "name": "Uric Acid",
+              "aliases": [
+                "uric acid",
+                "serum uric acid",
+                "s. uric acid"
+              ],
+              "unit": "mg/dL",
+              "defaultRanges": {
+                "male": {
+                  "min": 3.4,
+                  "max": 7.0
+                },
+                "female": {
+                  "min": 2.4,
+                  "max": 6.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.5,
+                "max": 25.0
+              }
+            }
+          ]
+        },
+        {
+          "code": "BIO_ELECTROLYTES",
+          "canonicalName": "Serum Electrolytes Panel",
+          "type": "panel_lab",
+          "aliases": [
+            "electrolytes",
+            "serum electrolytes",
+            "lytes",
+            "na k cl panel",
+            "ionogram"
+          ],
+          "subTests": [
+            {
+              "testId": "sodium",
+              "name": "Serum Sodium",
+              "aliases": [
+                "sodium",
+                "na+",
+                "s. sodium",
+                "serum na"
+              ],
+              "unit": "mEq/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 135,
+                  "max": 145
+                }
+              },
+              "plausibilityRange": {
+                "min": 90,
+                "max": 180
+              },
+              "criticalThresholds": {
+                "low": 120,
+                "high": 160
+              }
+            },
+            {
+              "testId": "potassium",
+              "name": "Serum Potassium",
+              "aliases": [
+                "potassium",
+                "k+",
+                "s. potassium",
+                "serum k"
+              ],
+              "unit": "mEq/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 3.5,
+                  "max": 5.1
+                }
+              },
+              "plausibilityRange": {
+                "min": 1.0,
+                "max": 10.0
+              },
+              "criticalThresholds": {
+                "low": 2.8,
+                "high": 6.2
+              }
+            },
+            {
+              "testId": "chloride",
+              "name": "Serum Chloride",
+              "aliases": [
+                "chloride",
+                "cl-",
+                "s. chloride"
+              ],
+              "unit": "mEq/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 96,
+                  "max": 106
+                }
+              },
+              "plausibilityRange": {
+                "min": 60,
+                "max": 140
+              }
+            },
+            {
+              "testId": "bicarbonate",
+              "name": "Serum Bicarbonate / CO2",
+              "aliases": [
+                "bicarbonate",
+                "hco3",
+                "total co2"
+              ],
+              "unit": "mEq/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 22,
+                  "max": 29
+                }
+              },
+              "plausibilityRange": {
+                "min": 5,
+                "max": 50
+              },
+              "criticalThresholds": {
+                "low": 10,
+                "high": 40
+              }
+            }
+          ]
+        },
+        {
+          "code": "BIO_CALCIUM",
+          "canonicalName": "Serum Calcium (Total / Ionized)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "calcium",
+            "serum calcium",
+            "s. calcium",
+            "ca++",
+            "total calcium"
+          ],
+          "standardUnit": "mg/dL",
+          "allowedUnits": [
+            "mg/dL",
+            "mmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 8.5,
+              "max": 10.5
+            }
+          },
+          "plausibilityRange": {
+            "min": 2.0,
+            "max": 20.0
+          },
+          "criticalThresholds": {
+            "low": 6.5,
+            "high": 13.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "thyroid",
+      "name": "Thyroid",
+      "icon": "🦋",
+      "items": [
+        {
+          "code": "THY_TSH",
+          "canonicalName": "Thyroid Stimulating Hormone (TSH)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "tsh",
+            "thyroid stimulating hormone",
+            "ultrasensitive tsh",
+            "s. tsh",
+            "3rd gen tsh",
+            "s.tsh"
+          ],
+          "standardUnit": "uIU/mL",
+          "allowedUnits": [
+            "uIU/mL",
+            "mIU/L",
+            "uU/mL"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 0.45,
+              "max": 4.5
+            },
+            "hypothyroid_risk": {
+              "min": 4.51,
+              "max": 100
+            },
+            "hyperthyroid_risk": {
+              "min": 0,
+              "max": 0.44
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.001,
+            "max": 250.0
+          },
+          "criticalThresholds": {
+            "low": 0.01,
+            "high": 20.0
+          }
+        },
+        {
+          "code": "THY_T3",
+          "canonicalName": "Total Triiodothyronine (Total T3)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "total t3",
+            "t3 total",
+            "triiodothyronine total",
+            "t3"
+          ],
+          "standardUnit": "ng/dL",
+          "allowedUnits": [
+            "ng/dL",
+            "nmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 80,
+              "max": 200
+            }
+          },
+          "plausibilityRange": {
+            "min": 10,
+            "max": 1000
+          }
+        },
+        {
+          "code": "THY_T4",
+          "canonicalName": "Total Thyroxine (Total T4)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "total t4",
+            "t4 total",
+            "thyroxine total",
+            "t4"
+          ],
+          "standardUnit": "ug/dL",
+          "allowedUnits": [
+            "ug/dL",
+            "nmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 4.5,
+              "max": 12.0
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.5,
+            "max": 40.0
+          }
+        },
+        {
+          "code": "THY_FT3",
+          "canonicalName": "Free Triiodothyronine (FT3)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "free t3",
+            "ft3",
+            "free triiodothyronine"
+          ],
+          "standardUnit": "pg/mL",
+          "allowedUnits": [
+            "pg/mL",
+            "pmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 2.0,
+              "max": 4.4
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.2,
+            "max": 30.0
+          }
+        },
+        {
+          "code": "THY_FT4",
+          "canonicalName": "Free Thyroxine (FT4)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "free t4",
+            "ft4",
+            "free thyroxine"
+          ],
+          "standardUnit": "ng/dL",
+          "allowedUnits": [
+            "ng/dL",
+            "pmol/L"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 0.82,
+              "max": 1.77
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.05,
+            "max": 15.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "hormones",
+      "name": "Hormones",
+      "icon": "🧬",
+      "items": [
+        {
+          "code": "HORM_TESTO",
+          "canonicalName": "Total Testosterone",
+          "type": "quantitative_lab",
+          "aliases": [
+            "testosterone",
+            "total testosterone",
+            "s. testosterone",
+            "serum testosterone"
+          ],
+          "standardUnit": "ng/dL",
+          "allowedUnits": [
+            "ng/dL",
+            "nmol/L"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 300,
+              "max": 1000
+            },
+            "female": {
+              "min": 15,
+              "max": 70
+            }
+          },
+          "plausibilityRange": {
+            "min": 2,
+            "max": 3000
+          }
+        },
+        {
+          "code": "HORM_ESTRO",
+          "canonicalName": "Estradiol (Estrogen / E2)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "estradiol",
+            "estrogen",
+            "e2",
+            "17-beta estradiol",
+            "serum estradiol"
+          ],
+          "standardUnit": "pg/mL",
+          "allowedUnits": [
+            "pg/mL",
+            "pmol/L"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 10,
+              "max": 40
+            },
+            "female_follicular": {
+              "min": 30,
+              "max": 120
+            },
+            "female_ovulatory": {
+              "min": 130,
+              "max": 370
+            },
+            "female_luteal": {
+              "min": 70,
+              "max": 250
+            },
+            "female_postmenopausal": {
+              "min": 0,
+              "max": 30
+            }
+          },
+          "plausibilityRange": {
+            "min": 1,
+            "max": 5000
+          }
+        },
+        {
+          "code": "HORM_PROG",
+          "canonicalName": "Progesterone",
+          "type": "quantitative_lab",
+          "aliases": [
+            "progesterone",
+            "s. progesterone",
+            "p4"
+          ],
+          "standardUnit": "ng/mL",
+          "allowedUnits": [
+            "ng/mL",
+            "nmol/L"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 0.1,
+              "max": 0.4
+            },
+            "female_follicular": {
+              "min": 0.1,
+              "max": 0.8
+            },
+            "female_luteal": {
+              "min": 1.8,
+              "max": 24.0
+            },
+            "female_postmenopausal": {
+              "min": 0.0,
+              "max": 0.5
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.05,
+            "max": 500
+          }
+        },
+        {
+          "code": "HORM_CORTISOL",
+          "canonicalName": "Serum Cortisol (Morning / Evening)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "cortisol",
+            "serum cortisol",
+            "s. cortisol",
+            "morning cortisol",
+            "8am cortisol"
+          ],
+          "standardUnit": "ug/dL",
+          "allowedUnits": [
+            "ug/dL",
+            "nmol/L"
+          ],
+          "defaultRanges": {
+            "morning_8am": {
+              "min": 6.0,
+              "max": 23.0
+            },
+            "evening_4pm": {
+              "min": 3.0,
+              "max": 15.0
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.5,
+            "max": 100.0
+          }
+        },
+        {
+          "code": "HORM_FSH",
+          "canonicalName": "Follicle Stimulating Hormone (FSH)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "fsh",
+            "follicle stimulating hormone",
+            "s. fsh"
+          ],
+          "standardUnit": "mIU/mL",
+          "allowedUnits": [
+            "mIU/mL",
+            "IU/L"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 1.5,
+              "max": 12.4
+            },
+            "female_follicular": {
+              "min": 3.5,
+              "max": 12.5
+            },
+            "female_postmenopausal": {
+              "min": 25.8,
+              "max": 134.8
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.1,
+            "max": 300.0
+          }
+        },
+        {
+          "code": "HORM_LH",
+          "canonicalName": "Luteinizing Hormone (LH)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "lh",
+            "luteinizing hormone",
+            "s. lh"
+          ],
+          "standardUnit": "mIU/mL",
+          "allowedUnits": [
+            "mIU/mL",
+            "IU/L"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 1.7,
+              "max": 8.6
+            },
+            "female_follicular": {
+              "min": 2.4,
+              "max": 12.6
+            },
+            "female_ovulatory": {
+              "min": 14.0,
+              "max": 96.0
+            },
+            "female_postmenopausal": {
+              "min": 7.7,
+              "max": 58.5
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.1,
+            "max": 250.0
+          }
+        },
+        {
+          "code": "HORM_PROLACTIN",
+          "canonicalName": "Prolactin",
+          "type": "quantitative_lab",
+          "aliases": [
+            "prolactin",
+            "s. prolactin",
+            "prl"
+          ],
+          "standardUnit": "ng/mL",
+          "allowedUnits": [
+            "ng/mL",
+            "uIU/mL"
+          ],
+          "defaultRanges": {
+            "male": {
+              "min": 2.0,
+              "max": 18.0
+            },
+            "female_non_pregnant": {
+              "min": 2.8,
+              "max": 29.2
+            }
+          },
+          "plausibilityRange": {
+            "min": 0.5,
+            "max": 1000.0
+          },
+          "criticalThresholds": {
+            "high": 200.0
+          }
+        }
+      ]
+    },
+    {
+      "id": "infection",
+      "name": "Infection",
+      "icon": "🦠",
+      "items": [
+        {
+          "code": "INF_COVID",
+          "canonicalName": "COVID-19 (RT-PCR / Rapid Antigen)",
+          "type": "qualitative_lab",
+          "aliases": [
+            "covid",
+            "covid-19",
+            "sars-cov-2 rtpcr",
+            "covid rtpcr",
+            "corona virus rtpcr",
+            "sars-cov-2 rapid antigen",
+            "covid rat"
+          ],
+          "allowedValues": [
+            "Positive",
+            "Negative",
+            "Inconclusive"
+          ],
+          "keyParameters": [
+            "result",
+            "ct_value",
+            "gene_targets"
+          ]
+        },
+        {
+          "code": "INF_DENGUE",
+          "canonicalName": "Dengue Serology (NS1 / IgM / IgG)",
+          "type": "panel_lab",
+          "aliases": [
+            "dengue",
+            "dengue serology",
+            "dengue ns1 antigen",
+            "dengue duo",
+            "dengue igm igg"
+          ],
+          "subTests": [
+            {
+              "testId": "dengue_ns1",
+              "name": "Dengue NS1 Antigen",
+              "aliases": [
+                "ns1",
+                "dengue ns1"
+              ],
+              "allowedValues": [
+                "Positive",
+                "Negative",
+                "Reactive",
+                "Non-Reactive"
+              ]
+            },
+            {
+              "testId": "dengue_igm",
+              "name": "Dengue IgM Antibody",
+              "aliases": [
+                "dengue igm"
+              ],
+              "allowedValues": [
+                "Positive",
+                "Negative",
+                "Reactive",
+                "Non-Reactive"
+              ]
+            },
+            {
+              "testId": "dengue_igg",
+              "name": "Dengue IgG Antibody",
+              "aliases": [
+                "dengue igg"
+              ],
+              "allowedValues": [
+                "Positive",
+                "Negative",
+                "Reactive",
+                "Non-Reactive"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "INF_MALARIA",
+          "canonicalName": "Malaria Antigen / Smear",
+          "type": "qualitative_lab",
+          "aliases": [
+            "malaria",
+            "malaria rapid test",
+            "malaria antigen",
+            "mp smear",
+            "peripheral smear for mp",
+            "p. vivax / p. falciparum"
+          ],
+          "allowedValues": [
+            "Negative",
+            "P. vivax Positive",
+            "P. falciparum Positive",
+            "Mixed Infection",
+            "Parasites Seen",
+            "No Parasites Seen"
+          ]
+        },
+        {
+          "code": "INF_TYPHOID",
+          "canonicalName": "Typhoid (Widal / TyphiDot)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "widal",
+            "widal test",
+            "typhidot",
+            "typhoid antibody",
+            "salmonella serology"
+          ],
+          "keyParameters": [
+            "to_titer",
+            "th_titer",
+            "ah_titer",
+            "bh_titer",
+            "igm_result",
+            "igg_result"
+          ],
+          "criticalKeywords": [
+            "significant titer >= 1:160",
+            "typhidot igm positive"
+          ]
+        },
+        {
+          "code": "INF_HIV",
+          "canonicalName": "HIV 1 & 2 (Antibody / 4th Gen Ag-Ab)",
+          "type": "qualitative_lab",
+          "aliases": [
+            "hiv",
+            "hiv 1 and 2",
+            "hiv rapid",
+            "hiv elisa",
+            "hiv 4th gen",
+            "anti hiv 1&2"
+          ],
+          "allowedValues": [
+            "Non-Reactive",
+            "Reactive",
+            "Negative",
+            "Positive",
+            "Indeterminate"
+          ]
+        },
+        {
+          "code": "INF_HEPATITIS",
+          "canonicalName": "Hepatitis Serology Panel (HBsAg / Anti-HCV / HAV / HEV)",
+          "type": "panel_lab",
+          "aliases": [
+            "hepatitis panel",
+            "viral hepatitis screen",
+            "hbsag",
+            "anti hcv",
+            "hepatitis b",
+            "hepatitis c"
+          ],
+          "subTests": [
+            {
+              "testId": "hbsag",
+              "name": "Hepatitis B Surface Antigen (HBsAg)",
+              "aliases": [
+                "hbsag",
+                "australia antigen"
+              ],
+              "allowedValues": [
+                "Non-Reactive",
+                "Reactive",
+                "Negative",
+                "Positive"
+              ]
+            },
+            {
+              "testId": "anti_hcv",
+              "name": "Hepatitis C Antibody (Anti-HCV)",
+              "aliases": [
+                "anti hcv",
+                "hcv ab"
+              ],
+              "allowedValues": [
+                "Non-Reactive",
+                "Reactive",
+                "Negative",
+                "Positive"
+              ]
+            },
+            {
+              "testId": "hav_igm",
+              "name": "Hepatitis A IgM",
+              "aliases": [
+                "anti hav igm",
+                "hav igm"
+              ],
+              "allowedValues": [
+                "Non-Reactive",
+                "Reactive",
+                "Negative",
+                "Positive"
+              ]
+            },
+            {
+              "testId": "hev_igm",
+              "name": "Hepatitis E IgM",
+              "aliases": [
+                "anti hev igm",
+                "hev igm"
+              ],
+              "allowedValues": [
+                "Non-Reactive",
+                "Reactive",
+                "Negative",
+                "Positive"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "INF_CULTURE",
+          "canonicalName": "Infection Culture & Sensitivity Reports",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "culture report",
+            "pus culture",
+            "wound culture",
+            "fluid culture",
+            "swab culture and sensitivity"
+          ],
+          "keyParameters": [
+            "specimen",
+            "growth_status",
+            "organism_isolated",
+            "colony_count",
+            "antibiotic_susceptibility",
+            "resistant_drugs"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pulmonology",
+      "name": "Pulmonology",
+      "icon": "🫁",
+      "items": [
+        {
+          "code": "PULM_CXR",
+          "canonicalName": "Chest X-Ray (CXR)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "chest x-ray",
+            "cxr",
+            "x-ray chest pa view",
+            "xray chest",
+            "chest radiograph"
+          ],
+          "keyParameters": [
+            "lung_fields",
+            "costophrenic_angles",
+            "cardiothoracic_ratio",
+            "mediastinum",
+            "bony_cage",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "pneumothorax",
+            "consolidation",
+            "pleural effusion",
+            "cardiomegaly",
+            "cavity lesion",
+            "miliary mottling",
+            "pulmonary edema"
+          ]
+        },
+        {
+          "code": "PULM_HRCT",
+          "canonicalName": "High-Resolution CT Chest (HRCT Chest)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "hrct chest",
+            "high resolution computed tomography chest",
+            "ct thorax",
+            "ct chest",
+            "ct lungs"
+          ],
+          "keyParameters": [
+            "parenchymal_findings",
+            "ground_glass_opacities",
+            "consolidation",
+            "bronchiectasis",
+            "fibrosis_score",
+            "corads_score",
+            "ct_severity_score",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "corads 5",
+            "honeycombing",
+            "severe emphysema",
+            "pulmonary embolism",
+            "mass lesion"
+          ]
+        },
+        {
+          "code": "PULM_PFT",
+          "canonicalName": "Pulmonary Function Test (PFT / Spirometry)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "pft",
+            "spirometry",
+            "pulmonary function test",
+            "lung function test",
+            "flow volume loop"
+          ],
+          "keyParameters": [
+            "fev1_actual",
+            "fev1_predicted",
+            "fvc_actual",
+            "fvc_predicted",
+            "fev1_fvc_ratio",
+            "post_bronchodilator_reversibility",
+            "interpretation"
+          ],
+          "standardRanges": {
+            "fev1_fvc_ratio": {
+              "min": 0.70,
+              "max": 0.85,
+              "unit": "ratio"
+            }
+          },
+          "criticalKeywords": [
+            "severe obstructive defect",
+            "severe restrictive pattern",
+            "significant reversibility seen"
+          ]
+        },
+        {
+          "code": "PULM_ABG",
+          "canonicalName": "Arterial Blood Gas Analysis (ABG)",
+          "type": "panel_lab",
+          "aliases": [
+            "abg",
+            "arterial blood gas",
+            "blood gas analysis",
+            "abg analysis"
+          ],
+          "subTests": [
+            {
+              "testId": "abg_ph",
+              "name": "Arterial Blood Gas pH",
+              "aliases": [
+                "arterial ph",
+                "blood ph",
+                "abg ph",
+                "ph (abg)",
+                "ph (arterial)",
+                "ph (blood gas)"
+              ],
+              "unit": "units",
+              "defaultRanges": {
+                "normal": {
+                  "min": 7.35,
+                  "max": 7.45
+                }
+              },
+              "plausibilityRange": {
+                "min": 6.8,
+                "max": 7.8
+              },
+              "criticalThresholds": {
+                "low": 7.20,
+                "high": 7.60
+              }
+            },
+            {
+              "testId": "abg_pco2",
+              "name": "pCO2",
+              "aliases": [
+                "pco2",
+                "partial pressure of carbon dioxide"
+              ],
+              "unit": "mmHg",
+              "defaultRanges": {
+                "normal": {
+                  "min": 35,
+                  "max": 45
+                }
+              },
+              "plausibilityRange": {
+                "min": 10,
+                "max": 150
+              },
+              "criticalThresholds": {
+                "low": 20,
+                "high": 60
+              }
+            },
+            {
+              "testId": "abg_po2",
+              "name": "pO2",
+              "aliases": [
+                "po2",
+                "partial pressure of oxygen"
+              ],
+              "unit": "mmHg",
+              "defaultRanges": {
+                "normal": {
+                  "min": 80,
+                  "max": 100
+                }
+              },
+              "plausibilityRange": {
+                "min": 20,
+                "max": 500
+              },
+              "criticalThresholds": {
+                "low": 60
+              }
+            },
+            {
+              "testId": "abg_hco3",
+              "name": "HCO3 (Bicarbonate)",
+              "aliases": [
+                "hco3-",
+                "bicarbonate act"
+              ],
+              "unit": "mEq/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 22,
+                  "max": 26
+                }
+              },
+              "plausibilityRange": {
+                "min": 2,
+                "max": 60
+              }
+            },
+            {
+              "testId": "abg_sao2",
+              "name": "Oxygen Saturation (SaO2)",
+              "aliases": [
+                "sao2",
+                "so2"
+              ],
+              "unit": "%",
+              "defaultRanges": {
+                "normal": {
+                  "min": 95,
+                  "max": 100
+                }
+              },
+              "plausibilityRange": {
+                "min": 40,
+                "max": 100
+              },
+              "criticalThresholds": {
+                "low": 90
+              }
+            },
+            {
+              "testId": "abg_lactate",
+              "name": "Lactate",
+              "aliases": [
+                "lactate",
+                "lactic acid"
+              ],
+              "unit": "mmol/L",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.5,
+                  "max": 2.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.1,
+                "max": 30.0
+              },
+              "criticalThresholds": {
+                "high": 4.0
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "neurology",
+      "name": "Neurology",
+      "icon": "🧠",
+      "items": [
+        {
+          "code": "NEUR_CT_BRAIN",
+          "canonicalName": "CT Brain / Head",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ct brain",
+            "ct head",
+            "ncct head",
+            "cct head",
+            "computed tomography brain"
+          ],
+          "keyParameters": [
+            "hemorrhage",
+            "infarct",
+            "midline_shift",
+            "ventricles",
+            "sulci_gyri_pattern",
+            "mass_effect",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "acute intracranial hemorrhage",
+            "subarachnoid hemorrhage",
+            "subdural hematoma",
+            "extradural hematoma",
+            "midline shift",
+            "acute ischemic infarct",
+            "uncal herniation"
+          ]
+        },
+        {
+          "code": "NEUR_MRI_BRAIN",
+          "canonicalName": "MRI Brain",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "mri brain",
+            "mri head",
+            "brain mri with dwi",
+            "mri brain stroke protocol",
+            "magnetic resonance imaging brain"
+          ],
+          "keyParameters": [
+            "dwi_restriction",
+            "flair_hyperintensities",
+            "t2_lesions",
+            "grey_white_differentiation",
+            "vascular_territory",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "acute diffusion restriction",
+            "ischemic stroke",
+            "arteriovenous malformation",
+            "aneurysm",
+            "space occupying lesion",
+            "meningeal enhancement"
+          ]
+        },
+        {
+          "code": "NEUR_EEG",
+          "canonicalName": "Electroencephalogram (EEG)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "eeg",
+            "electroencephalogram",
+            "routine eeg",
+            "video eeg",
+            "sleep deprived eeg"
+          ],
+          "keyParameters": [
+            "background_activity",
+            "dominant_frequency",
+            "epileptiform_discharges",
+            "spike_wave_complexes",
+            "focal_slowing",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "epileptiform discharges seen",
+            "generalized spike and wave pattern",
+            "status epilepticus pattern",
+            "focal seizure onset"
+          ]
+        },
+        {
+          "code": "NEUR_EMG",
+          "canonicalName": "Electromyography (EMG)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "emg",
+            "electromyography",
+            "needle emg"
+          ],
+          "keyParameters": [
+            "insertional_activity",
+            "fibrillation_potentials",
+            "positive_sharp_waves",
+            "fasciculations",
+            "muap_duration_amplitude",
+            "recruitment_pattern",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "active denervation",
+            "myopathic pattern",
+            "neuropathic motor unit changes",
+            "fasciculation potentials"
+          ]
+        },
+        {
+          "code": "NEUR_NCS",
+          "canonicalName": "Nerve Conduction Study (NCS / NCV)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ncs",
+            "ncv",
+            "nerve conduction study",
+            "nerve conduction velocity",
+            "motor and sensory ncv"
+          ],
+          "keyParameters": [
+            "motor_latency",
+            "motor_amplitude",
+            "conduction_velocity",
+            "f_wave_latency",
+            "sensory_amplitude",
+            "snc_velocity",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "severe carpal tunnel syndrome",
+            "demyelinating neuropathy",
+            "axonal polyneuropathy",
+            "conduction block"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "orthopedics",
+      "name": "Orthopedics",
+      "icon": "🦴",
+      "items": [
+        {
+          "code": "ORTHO_XRAY",
+          "canonicalName": "Orthopedic X-Ray (Bones & Joints)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "orthopedic x-ray",
+            "bone x-ray",
+            "x-ray spine",
+            "x-ray knee",
+            "x-ray pelvis",
+            "x-ray shoulder",
+            "x-ray foot",
+            "x-ray hand"
+          ],
+          "keyParameters": [
+            "bony_cortex",
+            "fracture_line",
+            "joint_space",
+            "osteophytes",
+            "alignment",
+            "soft_tissues",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "displaced fracture",
+            "joint dislocation",
+            "lytic bone lesion",
+            "complete disruption",
+            "avascular necrosis"
+          ]
+        },
+        {
+          "code": "ORTHO_MRI",
+          "canonicalName": "Orthopedic / Musculoskeletal MRI",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "msk mri",
+            "mri knee",
+            "mri shoulder",
+            "mri spine",
+            "mri lumbar spine",
+            "mri cervical spine",
+            "mri hip"
+          ],
+          "keyParameters": [
+            "ligament_integrity",
+            "meniscal_status",
+            "disc_herniation",
+            "thecal_sac_compression",
+            "bone_marrow_edema",
+            "tendon_tear",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "complete acl tear",
+            "root tear of meniscus",
+            "cord compression",
+            "cauda equina impingement",
+            "rotator cuff complete tear"
+          ]
+        },
+        {
+          "code": "ORTHO_CT",
+          "canonicalName": "Orthopedic CT / 3D Bone Reconstruction",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ortho ct",
+            "ct spine",
+            "ct joints",
+            "ct pelvis 3d",
+            "bone ct"
+          ],
+          "keyParameters": [
+            "articular_step_off",
+            "comminution",
+            "bony_fragments",
+            "bone_density",
+            "fusion_status",
+            "impression"
+          ]
+        },
+        {
+          "code": "ORTHO_DEXA",
+          "canonicalName": "Bone Density / DEXA Scan (BMD)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "dexa",
+            "dexa scan",
+            "bone mineral density",
+            "bmd",
+            "dual energy x-ray absorptiometry"
+          ],
+          "keyParameters": [
+            "lumbar_spine_t_score",
+            "femoral_neck_t_score",
+            "total_hip_t_score",
+            "z_score",
+            "who_classification"
+          ],
+          "standardRanges": {
+            "t_score": {
+              "normal": {
+                "min": -1.0
+              },
+              "osteopenia": {
+                "min": -2.4,
+                "max": -1.1
+              },
+              "osteoporosis": {
+                "max": -2.5
+              }
+            }
+          }
+        },
+        {
+          "code": "ORTHO_JOINT",
+          "canonicalName": "Joint Fluid Analysis (Synovial Fluid)",
+          "type": "panel_lab",
+          "aliases": [
+            "synovial fluid analysis",
+            "joint fluid",
+            "arthrocentesis report",
+            "synovial fluid routine"
+          ],
+          "subTests": [
+            {
+              "testId": "synovial_wbc",
+              "name": "Synovial WBC Count",
+              "aliases": [
+                "joint wbc"
+              ],
+              "unit": "cells/mcL",
+              "defaultRanges": {
+                "normal": {
+                  "max": 200
+                },
+                "inflammatory": {
+                  "min": 2000,
+                  "max": 50000
+                },
+                "septic": {
+                  "min": 50000
+                }
+              }
+            },
+            {
+              "testId": "synovial_crystals",
+              "name": "Synovial Crystals",
+              "aliases": [
+                "crystals"
+              ],
+              "allowedValues": [
+                "None",
+                "Monosodium Urate (Gout)",
+                "Calcium Pyrophosphate (Pseudogout)"
+              ]
+            },
+            {
+              "testId": "synovial_gram_stain",
+              "name": "Synovial Gram Stain",
+              "aliases": [
+                "gram stain joint"
+              ],
+              "allowedValues": [
+                "Positive",
+                "Negative",
+                "Organisms Seen",
+                "No Organisms Seen"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "nephrology",
+      "name": "Nephrology",
+      "icon": "🫘",
+      "items": [
+        {
+          "code": "NEPH_EGFR",
+          "canonicalName": "Estimated Glomerular Filtration Rate (eGFR)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "egfr",
+            "estimated gfr",
+            "gfr ckd-epi",
+            "calculated gfr",
+            "gfr"
+          ],
+          "standardUnit": "mL/min/1.73m2",
+          "allowedUnits": [
+            "mL/min/1.73m2",
+            "mL/min"
+          ],
+          "defaultRanges": {
+            "stage_1_normal": {
+              "min": 90,
+              "max": 200
+            },
+            "stage_2_mild_decrease": {
+              "min": 60,
+              "max": 89
+            },
+            "stage_3a_mild_mod": {
+              "min": 45,
+              "max": 59
+            },
+            "stage_3b_mod_severe": {
+              "min": 30,
+              "max": 44
+            },
+            "stage_4_severe": {
+              "min": 15,
+              "max": 29
+            },
+            "stage_5_kidney_failure": {
+              "min": 0,
+              "max": 14
+            }
+          },
+          "plausibilityRange": {
+            "min": 1,
+            "max": 250
+          },
+          "criticalThresholds": {
+            "low": 15
+          }
+        },
+        {
+          "code": "NEPH_URINE_R",
+          "canonicalName": "Urine Routine and Microscopy (Urine R/M)",
+          "type": "panel_lab",
+          "aliases": [
+            "urine routine",
+            "urinalysis",
+            "urine r/m",
+            "complete urine examination",
+            "cue"
+          ],
+          "subTests": [
+            {
+              "testId": "urine_ph",
+              "name": "Urine pH",
+              "aliases": [
+                "urine ph",
+                "ph (urine)",
+                "ph urine",
+                "reaction/ph",
+                "reaction (ph)",
+                "reaction",
+                "ph"
+              ],
+              "unit": "units",
+              "defaultRanges": {
+                "normal": {
+                  "min": 5.0,
+                  "max": 8.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 4.0,
+                "max": 9.0
+              }
+            },
+            {
+              "testId": "urine_protein",
+              "name": "Urine Protein / Albumin",
+              "aliases": [
+                "urine protein",
+                "protein (urine)",
+                "urine albumin",
+                "albumin (urine)",
+                "albumin/protein (urine)",
+                "alb (urine)",
+                "protein urine"
+              ],
+              "allowedValues": [
+                "Nil",
+                "Trace",
+                "1+",
+                "2+",
+                "3+",
+                "4+",
+                "Negative",
+                "Positive"
+              ]
+            },
+            {
+              "testId": "urine_sugar",
+              "name": "Urine Sugar / Glucose",
+              "aliases": [
+                "urine sugar",
+                "sugar (urine)",
+                "glucose (urine)",
+                "urine glucose",
+                "sugar urine"
+              ],
+              "allowedValues": [
+                "Nil",
+                "Trace",
+                "1+",
+                "2+",
+                "3+",
+                "4+",
+                "Negative",
+                "Positive"
+              ]
+            },
+            {
+              "testId": "urine_pus_cells",
+              "name": "Pus Cells (WBC)",
+              "aliases": [
+                "pus cells",
+                "wbc urine",
+                "leukocytes urine"
+              ],
+              "unit": "/hpf",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 5
+                }
+              }
+            },
+            {
+              "testId": "urine_rbc",
+              "name": "RBCs (Red Blood Cells)",
+              "aliases": [
+                "rbc urine",
+                "red blood cells urine"
+              ],
+              "unit": "/hpf",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 2
+                }
+              }
+            },
+            {
+              "testId": "urine_epithelial",
+              "name": "Epithelial Cells",
+              "aliases": [
+                "epithelial cells"
+              ],
+              "unit": "/hpf",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 5
+                }
+              }
+            },
+            {
+              "testId": "urine_casts",
+              "name": "Casts",
+              "aliases": [
+                "casts",
+                "granular casts",
+                "hyaline casts",
+                "rbc casts",
+                "wbc casts"
+              ],
+              "allowedValues": [
+                "Nil",
+                "Absent",
+                "Granular Casts Present",
+                "RBC Casts Present",
+                "Hyaline Casts Present",
+                "WBC Casts Present"
+              ]
+            },
+            {
+              "testId": "urine_crystals",
+              "name": "Crystals",
+              "aliases": [
+                "crystals",
+                "calcium oxalate crystals",
+                "urate crystals"
+              ],
+              "allowedValues": [
+                "Nil",
+                "Absent",
+                "Calcium Oxalate Seen",
+                "Uric Acid Seen",
+                "Triple Phosphate Seen"
+              ]
+            }
+          ]
+        },
+        {
+          "code": "NEPH_URINE_CULTURE",
+          "canonicalName": "Urine Culture & Antimicrobial Sensitivity",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "urine culture",
+            "urine c&s",
+            "urine culture and sensitivity"
+          ],
+          "keyParameters": [
+            "growth_status",
+            "colony_count",
+            "organism",
+            "sensitive_antibiotics",
+            "resistant_antibiotics"
+          ],
+          "criticalKeywords": [
+            ">= 10^5 cfu/ml significant bacteriuria",
+            "esbl producing",
+            "multidrug resistant"
+          ]
+        },
+        {
+          "code": "NEPH_ACR",
+          "canonicalName": "Urine Albumin-to-Creatinine Ratio (UACR / ACR)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "uacr",
+            "acr",
+            "urine albumin creatinine ratio",
+            "microalbuminuria",
+            "urine microalbumin"
+          ],
+          "standardUnit": "mg/g",
+          "allowedUnits": [
+            "mg/g",
+            "mg/mmol"
+          ],
+          "defaultRanges": {
+            "a1_normal_to_mild": {
+              "min": 0,
+              "max": 29
+            },
+            "a2_microalbuminuria": {
+              "min": 30,
+              "max": 299
+            },
+            "a3_macroalbuminuria": {
+              "min": 300,
+              "max": 10000
+            }
+          },
+          "plausibilityRange": {
+            "min": 1,
+            "max": 15000
+          }
+        },
+        {
+          "code": "NEPH_USG_KIDNEY",
+          "canonicalName": "Ultrasound KUB (Kidney, Ureter, Bladder)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "usg kub",
+            "kidney ultrasound",
+            "ultrasound renal",
+            "kub scan"
+          ],
+          "keyParameters": [
+            "kidney_dimensions",
+            "cortical_thickness",
+            "corticomedullary_differentiation",
+            "hydronephrosis",
+            "calculi",
+            "bladder_wall",
+            "post_void_residual_volume",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "bilateral medical renal disease",
+            "severe hydronephrosis",
+            "staghorn calculus",
+            "loss of cmd"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gastro_liver",
+      "name": "Gastro / Liver",
+      "icon": "🫁",
+      "items": [
+        {
+          "code": "GAST_USG_ABDOMEN",
+          "canonicalName": "Ultrasound Whole Abdomen & Pelvis",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "usg abdomen",
+            "ultrasound abdomen",
+            "usg whole abdomen",
+            "abdominal sonography"
+          ],
+          "keyParameters": [
+            "liver_size_echotexture",
+            "gallbladder_calculi_wall",
+            "cbd_diameter",
+            "pancreas",
+            "spleen_size",
+            "ascites",
+            "kidneys",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "fatty liver grade iii",
+            "cirrhosis of liver",
+            "gross ascites",
+            "cholelithiasis with cholecystitis",
+            "splenomegaly",
+            "portal hypertension"
+          ]
+        },
+        {
+          "code": "GAST_FIBROSCAN",
+          "canonicalName": "Transient Elastography (FibroScan)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "fibroscan",
+            "transient elastography",
+            "liver stiffness measurement",
+            "cap score"
+          ],
+          "keyParameters": [
+            "liver_stiffness_kpa",
+            "cap_score_db_m",
+            "fibrosis_stage",
+            "steatosis_grade"
+          ],
+          "standardRanges": {
+            "stiffness_kpa": {
+              "f0_f1_normal": {
+                "max": 7.0
+              },
+              "f2_moderate": {
+                "min": 7.1,
+                "max": 9.4
+              },
+              "f3_severe": {
+                "min": 9.5,
+                "max": 12.4
+              },
+              "f4_cirrhosis": {
+                "min": 12.5
+              }
+            }
+          }
+        },
+        {
+          "code": "GAST_ENDOSCOPY",
+          "canonicalName": "Upper GI Endoscopy (UGIE / OGD)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "upper gi endoscopy",
+            "ugie",
+            "ogd scopy",
+            "gastroscopy",
+            "esophagogastroduodenoscopy"
+          ],
+          "keyParameters": [
+            "esophagus",
+            "esophageal_varices",
+            "stomach_mucosa",
+            "ulceration",
+            "duodenum",
+            "biopsy_taken",
+            "rapid_urease_test",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "grade iii/iv esophageal varices",
+            "active bleeding ulcer (forrest 1)",
+            "malignant appearing gastric ulcer",
+            "h. pylori positive"
+          ]
+        },
+        {
+          "code": "GAST_COLONOSCOPY",
+          "canonicalName": "Colonoscopy / Sigmoidoscopy",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "colonoscopy",
+            "lower gi endoscopy",
+            "sigmoidoscopy",
+            "total colonoscopy"
+          ],
+          "keyParameters": [
+            "ileocecal_junction",
+            "colonic_mucosa",
+            "polyps_identified",
+            "ulcerations",
+            "diverticula",
+            "biopsy_site",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "obstructing mass lesion",
+            "severe active colitis",
+            "pseudopolyp formation",
+            "multiple adenomatous polyps"
+          ]
+        },
+        {
+          "code": "GAST_CT_MRI_ABD",
+          "canonicalName": "CT / MRI Abdomen (Triple Phase)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ct abdomen",
+            "mri abdomen",
+            "ct whole abdomen",
+            "mrcp",
+            "triple phase ct liver"
+          ],
+          "keyParameters": [
+            "liver_lesions_washin_washout",
+            "biliary_tree_dilation",
+            "pancreatic_parenchyma",
+            "bowel_wall_thickening",
+            "lymphadenopathy",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "hepatocellular carcinoma features",
+            "choledocholithiasis with cholangitis",
+            "acute necrotizing pancreatitis",
+            "bowel obstruction with ischemia"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "microbiology",
+      "name": "Microbiology",
+      "icon": "🧫",
+      "items": [
+        {
+          "code": "MICR_BLOOD_CULT",
+          "canonicalName": "Blood Culture and Sensitivity",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "blood culture",
+            "blood c&s",
+            "automated blood culture",
+            "aerobic blood culture"
+          ],
+          "keyParameters": [
+            "incubation_period",
+            "organism_isolated",
+            "time_to_positivity",
+            "antibiogram",
+            "susceptible_drugs",
+            "resistant_drugs"
+          ],
+          "criticalKeywords": [
+            "growth detected",
+            "gram negative bacteremia",
+            "mrsa positive",
+            "candidaemia",
+            "septicemia"
+          ]
+        },
+        {
+          "code": "MICR_URINE_CULT",
+          "canonicalName": "Urine Culture and Sensitivity",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "urine culture",
+            "urine c&s",
+            "urine sensitivity"
+          ],
+          "keyParameters": [
+            "colony_count_cfu_ml",
+            "organism_isolated",
+            "antibiogram",
+            "mic_values"
+          ]
+        },
+        {
+          "code": "MICR_SPUTUM_CULT",
+          "canonicalName": "Sputum Culture & Sensitivity / AFB Smear",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "sputum culture",
+            "sputum c&s",
+            "sputum for afb",
+            "sputum gram stain",
+            "gene xpert mtb/rif"
+          ],
+          "keyParameters": [
+            "gram_stain_findings",
+            "afb_smear_status",
+            "mtb_dna_detected",
+            "rifampicin_resistance",
+            "bacterial_growth",
+            "susceptibility"
+          ],
+          "criticalKeywords": [
+            "afb positive 3+",
+            "mtb detected - rifampicin resistance detected",
+            "pseudomonas aeruginosa heavy growth"
+          ]
+        },
+        {
+          "code": "MICR_SENSITIVITY",
+          "canonicalName": "General Culture and Sensitivity",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "c&s report",
+            "pus culture and sensitivity",
+            "throat swab culture",
+            "body fluid culture"
+          ],
+          "keyParameters": [
+            "specimen_source",
+            "pathogen_isolated",
+            "antimicrobial_susceptibility_table"
+          ]
+        },
+        {
+          "code": "MICR_ANTIBIOGRAM",
+          "canonicalName": "Antibiotic Susceptibility Panel (MIC Profile)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "antibiogram",
+            "mic susceptibility",
+            "ast report",
+            "antibiotic susceptibility report"
+          ],
+          "keyParameters": [
+            "sensitive_classes",
+            "intermediate_classes",
+            "resistant_classes",
+            "esbl_status",
+            "carbapenemase_status"
+          ],
+          "criticalKeywords": [
+            "cre (carbapenem-resistant enterobacterales)",
+            "pan-drug resistant",
+            "mcr-1 colistin resistance"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pathology",
+      "name": "Pathology",
+      "icon": "🔬",
+      "items": [
+        {
+          "code": "PATH_BIOPSY",
+          "canonicalName": "Biopsy Examination",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "biopsy report",
+            "punch biopsy",
+            "core needle biopsy",
+            "endoscopic biopsy report",
+            "tissue biopsy"
+          ],
+          "keyParameters": [
+            "tissue_site",
+            "gross_description",
+            "microscopic_description",
+            "histological_type",
+            "margins",
+            "immunohistochemistry",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "invasive carcinoma",
+            "dysplasia high grade",
+            "malignancy",
+            "granulomatous inflammation"
+          ]
+        },
+        {
+          "code": "PATH_HISTOPATH",
+          "canonicalName": "Histopathology Report",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "histopathology",
+            "histopath examination",
+            "surgical pathology report",
+            "hpe report"
+          ],
+          "keyParameters": [
+            "gross_findings",
+            "tumor_size",
+            "differentiation_grade",
+            "depth_of_invasion",
+            "lymphovascular_invasion",
+            "perineural_invasion",
+            "nodal_status",
+            "pathological_staging"
+          ],
+          "criticalKeywords": [
+            "poorly differentiated adenocarcinoma",
+            "margins positive for tumor",
+            "lymph node metastasis"
+          ]
+        },
+        {
+          "code": "PATH_CYTOLOGY",
+          "canonicalName": "Cytology Report (Fluids / Brushings)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "cytology",
+            "fluid cytology",
+            "pleural fluid cytology",
+            "ascitic fluid cytology",
+            "urine cytology"
+          ],
+          "keyParameters": [
+            "specimen_adequacy",
+            "cellularity",
+            "malignant_cells_status",
+            "inflammatory_cells",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "malignant cells positive",
+            "atypical cells suggestive of malignancy"
+          ]
+        },
+        {
+          "code": "PATH_PAP",
+          "canonicalName": "Pap Smear (Cervical Cytology / LBC)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "pap smear",
+            "pap test",
+            "cervical cytology",
+            "liquid based cytology",
+            "lbc pap",
+            "bethesda cervical smear"
+          ],
+          "keyParameters": [
+            "specimen_adequacy",
+            "bethesda_category",
+            "squamous_intraepithelial_lesion",
+            "endocervical_component",
+            "infection_present",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "hsil (high grade squamous intraepithelial lesion)",
+            "lsil",
+            "ascus",
+            "malignancy"
+          ]
+        },
+        {
+          "code": "PATH_FNAC",
+          "canonicalName": "Fine Needle Aspiration Cytology (FNAC)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "fnac",
+            "fine needle aspiration cytology",
+            "fna report",
+            "thyroid fnac",
+            "lymph node fnac"
+          ],
+          "keyParameters": [
+            "aspiration_site",
+            "adequacy",
+            "cytological_pattern",
+            "bethesda_thyroid_category",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "bethesda category v / vi (malignancy)",
+            "caseous necrosis",
+            "metastatic deposit"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "radiology",
+      "name": "Radiology",
+      "icon": "🩻",
+      "items": [
+        {
+          "code": "RAD_XRAY",
+          "canonicalName": "General Diagnostic Radiography (X-Ray)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "x-ray",
+            "plain radiograph",
+            "digital radiography",
+            "xray report"
+          ],
+          "keyParameters": [
+            "region_examined",
+            "views_taken",
+            "findings",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "fracture",
+            "air under diaphragm",
+            "opacity",
+            "effusion",
+            "dislocation"
+          ]
+        },
+        {
+          "code": "RAD_CT",
+          "canonicalName": "Computed Tomography (CT Scan)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ct scan",
+            "computed tomography",
+            "cect",
+            "ncct",
+            "contrast ct"
+          ],
+          "keyParameters": [
+            "body_part",
+            "contrast_details",
+            "attenuation_density",
+            "organ_findings",
+            "lymphadenopathy",
+            "vascularity",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "active extravasation",
+            "aortic dissection",
+            "infarction",
+            "malignant lesion",
+            "perforation"
+          ]
+        },
+        {
+          "code": "RAD_MRI",
+          "canonicalName": "Magnetic Resonance Imaging (MRI Scan)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "mri scan",
+            "magnetic resonance imaging",
+            "cemri",
+            "contrast mri"
+          ],
+          "keyParameters": [
+            "sequences_performed",
+            "signal_intensity_t1_t2_flair",
+            "contrast_enhancement",
+            "structural_alteration",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "cord compression",
+            "neoplastic mass",
+            "acute infarct",
+            "deep vein thrombosis"
+          ]
+        },
+        {
+          "code": "RAD_USG",
+          "canonicalName": "Ultrasound Sonography (USG)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "ultrasound",
+            "usg",
+            "sonogram",
+            "diagnostic ultrasonography"
+          ],
+          "keyParameters": [
+            "target_organ",
+            "echogenicity",
+            "dimensions",
+            "focal_lesions",
+            "fluid_collections",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "ectopic pregnancy",
+            "acute appendicitis",
+            "torsion",
+            "abscess collection"
+          ]
+        },
+        {
+          "code": "RAD_DOPPLER",
+          "canonicalName": "Doppler Ultrasonography (Vascular / Carotid / Arterial / Venous)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "doppler",
+            "color doppler",
+            "venous doppler",
+            "arterial doppler",
+            "carotid doppler",
+            "limb doppler"
+          ],
+          "keyParameters": [
+            "vessel_caliber",
+            "flow_velocity_psv_edv",
+            "spectral_waveform",
+            "thrombus_presence",
+            "compressibility",
+            "percent_stenosis",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "deep vein thrombosis (dvt) confirmed",
+            "critical carotid stenosis >70%",
+            "absent flow - acute arterial occlusion"
+          ]
+        },
+        {
+          "code": "RAD_MAMMO",
+          "canonicalName": "Mammography (Breast Screening / Diagnostic)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "mammogram",
+            "mammography",
+            "digital mammography",
+            "sono-mammography",
+            "bilateral mammogram"
+          ],
+          "keyParameters": [
+            "breast_composition_density",
+            "masses_margins_shape",
+            "microcalcifications",
+            "architectural_distortion",
+            "bi_rads_category",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "bi-rads category 4 (suspicious)",
+            "bi-rads category 5 (highly suggestive of malignancy)",
+            "clustered pleomorphic microcalcifications"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "cancer_oncology",
+      "name": "Cancer / Oncology",
+      "icon": "🎗️",
+      "items": [
+        {
+          "code": "ONCO_MARKERS",
+          "canonicalName": "Serum Tumor Markers Panel",
+          "type": "panel_lab",
+          "aliases": [
+            "tumor markers",
+            "cancer markers",
+            "oncology biomarkers",
+            "serum markers screen"
+          ],
+          "subTests": [
+            {
+              "testId": "psa_total",
+              "name": "Prostate Specific Antigen (Total PSA)",
+              "aliases": [
+                "psa",
+                "total psa",
+                "s. psa"
+              ],
+              "unit": "ng/mL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.0,
+                  "max": 4.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.01,
+                "max": 2000.0
+              },
+              "criticalThresholds": {
+                "high": 20.0
+              }
+            },
+            {
+              "testId": "cea",
+              "name": "Carcinoembryonic Antigen (CEA)",
+              "aliases": [
+                "cea",
+                "carcinoembryonic antigen"
+              ],
+              "unit": "ng/mL",
+              "defaultRanges": {
+                "non_smoker": {
+                  "max": 3.0
+                },
+                "smoker": {
+                  "max": 5.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.1,
+                "max": 5000.0
+              },
+              "criticalThresholds": {
+                "high": 20.0
+              }
+            },
+            {
+              "testId": "ca125",
+              "name": "CA-125 (Ovarian Marker)",
+              "aliases": [
+                "ca 125",
+                "cancer antigen 125"
+              ],
+              "unit": "U/mL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 35
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 10000
+              },
+              "criticalThresholds": {
+                "high": 200
+              }
+            },
+            {
+              "testId": "ca19_9",
+              "name": "CA 19-9 (Pancreatic / GI Marker)",
+              "aliases": [
+                "ca 19-9",
+                "ca19.9",
+                "cancer antigen 19-9"
+              ],
+              "unit": "U/mL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 37
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 50000
+              },
+              "criticalThresholds": {
+                "high": 300
+              }
+            },
+            {
+              "testId": "ca15_3",
+              "name": "CA 15-3 (Breast Marker)",
+              "aliases": [
+                "ca 15-3",
+                "ca15.3",
+                "cancer antigen 15-3"
+              ],
+              "unit": "U/mL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0,
+                  "max": 30
+                }
+              },
+              "plausibilityRange": {
+                "min": 1,
+                "max": 5000
+              }
+            },
+            {
+              "testId": "afp",
+              "name": "Alpha-Fetoprotein (AFP)",
+              "aliases": [
+                "afp",
+                "alpha fetoprotein"
+              ],
+              "unit": "ng/mL",
+              "defaultRanges": {
+                "normal": {
+                  "min": 0.0,
+                  "max": 8.0
+                }
+              },
+              "plausibilityRange": {
+                "min": 0.5,
+                "max": 50000.0
+              },
+              "criticalThresholds": {
+                "high": 400.0
+              }
+            },
+            {
+              "testId": "beta_hcg",
+              "name": "Beta hCG (Tumor Marker / Pregnancy)",
+              "aliases": [
+                "beta hcg",
+                "b-hcg",
+                "total beta hcg"
+              ],
+              "unit": "mIU/mL",
+              "defaultRanges": {
+                "males_nonpregnant_females": {
+                  "max": 5
+                }
+              },
+              "plausibilityRange": {
+                "min": 0,
+                "max": 500000
+              }
+            }
+          ]
+        },
+        {
+          "code": "ONCO_BIOPSY",
+          "canonicalName": "Oncology Biopsy Examination",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "tumor biopsy",
+            "oncology biopsy",
+            "malignancy biopsy"
+          ],
+          "keyParameters": [
+            "tumor_type",
+            "grade",
+            "immunohistochemistry_er_pr_her2_ki67",
+            "genetic_mutations_egfr_alk_kras",
+            "impression"
+          ]
+        },
+        {
+          "code": "ONCO_HISTOPATH",
+          "canonicalName": "Oncology Histopathology & Resection Assessment",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "resection histopathology",
+            "tumor excision histopath",
+            "radical resection pathology"
+          ],
+          "keyParameters": [
+            "tnm_stage",
+            "surgical_margins_clearance_mm",
+            "total_lymph_nodes_examined",
+            "positive_lymph_nodes_count",
+            "extranodal_extension",
+            "impression"
+          ]
+        },
+        {
+          "code": "ONCO_PET_CT",
+          "canonicalName": "Positron Emission Tomography - CT (18F-FDG PET-CT)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "pet ct",
+            "pet scan",
+            "fdg pet ct",
+            "whole body pet ct",
+            "positron emission tomography"
+          ],
+          "keyParameters": [
+            "radiotracer_dose",
+            "suv_max_primary_lesion",
+            "suv_max_nodal_stations",
+            "distant_hypermetabolic_foci",
+            "treatment_response_deauville_recist",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "intense fdg avid lesions",
+            "distant skeletal metastasis",
+            "hypermetabolic lymphadenopathy",
+            "disease progression"
+          ]
+        },
+        {
+          "code": "ONCO_FOLLOWUP",
+          "canonicalName": "Oncology Follow-up & Treatment Response Summary",
+          "type": "narrative_clinical",
+          "aliases": [
+            "oncology follow up",
+            "chemotherapy assessment",
+            "radiation therapy summary",
+            "cancer surveillance report"
+          ],
+          "keyParameters": [
+            "current_cycle",
+            "toxicities_graded",
+            "recist_criteria_response",
+            "disease_free_interval",
+            "next_line_plan"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ophthalmology",
+      "name": "Ophthalmology",
+      "icon": "👁️",
+      "items": [
+        {
+          "code": "OPHTH_EXAM",
+          "canonicalName": "Comprehensive Eye Examination",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "eye exam",
+            "ophthalmic examination",
+            "vision test",
+            "refraction report",
+            "slit lamp exam"
+          ],
+          "keyParameters": [
+            "visual_acuity_right_eye_od",
+            "visual_acuity_left_eye_os",
+            "refraction_sphere_cylinder_axis",
+            "anterior_segment_slit_lamp",
+            "lens_clarity_cataract_grade",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "corneal ulcer",
+            "hypopyon",
+            "acute angle closure",
+            "mature cataract"
+          ]
+        },
+        {
+          "code": "OPHTH_OCT",
+          "canonicalName": "Optical Coherence Tomography (OCT Retina / Macula / RNFL)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "oct",
+            "oct macula",
+            "oct retina",
+            "optical coherence tomography",
+            "rnfl oct"
+          ],
+          "keyParameters": [
+            "central_subfield_thickness_um",
+            "retinal_nerve_fiber_layer_thickness",
+            "drusen_presence",
+            "intraretinal_fluid",
+            "subretinal_fluid",
+            "cup_to_disc_ratio",
+            "impression"
+          ],
+          "standardRanges": {
+            "central_macular_thickness": {
+              "min": 200,
+              "max": 280,
+              "unit": "um"
+            }
+          },
+          "criticalKeywords": [
+            "cystoid macular edema",
+            "choroidal neovascular membrane (cnvm)",
+            "macular hole",
+            "advanced glaucomatous rnfl thinning"
+          ]
+        },
+        {
+          "code": "OPHTH_FUNDUS",
+          "canonicalName": "Fundus Photography / Dilated Fundus Examination",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "fundus exam",
+            "fundus photography",
+            "retinal exam",
+            "dilated retinal examination",
+            "dfe"
+          ],
+          "keyParameters": [
+            "optic_disc_margins",
+            "cup_disc_ratio",
+            "macular_reflex",
+            "arteriovenous_crossing_changes",
+            "microaneurysms",
+            "hemorrhages",
+            "exudates",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "proliferative diabetic retinopathy",
+            "papilledema",
+            "retinal detachment",
+            "central retinal artery occlusion (crao)",
+            "central retinal vein occlusion (crvo)"
+          ]
+        },
+        {
+          "code": "OPHTH_VISUAL_FIELD",
+          "canonicalName": "Visual Field Examination (Perimetry / Humphrey Field Analyzer)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "visual field",
+            "perimetry",
+            "hfa visual field",
+            "humphrey perimetry",
+            "field of vision test"
+          ],
+          "keyParameters": [
+            "mean_deviation_md",
+            "pattern_standard_deviation_psd",
+            "visual_field_index_vfi",
+            "fixation_losses",
+            "scotoma_pattern",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "bitemporal hemianopia",
+            "homonymous hemianopia",
+            "arcuate scotoma",
+            "tubular vision"
+          ]
+        },
+        {
+          "code": "OPHTH_IOP",
+          "canonicalName": "Intraocular Pressure Measurement (Tonometry / IOP)",
+          "type": "quantitative_lab",
+          "aliases": [
+            "iop",
+            "intraocular pressure",
+            "tonometry",
+            "goldmann tonometry",
+            "nct iop"
+          ],
+          "standardUnit": "mmHg",
+          "allowedUnits": [
+            "mmHg"
+          ],
+          "defaultRanges": {
+            "normal": {
+              "min": 10,
+              "max": 21
+            },
+            "ocular_hypertension": {
+              "min": 22,
+              "max": 80
+            }
+          },
+          "plausibilityRange": {
+            "min": 2,
+            "max": 90
+          },
+          "criticalThresholds": {
+            "high": 35
+          }
+        }
+      ]
+    },
+    {
+      "id": "ent",
+      "name": "ENT",
+      "icon": "👂",
+      "items": [
+        {
+          "code": "ENT_AUDIO",
+          "canonicalName": "Pure Tone Audiometry (PTA)",
+          "type": "hybrid_diagnostic",
+          "aliases": [
+            "audiometry",
+            "pure tone audiometry",
+            "pta report",
+            "hearing test"
+          ],
+          "keyParameters": [
+            "air_conduction_thresholds_re_le",
+            "bone_conduction_thresholds_re_le",
+            "air_bone_gap",
+            "speech_reception_threshold",
+            "speech_discrimination_score",
+            "hearing_loss_degree_type"
+          ],
+          "standardRanges": {
+            "hearing_threshold_db": {
+              "normal": {
+                "max": 25
+              },
+              "mild_loss": {
+                "min": 26,
+                "max": 40
+              },
+              "moderate_loss": {
+                "min": 41,
+                "max": 70
+              },
+              "severe_loss": {
+                "min": 71,
+                "max": 90
+              },
+              "profound_loss": {
+                "min": 91
+              }
+            }
+          }
+        },
+        {
+          "code": "ENT_TYMP",
+          "canonicalName": "Tympanometry / Middle Ear Compliance",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "tympanometry",
+            "tympanogram",
+            "impedance audiometry",
+            "middle ear pressure"
+          ],
+          "keyParameters": [
+            "curve_type",
+            "compliance_peak_volume",
+            "middle_ear_pressure_danapa",
+            "ear_canal_volume_ml",
+            "acoustic_reflexes",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "type b tympanogram (fluid / perforation)",
+            "type c tympanogram (eustachian tube dysfunction)",
+            "absent acoustic reflexes"
+          ]
+        },
+        {
+          "code": "ENT_ENDOSCOPY",
+          "canonicalName": "Diagnostic Nasal Endoscopy / Laryngoscopy (DNE / FOL)",
+          "type": "narrative_diagnostic",
+          "aliases": [
+            "nasal endoscopy",
+            "diagnostic nasal endoscopy",
+            "flexible nasopharyngolaryngoscopy",
+            "fiberoptic laryngoscopy",
+            "video laryngoscopy",
+            "ent endoscopy",
+            "dne examination",
+            "fol examination"
+          ],
+          "keyParameters": [
+            "nasal_septum_deviation",
+            "turbinate_hypertrophy",
+            "osteomeatal_complex_polyps",
+            "nasopharynx_adenoid_tissue",
+            "vocal_cord_mobility",
+            "pyriform_fossa",
+            "impression"
+          ],
+          "criticalKeywords": [
+            "vocal cord paralysis / palsy",
+            "malignant appearing laryngeal growth",
+            "complete ostial obstruction",
+            "nasopharyngeal mass"
+          ]
+        },
+        {
+          "code": "ENT_EXAM",
+          "canonicalName": "ENT Clinical Examination",
+          "type": "narrative_clinical",
+          "aliases": [
+            "ent exam",
+            "ear nose throat checkup",
+            "otolaryngology consult",
+            "otoscopic exam"
+          ],
+          "keyParameters": [
+            "tympanic_membrane_status",
+            "tuning_fork_rinne_weber",
+            "nasal_airway_patency",
+            "oral_cavity_tonsils_grade",
+            "cervical_lymphadenopathy",
+            "impression"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "general",
+      "name": "General Clinical",
+      "icon": "📋",
+      "items": [
+        {
+          "code": "GEN_CONSULT",
+          "canonicalName": "Doctor Outpatient Consultation Note",
+          "type": "narrative_clinical",
+          "aliases": [
+            "doctor consultation",
+            "op consult note",
+            "physician notes",
+            "outpatient slip",
+            "clinic visit report",
+            "consultation note"
+          ],
+          "keyParameters": [
+            "chief_complaints",
+            "history_of_present_illness",
+            "vital_signs_bp_pulse_temp_spo2",
+            "physical_examination",
+            "differential_diagnosis",
+            "investigations_advised",
+            "treatment_plan",
+            "follow_up_advice"
+          ]
+        },
+        {
+          "code": "GEN_DISCHARGE",
+          "canonicalName": "Hospital Discharge Summary",
+          "type": "narrative_clinical",
+          "aliases": [
+            "discharge summary",
+            "discharge card",
+            "ip discharge report",
+            "hospital summary note",
+            "discharge certificate"
+          ],
+          "keyParameters": [
+            "admission_date",
+            "discharge_date",
+            "final_diagnosis",
+            "secondary_diagnoses",
+            "brief_clinical_history",
+            "hospital_course",
+            "procedures_surgeries_performed",
+            "condition_at_discharge",
+            "discharge_medications_with_schedule",
+            "urgent_warning_signs",
+            "follow_up_instructions"
+          ]
+        },
+        {
+          "code": "GEN_PRESCRIPTION",
+          "canonicalName": "Medical Prescription (Rx Note)",
+          "type": "narrative_clinical",
+          "aliases": [
+            "prescription",
+            "rx slip",
+            "doctor prescription",
+            "medication chart",
+            "medication slip",
+            "rx"
+          ],
+          "keyParameters": [
+            "rx_drugs_list",
+            "drug_generic_and_brand_name",
+            "dosage_strength",
+            "dosage_form_tablet_syrup_injection",
+            "frequency_and_timing_before_after_food",
+            "duration_days",
+            "special_instructions"
+          ]
+        },
+        {
+          "code": "GEN_HEALTH_CHECKUP",
+          "canonicalName": "Executive Health Checkup Summary Report",
+          "type": "narrative_clinical",
+          "aliases": [
+            "health checkup",
+            "annual health checkup report",
+            "master health checkup",
+            "wellness assessment summary"
+          ],
+          "keyParameters": [
+            "lifestyle_metrics_bmi_waist",
+            "consolidated_abnormal_findings",
+            "systemic_risk_profile",
+            "specialist_recommendations",
+            "lifestyle_modifications_prescribed"
+          ]
+        },
+        {
+          "code": "GEN_EMERGENCY",
+          "canonicalName": "Emergency Room Admission & Triage Report",
+          "type": "narrative_clinical",
+          "aliases": [
+            "emergency report",
+            "er notes",
+            "casualty card",
+            "ed triage report",
+            "emergency assessment summary"
+          ],
+          "keyParameters": [
+            "arrival_timestamp",
+            "triage_acuity_level_esi",
+            "triage_vital_signs",
+            "gcs_score",
+            "immediate_interventions_resuscitation",
+            "primary_emergency_diagnosis",
+            "disposition_icu_ward_discharge"
+          ]
+        },
+        {
+          "code": "GEN_OPERATIVE",
+          "canonicalName": "Surgical Operative Report (OT Notes)",
+          "type": "narrative_clinical",
+          "aliases": [
+            "operative report",
+            "operation notes",
+            "ot summary",
+            "surgical notes",
+            "post operative report"
+          ],
+          "keyParameters": [
+            "preoperative_diagnosis",
+            "postoperative_diagnosis",
+            "procedure_performed",
+            "surgeons_and_anesthetists",
+            "anesthesia_type",
+            "intraoperative_findings",
+            "specimens_removed",
+            "estimated_blood_loss",
+            "implant_details",
+            "intraoperative_complications"
+          ]
+        },
+        {
+          "code": "GEN_MEDICATION",
+          "canonicalName": "Inpatient Medication Administration Record (MAR)",
+          "type": "narrative_clinical",
+          "aliases": [
+            "medication report",
+            "mar sheet",
+            "drug administration chart",
+            "inpatient medication chart"
+          ],
+          "keyParameters": [
+            "active_medications",
+            "infusion_rates",
+            "antibiotic_stewardship_days",
+            "adverse_drug_reactions_noted",
+            "discontinued_drugs"
+          ]
+        },
+        {
+          "code": "GEN_HOSPITAL_SUMMARY",
+          "canonicalName": "Comprehensive Hospital Stay Summary / Interim Summary",
+          "type": "narrative_clinical",
+          "aliases": [
+            "hospital summary",
+            "inpatient stay summary",
+            "interim case summary",
+            "clinical case abstract"
+          ],
+          "keyParameters": [
+            "admitting_department_consultant",
+            "summary_of_investigations_done",
+            "interventions_log",
+            "current_clinical_status",
+            "prognosis_discussion"
+          ]
+        }
+      ]
+    }
+  ]
+}

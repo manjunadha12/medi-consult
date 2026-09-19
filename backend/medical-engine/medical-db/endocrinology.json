@@ -1,0 +1,57 @@
+{
+  "id": "endocrinology",
+  "name": "Endocrinology & Thyroid Function",
+  "icon": "🦋",
+  "items": [
+    {
+      "code": "MET_HBA1C",
+      "canonicalName": "HbA1c (Glycated Hemoglobin)",
+      "aliases": ["hba1c", "glycated hemoglobin", "glycosylated hemoglobin", "a1c"],
+      "unit": "%",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 4.0, "max": 5.6, "unit": "%" } },
+      "plausibilityRange": { "min": 3.0, "max": 20.0 }
+    },
+    {
+      "code": "THY_TSH",
+      "canonicalName": "Thyroid Stimulating Hormone (TSH)",
+      "aliases": ["tsh", "thyroid stimulating hormone", "ultra tsh", "s.tsh"],
+      "unit": "uIU/mL",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 0.4, "max": 4.5, "unit": "uIU/mL" } },
+      "plausibilityRange": { "min": 0.01, "max": 150.0 }
+    },
+    {
+      "code": "THY_T3_TOT",
+      "canonicalName": "Total Triiodothyronine (T3)",
+      "aliases": ["total t3", "t3", "triiodothyronine total"],
+      "unit": "ng/dL",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 80, "max": 200, "unit": "ng/dL" } }
+    },
+    {
+      "code": "THY_T4_TOT",
+      "canonicalName": "Total Thyroxine (T4)",
+      "aliases": ["total t4", "t4", "thyroxine total"],
+      "unit": "ug/dL",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 5.0, "max": 12.0, "unit": "ug/dL" } }
+    },
+    {
+      "code": "VIT_D",
+      "canonicalName": "Vitamin D (25-OH)",
+      "aliases": ["vitamin d", "25-hydroxy vitamin d", "vit d3", "25-oh vit d"],
+      "unit": "ng/mL",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 30.0, "max": 100.0, "unit": "ng/mL" } }
+    },
+    {
+      "code": "VIT_B12",
+      "canonicalName": "Vitamin B12",
+      "aliases": ["vitamin b12", "vit b12", "cyanocobalamin", "b12"],
+      "unit": "pg/mL",
+      "category": "Endocrinology",
+      "ranges": { "standard": { "min": 200, "max": 900, "unit": "pg/mL" } }
+    }
+  ]
+}

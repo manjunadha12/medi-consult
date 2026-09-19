@@ -188,12 +188,15 @@ export const sendMessage = async (req, res) => {
       } catch (e) {}
     }
 
-    const attachments = req.files ? req.files.map(file => ({
-      url: `/uploads/chat/${file.filename}`,
-      name: file.originalname,
-      size: file.size,
-      fileType: file.mimetype
-    })) : [];
+    const attachments = req.files ? req.files.map(file => {
+      const relativeUrl = file.path.replace(/\\/g, '/').split('/uploads/')[1];
+      return {
+        url: `/uploads/${relativeUrl}`,
+        name: file.originalname,
+        size: file.size,
+        fileType: file.mimetype
+      };
+    }) : [];
 
     const message = new Message({
       conversationId,

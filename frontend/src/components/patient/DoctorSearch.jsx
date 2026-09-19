@@ -10,12 +10,13 @@ import {
   ThumbsUp, Filter, Calendar, ArrowLeft, MoreHorizontal, Check, User, Phone, MessageSquare, ExternalLink, ArrowRight, Stethoscope
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const DoctorSearch = () => {
   const { theme } = useStore();
   const navigate = useNavigate();
-  const [query, setQuery] = useState('');
+  const location = useLocation();
+  const [query, setQuery] = useState(location.state?.query || '');
   const [doctors, setDoctors] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
@@ -139,10 +140,16 @@ const DoctorSearch = () => {
                       </div>
                     </div>
 
-                    <div className="shrink-0">
+                    <div className="shrink-0 flex flex-wrap items-center justify-end w-full lg:w-auto gap-4">
+                      <button
+                        onClick={() => navigate('/patient/book-op', { state: { doctor: { name: doc.name, id: doc.id, hospitalName: doc.hospital, specialization: doc.specialization, city: doc.city }, bookingType: 'offline' } })}
+                        className="px-8 py-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 whitespace-nowrap"
+                      >
+                        <Calendar size={18} /> Offline OP Booking
+                      </button>
                       <button
                         onClick={() => handleDocClick(doc.id)}
-                        className="px-10 py-5 bg-white/5 border border-white/10 text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:bg-blue-600 hover:border-blue-500 flex items-center justify-center gap-4 group/btn"
+                        className="px-8 py-5 bg-white/5 border border-white/10 text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all hover:bg-blue-600 hover:border-blue-500 flex items-center justify-center gap-3 group/btn shadow-xl active:scale-95 whitespace-nowrap"
                       >
                         View Full Profile <ArrowRight size={18} />
                       </button>

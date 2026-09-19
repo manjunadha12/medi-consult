@@ -8,7 +8,7 @@ console.log(`[SWARM_INIT] API Keys Detected: OpenRouter(${OPENROUTER_API_KEY ? '
 
 // Advanced multi-tier model swarm for maximum reliability
 const DEFAULT_MODELS = [
-  "google/gemini-2.0-flash-exp:free",      // Tier 1: Speed & Vision
+  "google/gemini-3.6-flash:free",      // Tier 1: Speed & Vision
   "google/gemini-2.0-flash-lite-preview-02-05:free",
   "google/gemma-2-9b-it:free",
   "mistralai/mistral-7b-instruct:free",
@@ -22,7 +22,7 @@ async function callDirectGemini(params) {
 
   console.log(`[GEMINI_DIRECT_TRACE] Handshake initiated with key: ${GEMINI_API_KEY.substring(0, 4)}...`);
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_API_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_API_KEY}`;
 
   const payload = {
     contents: [],
@@ -88,27 +88,29 @@ export async function swarmAnalyze({ prompt, imageBase64, mimeType, systemPrompt
   }
 
   const hasImage = Boolean(imageBase64);
+
+  // 1. PRIMARY: Try Direct Gemini Node first (If key exists)
+  if (GEMINI_API_KEY) {
+    try {
+      console.log(`[SWARM] Attempting Primary Direct Gemini Handshake...`);
+      const answer = await callDirectGemini({ prompt, imageBase64, mimeType, systemPrompt });
+      if (answer && answer.length > 5) {
+        console.log(`[SWARM] Primary Direct Gemini Handshake Success`);
+        return cleanupResponse(answer);
+      }
+    } catch (gemErr) {
+      const detail = gemErr.response?.data?.error?.message || gemErr.message;
+      console.warn(`[SWARM] Primary Gemini Node failed: ${detail}. Falling back to OpenRouter swarm.`);
+    }
+  }
+
+  // 2. FALLBACK: OpenRouter Swarm Node Iteration
   const modelsToTry = preferredModel ? [preferredModel, ...DEFAULT_MODELS.filter(m => m !== preferredModel)] : DEFAULT_MODELS;
 
   for (const model of modelsToTry) {
     try {
-      // 1. Direct Gemini Handshake (if enabled and requested for this specific task)
-      if (useDirectKey && model.includes("google/gemini") && GEMINI_API_KEY) {
-        try {
-          console.log(`[SWARM] Attempting Direct Gemini Node Sync (AI Chat Preferred): ${model}`);
-          const answer = await callDirectGemini({ prompt, imageBase64, mimeType, systemPrompt, signal: controller.signal });
-          if (answer) {
-             console.log(`[SWARM] Direct Gemini Handshake Success`);
-             return cleanupResponse(answer);
-          }
-        } catch (gemErr) {
-          const detail = gemErr.response?.data?.error?.message || gemErr.message;
-          console.warn(`[SWARM] Direct Gemini Node jittered: ${detail}. Falling back to OpenRouter pool.`);
-        }
-      }
-
-      // 2. OpenRouter Pool Handshake
-      const systemContent = systemPrompt || "You are a professional medical data extraction engine. You MUST return ONLY a valid JSON object string. Extract name, age, weight, height, problems, summary, riskLevel, abnormalValues, and suggestedSpecialist.";
+      console.log(`[SWARM] Attempting Fallback Swarm Node: ${model}`);
+      const systemContent = systemPrompt || "You are a professional medical data extraction engine. You MUST return ONLY a valid JSON object string.";
 
       const messages = [
         { role: "system", content: systemContent },
@@ -124,35 +126,27 @@ export async function swarmAnalyze({ prompt, imageBase64, mimeType, systemPrompt
       ];
 
       const controller = new AbortController();
-      // Institutional timeout protocol: 90s for vision, 60s for reasoning/text.
       const timeoutLimit = hasImage ? 90000 : 60000;
       const timeoutId = setTimeout(() => controller.abort(), timeoutLimit);
 
-      // Implement a mini-retry for each model node
       let axiosResponse = null;
-      let retries = preferredModel ? 1 : 0; // Don't retry if preferredModel, it's a direct link
-
-      for (let attempt = 0; attempt <= retries; attempt++) {
-        try {
-          axiosResponse = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
-            model,
-            messages,
-            temperature: 0.1
-          }, {
-            headers: {
-              "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-              "Content-Type": "application/json",
-              "HTTP-Referer": "http://localhost:5173",
-              "X-Title": "Medi Consult Institutional"
-            },
-            signal: controller.signal
-          });
-          if (axiosResponse) break;
-        } catch (e) {
-          if (attempt === retries) throw e;
-          console.warn(`[SWARM] Node ${model} jittered. Re-initiating...`);
-          await new Promise(r => setTimeout(r, 2000));
-        }
+      try {
+        axiosResponse = await axios.post("https://openrouter.ai/api/v1/chat/completions", {
+          model,
+          messages,
+          temperature: 0.1
+        }, {
+          headers: {
+            "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+            "Content-Type": "application/json",
+            "HTTP-Referer": "http://localhost:5173",
+            "X-Title": "Medi Consult Institutional"
+          },
+          signal: controller.signal
+        });
+      } catch (e) {
+        clearTimeout(timeoutId);
+        throw e;
       }
 
       clearTimeout(timeoutId);
@@ -160,22 +154,21 @@ export async function swarmAnalyze({ prompt, imageBase64, mimeType, systemPrompt
       let answer = data?.choices?.[0]?.message?.content;
 
       if (answer && answer.length > 5) {
-        console.log(`[SWARM] Neural Handshake Success: ${model}`);
+        console.log(`[SWARM] Swarm Handshake Success: ${model}`);
         return cleanupResponse(answer);
       }
     } catch (error) {
       const errorMsg = error.response?.data?.error?.message || error.message;
       console.error(`[SWARM_NODE_FAIL] Node: ${model} | Error: ${errorMsg}`);
-      console.log(`[SWARM_INFO] Rotating to next available node in sequence...`);
     }
   }
 
   return JSON.stringify({
     error: "Swarm Node Sickness",
-    message: "The neural nodes are under extreme institutional load. Please wait 15 seconds and re-initiate the handshake.",
+    message: "All neural nodes (Direct & Swarm) are currently offline or saturated.",
     name: "N/A",
-    summary: "Neural synthesis nodes are currently saturated. This often happens with high-resolution clinical images on free nodes.",
-    aiExplanation: "The neural pharmacology node is currently saturated. Clinical data mapping is on standby.",
+    summary: "Neural synthesis nodes are currently saturated. Please try again in 15 seconds.",
+    aiExplanation: "The neural pharmacology node is currently saturated.",
     sideEffects: [],
     precautions: []
   });

@@ -330,10 +330,16 @@ const SpecialistDiscovery = () => {
                       </div>
                     </div>
 
-                    <div className="shrink-0 flex items-center justify-end w-full lg:w-auto">
+                    <div className="shrink-0 flex flex-wrap items-center justify-end w-full lg:w-auto gap-3">
+                      <button
+                        onClick={() => navigate('/patient/book-op', { state: { doctor: { name: doc.name, id: doc.id, hospitalName: doc.hospital, specialization: doc.specialization, city: doc.city }, bookingType: 'offline' } })}
+                        className="px-6 py-3 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 group/btn shadow-xl active:scale-95 whitespace-nowrap"
+                      >
+                        <Calendar size={14} /> Offline OP Booking
+                      </button>
                       <button
                         onClick={() => handleDocClick(doc.id)}
-                        className="px-8 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:bg-blue-600 hover:border-blue-500 flex items-center justify-center gap-3 group/btn shadow-xl active:scale-95 whitespace-nowrap"
+                        className="px-6 py-3 bg-white/5 border border-white/10 text-white rounded-xl font-black text-[10px] uppercase tracking-[0.2em] transition-all hover:bg-blue-600 hover:border-blue-500 flex items-center justify-center gap-2 group/btn shadow-xl active:scale-95 whitespace-nowrap"
                       >
                         View Full Profile <ChevronRight size={16} className="group-hover/btn:translate-x-1 transition-transform" />
                       </button>
@@ -497,13 +503,16 @@ const SpecialistDiscovery = () => {
                        <h4 className="text-2xl sm:text-3xl font-black text-white uppercase tracking-tighter leading-none">Initialize Handshake?</h4>
                        <p className="text-zinc-500 text-[10px] font-bold uppercase tracking-[0.3em] opacity-60">Provision clinical node sync with {docDetails.user?.name}.</p>
                     </div>
-                    <div className="flex items-center gap-10">
-                       <div className="text-right hidden xl:block">
+                    <div className="flex items-center gap-6 flex-wrap justify-end">
+                       <div className="text-right hidden xl:block mr-2">
                           <p className="text-[10px] font-black text-zinc-600 uppercase tracking-[0.3em] mb-1">Protocol Fee</p>
                           <p className="text-4xl font-black text-white tracking-tighter">₹{docDetails.profile?.consultationFee || 2500}</p>
                        </div>
-                       <button onClick={() => navigate('/patient/book-op', { state: { doctor: { ...docDetails.profile, name: docDetails.user.name, id: selectedDoc } } })} className="px-12 py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center gap-4 group active:scale-95">
-                          <Calendar size={24} /> Book Appointment
+                       <button onClick={() => navigate('/patient/book-op', { state: { doctor: { ...docDetails.profile, name: docDetails.user.name, id: selectedDoc }, bookingType: 'offline' } })} className="px-8 py-5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center gap-3 group active:scale-95">
+                          <Calendar size={20} /> Offline OP Booking
+                       </button>
+                       <button onClick={() => navigate('/patient/book-op', { state: { doctor: { ...docDetails.profile, name: docDetails.user.name, id: selectedDoc }, bookingType: 'online' } })} className="px-8 py-5 bg-blue-600 hover:bg-blue-500 text-white rounded-[24px] font-black text-xs uppercase tracking-[0.4em] shadow-2xl transition-all flex items-center gap-3 group active:scale-95">
+                          Book Appointment
                        </button>
                     </div>
                   </div>

@@ -7,7 +7,7 @@ import { safeNum } from '../../utils/mathUtils';
 import {
   Brain, TrendingUp, ChevronRight, Clock, Sparkles, CheckCircle, Pill,
   FileUp, MessageSquare, User as UserIcon, Activity, Zap, CreditCard, QrCode, ArrowRight,
-  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon, Phone as PhoneIcon, Lock
+  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon, Phone as PhoneIcon, Lock, Building2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -25,9 +25,13 @@ const CircularProgress = ({ value, size = 180, strokeWidth = 12 }) => {
     return () => window.removeEventListener('resize', handleResize);
   }, [size]);
 
+  const numVal = typeof value === 'number' ? value : (parseInt(value, 10) || 0);
+  const strokeColor = numVal >= 85 ? '#10b981' : (numVal >= 70 ? '#3b82f6' : (numVal >= 50 ? '#f59e0b' : '#ef4444'));
+  const glowColor = numVal >= 85 ? 'rgba(16,185,129,0.5)' : (numVal >= 70 ? 'rgba(59,130,246,0.5)' : (numVal >= 50 ? 'rgba(245,158,11,0.5)' : 'rgba(239,68,68,0.5)'));
+
   const radius = (currentSize - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
-  const offset = circumference - (value / 100) * circumference;
+  const offset = circumference - (numVal / 100) * circumference;
 
   return (
     <div className="relative flex items-center justify-center">
@@ -45,13 +49,14 @@ const CircularProgress = ({ value, size = 180, strokeWidth = 12 }) => {
           cx={currentSize / 2}
           cy={currentSize / 2}
           r={radius}
-          stroke="#3b82f6"
+          stroke={strokeColor}
           strokeWidth={strokeWidth}
           fill="transparent"
           strokeDasharray={circumference}
           strokeDashoffset={offset}
           strokeLinecap="round"
-          className="transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(59,130,246,0.5)]"
+          style={{ filter: `drop-shadow(0 0 12px ${glowColor})` }}
+          className="transition-all duration-1000 ease-out"
         />
       </svg>
       <div className="absolute flex flex-col items-center">
@@ -116,70 +121,104 @@ const PatientDashboard = () => {
 
   const fetchReports = async () => {
     try {
-      if(!currentUser?.userId) return;
+      if(!currentUser?.userId) return [];
       const { data } = await api.get(`/reports/patient/${currentUser.userId}`);
-      if (Array.isArray(data)) setReports(data);
+      const repList = Array.isArray(data) ? data : (data?.reports || []);
+      setReports(repList);
+      return repList;
     } catch (err) {
-      console.error(err);
+      console.error("[REPORTS_SYNC_FAIL]", err);
+      return [];
     }
   };
 
   const fetchHealthLogs = async () => {
     try {
-      if(!currentUser?.userId) return;
-      const { data } = await api.get(`/health/logs/${currentUser.userId}?range=week`);
-      if (Array.isArray(data) && data.length > 0) {
-        setHealthLogs(data);
-        calculateDynamicMetrics(data);
-      }
+      if(!currentUser?.userId) return [];
+      const { data } = await api.get(`/health/logs/${currentUser.userId}?range=month`);
+      const logsArray = Array.isArray(data) ? data : (data?.logs || []);
+      setHealthLogs(logsArray);
+      calculateDynamicMetrics(logsArray);
+      return logsArray;
     } catch (err) {
-      console.error(err);
+      console.error("[HEALTH_LOGS_SYNC_FAIL]", err);
+      return [];
     }
   };
 
-  const calculateDynamicMetrics = (logs) => {
-    if (!logs || logs.length === 0) {
-      setMetrics({
-        score: 0, trend: '0%', vitals: 'No Data', adherence: '0%', risk: 'N/A', efficiency: '0%'
-      });
-      return;
+  const calculateDynamicMetrics = (logs = []) => {
+    const logsArray = Array.isArray(logs) ? logs : (logs?.logs || []);
+
+    let baseScore = 100;
+    let vitalsStatus = 'Normal';
+    let riskLevel = 'Low';
+    let trendText = '+2.1%';
+
+    let latestLog = null;
+    let previousLog = null;
+
+    if (logsArray.length > 0) {
+      const sorted = [...logsArray].sort((a, b) => new Date(a.date || a.createdAt) - new Date(b.date || b.createdAt));
+      latestLog = sorted[sorted.length - 1];
+      previousLog = sorted.length > 1 ? sorted[sorted.length - 2] : latestLog;
+
+      if (latestLog) {
+        // Evaluate Systolic BP (Ideal: 90-125)
+        if (latestLog.bp_systolic > 160) { baseScore -= 20; vitalsStatus = 'Critical'; riskLevel = 'High'; }
+        else if (latestLog.bp_systolic > 140) { baseScore -= 12; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; if (riskLevel !== 'High') riskLevel = 'Medium'; }
+        else if (latestLog.bp_systolic > 130) { baseScore -= 5; }
+
+        // Evaluate Diastolic BP (Ideal: 60-85)
+        if (latestLog.bp_diastolic > 100) { baseScore -= 15; vitalsStatus = 'Critical'; riskLevel = 'High'; }
+        else if (latestLog.bp_diastolic > 90) { baseScore -= 8; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; }
+
+        // Evaluate SpO2 Oxygen (Ideal: 95-100%)
+        if (latestLog.oxygen < 90) { baseScore -= 25; vitalsStatus = 'Critical'; riskLevel = 'High'; }
+        else if (latestLog.oxygen < 95) { baseScore -= 10; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; }
+
+        // Evaluate Blood Sugar (Ideal: 70-130 fasting / 140 random)
+        if (latestLog.sugar > 200) { baseScore -= 18; vitalsStatus = 'Critical'; riskLevel = 'High'; }
+        else if (latestLog.sugar > 140) { baseScore -= 8; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; }
+
+        // Evaluate Heart Rate (Ideal: 60-100 bpm)
+        if (latestLog.heartbeat > 120 || latestLog.heartbeat < 45) { baseScore -= 12; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; }
+
+        // Evaluate Temperature (Ideal: 97.0 - 99.5 °F)
+        if (latestLog.temperature > 101.5) { baseScore -= 15; vitalsStatus = 'Critical'; riskLevel = 'High'; }
+        else if (latestLog.temperature > 99.8) { baseScore -= 6; if (vitalsStatus !== 'Critical') vitalsStatus = 'Warning'; }
+
+        // Calculate Trend percentage between latest and previous vitals
+        const bpDiff = (latestLog.bp_systolic || 120) - (previousLog?.bp_systolic || 120);
+        const trendVal = bpDiff <= 0 ? Math.abs(bpDiff) + 1.8 : -Math.abs(bpDiff);
+        trendText = `${trendVal >= 0 ? '+' : ''}${trendVal.toFixed(1)}%`;
+      }
     }
-    const latest = logs[0];
-    const previous = logs[1] || latest;
 
-    let risk = 'Low';
-    let vitals = 'Normal';
-    if (latest.bp_systolic > 140 || latest.oxygen < 94) {
-      risk = 'High';
-      vitals = 'Critical';
-    } else if (latest.bp_systolic > 130 || latest.oxygen < 96) {
-      risk = 'Medium';
-      vitals = 'Warning';
+    const finalScore = Math.max(10, Math.min(100, Math.round(baseScore)));
+
+    let statusTitle = "Biological Sync Stabilized";
+    let statusDescription = `Telemetry indicates ${trendText} efficiency improvement across biometric nodes.`;
+
+    if (vitalsStatus === 'Critical' || riskLevel === 'High') {
+      statusTitle = "Physiological Vitals Alert";
+      statusDescription = `Biometric telemetry indicates abnormal vital signs. Prompt clinical review advised.`;
+    } else if (vitalsStatus === 'Warning' || riskLevel === 'Medium') {
+      statusTitle = "Vitals Telemetry Under Observation";
+      statusDescription = `Slight physiological variance recorded in recent biometric health logs.`;
+    } else {
+      statusTitle = "Biological Sync Stabilized";
+      statusDescription = `Telemetry confirms optimal biomarker homeostasis and vitals stability.`;
     }
-
-    // Calculate dynamic health score
-    let score = 100;
-    if (latest.bp_systolic > 130) score -= 10;
-    if (latest.bp_systolic > 145) score -= 15;
-    if (latest.oxygen < 97) score -= 5;
-    if (latest.oxygen < 94) score -= 15;
-    if (latest.sugar > 140) score -= 10;
-    if (latest.sugar > 200) score -= 15;
-
-    // Ensure score is within 0-100
-    score = Math.max(0, Math.min(100, score));
-
-    const diff = latest.bp_systolic - previous.bp_systolic;
-    const trendVal = diff <= 0 ? Math.abs(diff) + 2.1 : -Math.abs(diff);
-    const trendText = `${trendVal >= 0 ? '+' : ''}${trendVal.toFixed(1)}%`;
 
     setMetrics({
-      score: score,
+      score: finalScore,
       trend: trendText,
-      vitals: vitals,
+      vitals: vitalsStatus,
       adherence: 'Synchronized',
-      risk: risk,
-      efficiency: trendText
+      risk: riskLevel,
+      efficiency: trendText,
+      statusTitle,
+      statusDescription
     });
   };
 
@@ -294,6 +333,8 @@ const PatientDashboard = () => {
                   </div>
                 ))}
               </div>
+
+
 
               <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 lg:gap-8">
                 {/* LEFT COLUMN */}
@@ -457,8 +498,8 @@ const PatientDashboard = () => {
                     <div className="flex flex-col md:flex-row items-center gap-8 lg:gap-16">
                        <CircularProgress value={metrics.score} />
                        <div className="flex-1 text-center md:text-left">
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight mb-2 sm:mb-3 leading-tight">Biological Sync Stabilized</h2>
-                          <p className="text-zinc-500 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.2em] mb-8 lg:mb-10 leading-relaxed">Telemetry indicates <span className="text-blue-500">{metrics.efficiency}</span> efficiency improvement.</p>
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight mb-2 sm:mb-3 leading-tight">{metrics.statusTitle || "Biological Sync Stabilized"}</h2>
+                          <p className="text-zinc-400 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.2em] mb-8 lg:mb-10 leading-relaxed">{metrics.statusDescription || `Telemetry indicates ${metrics.efficiency || '+2.1%'} efficiency improvement.`}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                              {[
                                { label: 'Trend', val: metrics.trend, icon: TrendingUp, color: 'emerald' },

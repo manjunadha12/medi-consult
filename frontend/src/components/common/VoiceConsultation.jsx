@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
-import api, { BACKEND_URL } from '../../utils/api';
+import api, { BACKEND_URL, ICE_SERVERS } from '../../utils/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import CommLinkPopup from './CommLinkPopup';
 
@@ -42,11 +42,16 @@ const VoiceConsultation = () => {
   const peerConnectionRef = useRef(null);
   const targetSocketIdRef = useRef(null);
   const remoteStreamRef = useRef(null);
+  const streamRef = useRef(null);
   const socketRef = useRef(globalSocket);
   const candidateQueue = useRef([]);
   const hasEmittedSignal = useRef(false);
   const callStartedRef = useRef(false);
   const initializedRef = useRef(false);
+
+  useEffect(() => {
+    streamRef.current = stream;
+  }, [stream]);
   const audioCtxRef = useRef(null);
   const remoteMeterCtxRef = useRef(null);
   const isActuallyConnected = peerConnectionRef.current?.connectionState === "connected" || (callAccepted && Boolean(remoteStream));
@@ -101,26 +106,29 @@ const VoiceConsultation = () => {
     try {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       ctx = new AudioCtx();
-
       remoteMeterCtxRef.current = ctx;
 
-      const source = ctx.createMediaStreamSource(remoteStream);
+      if (ctx.state === 'suspended') ctx.resume();
+
+      const audioOnlyStream = new MediaStream(audioTracks);
+      const source = ctx.createMediaStreamSource(audioOnlyStream);
       const analyser = ctx.createAnalyser();
       analyser.fftSize = 256;
-      analyser.smoothingTimeConstant = 0.5;
-
+      analyser.smoothingTimeConstant = 0.3;
       source.connect(analyser);
+
+      const gain = ctx.createGain();
+      gain.gain.value = 0.0001;
+      analyser.connect(gain);
+      gain.connect(ctx.destination);
 
       const data = new Uint8Array(analyser.frequencyBinCount);
 
       interval = setInterval(() => {
+        if (ctx && ctx.state === 'suspended') ctx.resume();
         analyser.getByteFrequencyData(data);
-        let sum = 0;
-        for (let i = 0; i < data.length; i++) {
-          sum += data[i];
-        }
-        const average = sum / data.length;
-        const level = Math.min(100, Math.round((average / 128) * 100));
+        const avg = data.reduce((a, b) => a + b, 0) / data.length;
+        const level = Math.min(100, Math.round((avg / 128) * 100));
         setRemoteAudioLevel(level);
       }, 80);
     } catch (error) {
@@ -178,11 +186,7 @@ const VoiceConsultation = () => {
     }
 
     const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-      ]
+      iceServers: ICE_SERVERS
     });
 
     peerConnectionRef.current = pc;
@@ -199,13 +203,7 @@ const VoiceConsultation = () => {
 
     pc.ontrack = (event) => {
       console.log("================================");
-      console.log("🔥🔥🔥 REMOTE TRACK RECEIVED 🔥🔥🔥");
-      console.log("Track kind:", event.track.kind);
-      console.log("Track id:", event.track.id);
-      console.log("Track enabled:", event.track.enabled);
-      console.log("Track muted:", event.track.muted);
-      console.log("Track readyState:", event.track.readyState);
-      console.log("Streams:", event.streams);
+      console.log("🔥🔥🔥 REMOTE TRACK RECEIVED 🔥🔥🔥", event.track.kind, event.track.id);
       console.log("================================");
 
       let streamToUse = event.streams?.[0];
@@ -219,12 +217,18 @@ const VoiceConsultation = () => {
         streamToUse = remoteStreamRef.current;
       }
 
-      console.log(
-        "🔥 REMOTE AUDIO TRACKS:",
-        streamToUse.getAudioTracks()
-      );
+      console.log("🔥 REMOTE AUDIO TRACKS:", streamToUse.getAudioTracks());
 
-      setRemoteStream(streamToUse);
+      const freshStream = new MediaStream(streamToUse.getAudioTracks());
+      setRemoteStream(freshStream);
+      setCallAccepted(true);
+
+      if (userVideo.current) {
+        userVideo.current.srcObject = freshStream;
+        userVideo.current.muted = false;
+        userVideo.current.volume = 1.0;
+        userVideo.current.play().catch(e => console.warn("[WEBRTC_AUDIO_PLAY_ERR]", e));
+      }
     };
 
     pc.onicecandidate = (event) => {
@@ -251,19 +255,12 @@ const VoiceConsultation = () => {
 
         case "connecting":
           console.log("🟡 WEBRTC CONNECTING");
-          setCallAccepted(false);
           break;
 
         case "disconnected":
-          console.warn("🟠 WEBRTC DISCONNECTED");
-          break;
-
         case "failed":
-          console.error("🔴 WEBRTC FAILED");
-          setCallAccepted(false);
-          break;
-
         case "closed":
+          console.warn("🟠 WEBRTC STATE:", pc.connectionState);
           setCallAccepted(false);
           break;
       }
@@ -271,6 +268,9 @@ const VoiceConsultation = () => {
 
     pc.oniceconnectionstatechange = () => {
       console.log("🔥 ICE CONNECTION STATE:", pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setCallAccepted(true);
+      }
     };
 
     pc.onsignalingstatechange = () => {
@@ -356,7 +356,9 @@ const VoiceConsultation = () => {
       console.log("[WEBRTC] Remote offer applied");
 
       console.log("STEP 3: createAnswer");
-      const answer = await pc.createAnswer();
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true
+      });
 
       console.log("STEP 4: setLocalDescription");
       await pc.setLocalDescription(answer);
@@ -386,12 +388,6 @@ const VoiceConsultation = () => {
       return;
     }
 
-    if (initializedRef.current) {
-      console.log("[VOICE_SYNC] Stream & Socket connection already initialized - skipping duplicate mount effect.");
-      return;
-    }
-    initializedRef.current = true;
-
     socketRef.current = globalSocket;
 
     const currentUserId =
@@ -402,26 +398,173 @@ const VoiceConsultation = () => {
       user?.doctorId;
 
     if (!currentUserId) {
-      console.error(
-        "[VOICE_SYNC] No current user ID"
-      );
+      console.error("[VOICE_SYNC] No current user ID");
       return;
     }
 
-    socketRef.current.emit(
-      "register-user",
-      String(currentUserId)
-    );
-
-    console.log(
-      "[VOICE_SYNC] Registered:",
-      String(currentUserId)
-    );
+    socketRef.current.emit("register-user", String(currentUserId));
+    console.log("[VOICE_SYNC] Registered:", String(currentUserId));
 
     if (peerIdFromUrl && user?.role === 'doctor' && !isP2P) {
       fetchPatient(peerIdFromUrl);
     }
 
+    const handleUserJoined = ({ socketId, userId, userName }) => {
+      console.log("[VOICE_SYNC] USER JOINED:", { socketId, userId, userName, myRole: user?.role });
+      if (!socketId) return;
+
+      toast.success(`${userName || "Peer"} linked to voice session`);
+      targetSocketIdRef.current = String(socketId);
+
+      // ONLY DOCTOR creates the offer
+      if (user?.role !== "doctor") {
+        console.log("[VOICE_SYNC] Patient waiting for doctor's offer from socket:", socketId);
+        return;
+      }
+
+      if (streamRef.current) {
+        console.log("[VOICE_SYNC] STARTING WEBRTC CALL TO:", socketId);
+        callUser(String(socketId), streamRef.current);
+      } else {
+        console.log("[VOICE_SYNC] Local mic stream not ready yet, saved targetSocketId:", socketId);
+      }
+    };
+
+    const handleUserLeft = ({ socketId }) => {
+      console.log("[VOICE_SYNC] Peer left room:", socketId);
+      if (!targetSocketIdRef.current || targetSocketIdRef.current === String(socketId)) {
+        toast.error("Peer disconnected from voice session");
+        setCallAccepted(false);
+        setRemoteStream(null);
+        hasEmittedSignal.current = false;
+        if (peerConnectionRef.current) {
+          try { peerConnectionRef.current.close(); } catch (e) {}
+          peerConnectionRef.current = null;
+        }
+      }
+    };
+
+    const handleCallMade = async (data) => {
+      console.log("🔥🔥🔥 PATIENT RECEIVED OFFER 🔥🔥🔥", data);
+      const offerSignal = data?.signal || data?.signalData;
+      if (!offerSignal) return; // Notification ping only
+
+      if (streamRef.current) {
+        try {
+          await answerCall(data, streamRef.current);
+        } catch (err) {
+          console.error("PATIENT ANSWER ERROR:", err);
+        }
+      } else {
+        console.log("[VOICE_SYNC] Stream not ready for call-made, caching pending offer");
+        sessionStorage.setItem('pending_signal', JSON.stringify(data));
+      }
+    };
+
+    const handleCallAccepted = async (data) => {
+      console.log("🔥 DOCTOR GOT ANSWER 🔥", data);
+      if (data?.fromSocketId) {
+        targetSocketIdRef.current = String(data.fromSocketId);
+      }
+      const answer = data?.signal || data?.signalData || data;
+      const pc = peerConnectionRef.current;
+      if (pc && answer) {
+        try {
+          if (pc.signalingState === 'have-local-offer') {
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+            console.log("Doctor answer applied successfully");
+          }
+          while (candidateQueue.current.length > 0) {
+            const candidate = candidateQueue.current.shift();
+            await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          }
+        } catch (e) {
+          console.log("[VOICE_SYNC] Answer already applied or state stable:", e?.message || e);
+        }
+      }
+    };
+
+    const handleIceCandidate = async ({ candidate, fromSocketId }) => {
+      if (!candidate) return;
+      if (fromSocketId) {
+        targetSocketIdRef.current = String(fromSocketId);
+      }
+
+      const pc = peerConnectionRef.current;
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("[WEBRTC] ICE candidate added");
+        } catch (error) {
+          console.error("[WEBRTC] ICE candidate error:", error);
+        }
+      } else {
+        candidateQueue.current.push(candidate);
+        console.log("[WEBRTC] ICE candidate queued");
+      }
+    };
+
+    const handleReceiveMessage = (data) => setMessages(prev => [...prev, data]);
+    const handleCallDeclined = () => {
+      toast.error("Peer declined the voice node");
+      navigate(user?.role === 'doctor' ? '/doc-dashboard' : '/patient/dashboard');
+    };
+    const handlePeerEnded = () => {
+      toast.error("Peer disconnected the sync");
+      handleEndCall(true);
+    };
+
+    const socket = socketRef.current;
+
+    // 1. Attach listeners FIRST before emitting room events
+    socket.off("user-joined");
+    socket.off("user-left");
+    socket.off("call-made");
+    socket.off("call-accepted");
+    socket.off("ice-candidate");
+    socket.off("receive-message");
+    socket.off("call-declined");
+    socket.off("peer-ended-call");
+
+    socket.on("user-joined", handleUserJoined);
+    socket.on("user-left", handleUserLeft);
+    socket.on("call-made", handleCallMade);
+    socket.on("call-accepted", handleCallAccepted);
+    socket.on("ice-candidate", handleIceCandidate);
+    socket.on("receive-message", handleReceiveMessage);
+    socket.on("call-declined", handleCallDeclined);
+    socket.on("peer-ended-call", handlePeerEnded);
+
+    // 2. Join the room
+    if (roomCode) {
+      socket.emit("join-room", {
+        roomCode: String(roomCode),
+        userId: String(currentUserId),
+        userName: user?.name || "User"
+      });
+      console.log("[VOICE_SYNC] Joined consultation room:", roomCode);
+    }
+
+    // 3. Emit ringing notification ping to peer
+    if (
+      user?.role === "doctor" &&
+      peerIdFromUrl &&
+      searchParams.get("incoming") !== "true" &&
+      !hasEmittedSignal.current
+    ) {
+      hasEmittedSignal.current = true;
+      console.log("[VOICE_SYNC] Doctor emitting call notification signal to peer:", peerIdFromUrl);
+      socket.emit("call-user", {
+        userToCall: String(peerIdFromUrl),
+        signalData: null,
+        from: user?.userId || user?._id,
+        name: user?.name || "Doctor",
+        conversationId: roomCode,
+        callType: "voice"
+      });
+    }
+
+    // 4. Start local microphone stream
     const startStream = async () => {
       try {
         if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -433,193 +576,23 @@ const VoiceConsultation = () => {
           audio: true
         });
 
-        // Fix 11 — Verify microphone tracks
-        const audioTracks = currentStream.getAudioTracks();
-        console.log("================================");
-        console.log("[MIC] Audio tracks:", audioTracks);
-        audioTracks.forEach(track => {
-          console.log("[MIC] Track:", {
-            id: track.id,
-            enabled: track.enabled,
-            muted: track.muted,
-            readyState: track.readyState
-          });
-        });
-        console.log("================================");
-
         setStream(currentStream);
+        streamRef.current = currentStream;
 
-        if (roomCode) {
-          socketRef.current.emit(
-            "join-room",
-            {
-              roomCode: String(roomCode),
-              userId: String(currentUserId),
-              userName: user?.name || "User"
-            }
-          );
-
-          console.log(
-            "[VOICE_SYNC] Joined consultation room:",
-            roomCode
-          );
+        // If Doctor and peer socket was already discovered, call immediately
+        if (user?.role === "doctor" && targetSocketIdRef.current) {
+          console.log("[VOICE_SYNC] Stream ready, calling saved target socket:", targetSocketIdRef.current);
+          callUser(targetSocketIdRef.current, currentStream);
         }
 
-        // Socket Event Handlers
-        const handleUserJoined = ({ socketId, userId, userName }) => {
-          console.log(
-            "[VOICE_SYNC] USER JOINED:",
-            {
-              socketId,
-              userId,
-              userName,
-              myRole: user?.role
-            }
-          );
-
-          toast.success(`${userName} linked to voice session`);
-
-          // ONLY DOCTOR creates the offer
-          if (user?.role !== "doctor") {
-            console.log("[VOICE_SYNC] Patient waiting for doctor's offer");
-            return;
-          }
-
-          if (callStartedRef.current) {
-            console.log("[VOICE_SYNC] Call already started - ignoring duplicate join");
-            return;
-          }
-
-          if (!socketId) {
-            console.error("[VOICE_SYNC] No peer socket ID");
-            return;
-          }
-
-          callStartedRef.current = true;
-          targetSocketIdRef.current = String(socketId);
-
-          console.log("[VOICE_SYNC] STARTING ONE WEBRTC CALL:", socketId);
-
-          callUser(String(socketId), currentStream);
-        };
-
-        const handleCallMade = async (data) => {
-          console.log("🔥🔥🔥 PATIENT RECEIVED OFFER 🔥🔥🔥");
-          console.log(data);
-          try {
-            await answerCall(data, currentStream);
-          } catch (err) {
-            console.error("PATIENT ANSWER ERROR:", err);
-          }
-        };
-
-        const handleCallAccepted = async (data) => {
-          console.log("🔥 DOCTOR GOT ANSWER 🔥");
-          console.log(data);
-
-          if (data?.fromSocketId) {
-            targetSocketIdRef.current = String(data.fromSocketId);
-          }
-          const answer = data?.signal || data;
-          if (peerConnectionRef.current && answer) {
-            try {
-              if (peerConnectionRef.current.signalingState === 'have-local-offer') {
-                await peerConnectionRef.current.setRemoteDescription(new RTCSessionDescription(answer));
-                console.log("Doctor answer applied");
-              }
-              while (candidateQueue.current.length > 0) {
-                const candidate = candidateQueue.current.shift();
-                await peerConnectionRef.current.addIceCandidate(new RTCIceCandidate(candidate));
-              }
-            } catch (e) {
-              console.log("[NATIVE_WEBRTC] Answer already applied or state stable:", e?.message || e);
-            }
-          }
-        };
-
-        // Fix 10 — Keep ICE candidates queued correctly
-        const handleIceCandidate = async ({ candidate, fromSocketId }) => {
-          if (!candidate) return;
-          if (fromSocketId) {
-            targetSocketIdRef.current = String(fromSocketId);
-          }
-
-          const pc = peerConnectionRef.current;
-          if (pc && pc.remoteDescription) {
-            try {
-              await pc.addIceCandidate(new RTCIceCandidate(candidate));
-              console.log("[WEBRTC] ICE candidate added");
-            } catch (error) {
-              console.error("[WEBRTC] ICE candidate error:", error);
-            }
-          } else {
-            candidateQueue.current.push(candidate);
-            console.log("[WEBRTC] ICE candidate queued");
-          }
-        };
-
-        const handleReceiveMessage = (data) => setMessages(prev => [...prev, data]);
-        const handleCallDeclined = () => {
-          toast.error("Peer declined the voice node");
-          navigate(user?.role === 'doctor' ? '/doc-dashboard' : '/patient/dashboard');
-        };
-        const handlePeerEnded = () => {
-          toast.error("Peer disconnected the sync");
-          handleEndCall(true);
-        };
-
-        // Remove duplicate listeners before attaching
-        socketRef.current.off("user-joined");
-        socketRef.current.off("call-made");
-        socketRef.current.off("call-accepted");
-        socketRef.current.off("ice-candidate");
-        socketRef.current.off("receive-message");
-        socketRef.current.off("call-declined");
-        socketRef.current.off("peer-ended-call");
-
-        socketRef.current.on("user-joined", handleUserJoined);
-        socketRef.current.on("call-made", handleCallMade);
-        socketRef.current.on("call-accepted", handleCallAccepted);
-        socketRef.current.on("ice-candidate", handleIceCandidate);
-        socketRef.current.on("receive-message", handleReceiveMessage);
-        socketRef.current.on("call-declined", handleCallDeclined);
-        socketRef.current.on("peer-ended-call", handlePeerEnded);
-
-        // Initiate signaling after listeners are ready
+        // If pending offer was received while mic was loading, answer it
         const pendingSignalRaw = sessionStorage.getItem('pending_signal');
-        if (pendingSignalRaw && searchParams.get('incoming') === 'true') {
+        if (pendingSignalRaw) {
+          console.log("[VOICE_SYNC] Stream ready, answering cached offer");
           const parsed = JSON.parse(pendingSignalRaw);
           sessionStorage.removeItem('pending_signal');
-          const signal = parsed?.signal || parsed;
-          const fromSocketId = parsed?.fromSocketId;
-          answerCall({ signal, fromSocketId }, currentStream);
-        } else if (
-          user?.role === "doctor" &&
-          peerIdFromUrl &&
-          searchParams.get("incoming") !== "true" &&
-          !hasEmittedSignal.current
-        ) {
-          hasEmittedSignal.current = true;
-          console.log("[VOICE_SYNC] Doctor emitting call notification signal to peer:", peerIdFromUrl);
-          socketRef.current.emit("call-user", {
-            userToCall: String(peerIdFromUrl),
-            signalData: null,
-            from: user?.userId || user?._id,
-            name: user?.name || "Doctor",
-            conversationId: roomCode,
-            callType: "voice"
-          });
+          await answerCall(parsed, currentStream);
         }
-
-        return () => {
-          socketRef.current.off("user-joined", handleUserJoined);
-          socketRef.current.off("call-made", handleCallMade);
-          socketRef.current.off("call-accepted", handleCallAccepted);
-          socketRef.current.off("ice-candidate", handleIceCandidate);
-          socketRef.current.off("receive-message", handleReceiveMessage);
-          socketRef.current.off("call-declined", handleCallDeclined);
-          socketRef.current.off("peer-ended-call", handlePeerEnded);
-        };
       } catch (err) {
         console.error("[VOICE_SYNC_ERR]", err);
         toast.error("Microphone handshake failed.");
@@ -629,8 +602,24 @@ const VoiceConsultation = () => {
     startStream();
 
     return () => {
-      if (peerConnectionRef.current) peerConnectionRef.current.close();
-      if (stream) stream.getTracks().forEach(track => track.stop());
+      if (socket) {
+        socket.emit("leave-room", { roomCode });
+        socket.off("user-joined", handleUserJoined);
+        socket.off("user-left", handleUserLeft);
+        socket.off("call-made", handleCallMade);
+        socket.off("call-accepted", handleCallAccepted);
+        socket.off("ice-candidate", handleIceCandidate);
+        socket.off("receive-message", handleReceiveMessage);
+        socket.off("call-declined", handleCallDeclined);
+        socket.off("peer-ended-call", handlePeerEnded);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnectionRef.current) {
+        try { peerConnectionRef.current.close(); } catch (e) {}
+        peerConnectionRef.current = null;
+      }
     };
   }, [roomCode, globalSocket]);
 
@@ -684,6 +673,28 @@ const VoiceConsultation = () => {
 
     play();
   }, [remoteStream]);
+
+  // Unlock AudioContext and media playback on first touch/click
+  useEffect(() => {
+    const handleUserInteraction = () => {
+      if (userVideo.current) {
+        userVideo.current.play().catch(() => {});
+      }
+      if (remoteMeterCtxRef.current && remoteMeterCtxRef.current.state === 'suspended') {
+        remoteMeterCtxRef.current.resume();
+      }
+      if (audioCtxRef.current && audioCtxRef.current.state === 'suspended') {
+        audioCtxRef.current.resume();
+      }
+    };
+
+    window.addEventListener('click', handleUserInteraction);
+    window.addEventListener('touchstart', handleUserInteraction);
+    return () => {
+      window.removeEventListener('click', handleUserInteraction);
+      window.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, []);
 
   // Fix 7 — Don't let fallback audio interfere during WebRTC testing
   /*
@@ -798,6 +809,7 @@ const VoiceConsultation = () => {
     if (stream) stream.getTracks().forEach(track => track.stop());
 
     if (!isPeerEnded && socketRef.current) {
+      socketRef.current.emit("leave-room", { roomCode });
       socketRef.current.emit("end-call", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
       socketRef.current.emit("end-call-signal", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
     }
@@ -855,9 +867,9 @@ const VoiceConsultation = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className={`h-2.5 w-2.5 rounded-full ${callAccepted ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`} />
-                <span className={`text-xs font-black uppercase tracking-[0.2em] ${callAccepted ? 'text-emerald-400' : 'text-amber-400'}`}>
-                  {callAccepted ? "Neural Voice Tunnel Active" : "Ringing... Awaiting Peer Link"}
+                <span className={`h-2.5 w-2.5 rounded-full ${isActuallyConnected ? 'bg-emerald-500 animate-ping' : 'bg-amber-500 animate-pulse'}`} />
+                <span className={`text-xs font-black uppercase tracking-[0.2em] ${isActuallyConnected ? 'text-emerald-400' : 'text-amber-400'}`}>
+                  {isActuallyConnected ? "Neural Voice Tunnel Active" : "Ringing... Awaiting Peer Link"}
                 </span>
               </div>
               <h1 className="text-lg font-bold tracking-tight mt-0.5">

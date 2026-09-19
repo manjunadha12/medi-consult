@@ -1,0 +1,125 @@
+{
+  "book_metadata": {
+    "title": "Bradley and Daroff's Neurology in Clinical Practice",
+    "edition": "8th Edition",
+    "editors": [
+      "Joseph Jankovic, MD",
+      "John C. Mazziotta, MD, PhD",
+      "Scott L. Pomeroy, MD, PhD",
+      "Nancy J. Newman, MD"
+    ],
+    "publisher": "Elsevier Inc.",
+    "domain": "Neurology & Neurosciences",
+    "version": "8.0.0",
+    "pdf_reference_file": "medical-db/neurology/bradley-and-daroffs-neurology-in-clinical-practice-8th-ed.pdf",
+    "full_text_markdown_path": "medical-db/neurology/neurology_in_clinical_practice.md"
+  },
+  "sections": [
+    {
+      "section_number": 1,
+      "title": "Principles of Clinical Neurodiagnosis & Localization",
+      "key_topics": [
+        "Systematic Neurological Examination",
+        "UMN vs LMN Lesion Differentiation",
+        "CSF Analysis & Lumbar Puncture Reference Ranges",
+        "Electroencephalography (EEG) & Evoked Potentials",
+        "Electromyography (EMG) & Nerve Conduction Studies (NCS)",
+        "Neuroimaging (CT & MRI)"
+      ],
+      "csf_reference_ranges": {
+        "opening_pressure_mm_h2o": { "min": 70, "max": 200 },
+        "white_blood_cells_per_ul": { "min": 0, "max": 5 },
+        "protein_mg_dl": { "min": 15, "max": 45 },
+        "glucose_mg_dl": { "min": 50, "max": 80 },
+        "csf_serum_glucose_ratio": { "min": 0.6 }
+      }
+    },
+    {
+      "section_number": 2,
+      "title": "Cerebrovascular Diseases & Stroke",
+      "key_topics": [
+        "Acute Ischemic Stroke",
+        "NIHSS Severity Scale (0-42)",
+        "IV Thrombolysis (rtPA Alteplase 0.9 mg/kg within 4.5 hours)",
+        "Endovascular Thrombectomy (EVT within 6 to 24 hours)",
+        "Intracerebral Hemorrhage (ICH)",
+        "Subarachnoid Hemorrhage (SAH) & Hunt-Hess Scale",
+        "Cerebral Venous Sinus Thrombosis (CVST)"
+      ]
+    },
+    {
+      "section_number": 3,
+      "title": "Epilepsy & Paroxysmal Disorders",
+      "key_topics": [
+        "ILAE 2017 Seizure & Epilepsy Classification",
+        "Status Epilepticus Emergency Protocol",
+        "Phase 1: IV Lorazepam / Diazepam (0-5 min)",
+        "Phase 2: IV Levetiracetam / Fosphenytoin / Valproate (5-20 min)",
+        "Phase 3: Continuous Midazolam / Propofol ICU Infusion (> 20 min)"
+      ]
+    },
+    {
+      "section_number": 4,
+      "title": "Dementias & Neurodegenerative Disorders",
+      "key_topics": [
+        "Alzheimer's Disease (Amyloid beta & Tau biomarkers)",
+        "Dementia with Lewy Bodies (Visual hallucinations, Parkinsonism, REM sleep disorder)",
+        "Frontotemporal Dementia (Behavioral variant & Primary Progressive Aphasia)",
+        "Parkinson's Disease (Tremor, Rigidity, Bradykinesia, Postural Instability)",
+        "Atypical Parkinsonism (PSP, MSA, CBD)",
+        "Amyotrophic Lateral Sclerosis (ALS / Lou Gehrig's Disease)"
+      ]
+    },
+    {
+      "section_number": 5,
+      "title": "Neuro-Immunological & Demyelinating Diseases",
+      "key_topics": [
+        "Multiple Sclerosis (MS) & McDonald Criteria 2017 (DIS & DIT)",
+        "CSF Oligoclonal Bands (OCBs)",
+        "Neuromyelitis Optica Spectrum Disorder (NMOSD - AQP4-IgG positive)",
+        "MOG Antibody-Associated Disease (MOGAD)",
+        "Autoimmune Encephalitis (Anti-NMDAR, LGI1, CASPR2)"
+      ]
+    },
+    {
+      "section_number": 6,
+      "title": "Neuromuscular Junction & Peripheral Nerve Disorders",
+      "key_topics": [
+        "Myasthenia Gravis (AChR & MuSK antibodies, decremental RNS, Pyridostigmine)",
+        "Lambert-Eaton Myasthenic Syndrome (P/Q-type VGCC, SCLC association, incremental RNS)",
+        "Guillain-Barré Syndrome (AIDP, Albuminocytological dissociation, IVIG / PLEX)",
+        "CIDP",
+        "Diabetic Polyneuropathy & Charcot-Marie-Tooth (CMT)"
+      ]
+    },
+    {
+      "section_number": 7,
+      "title": "Central Nervous System Infections",
+      "key_topics": [
+        "Acute Bacterial Meningitis (Empirical Ceftriaxone + Vancomycin + Ampicillin + Dexamethasone)",
+        "Herpes Simplex Virus (HSV-1) Encephalitis (Temporal lobe T2/FLAIR hyperintensity, IV Acyclovir)",
+        "Prion Diseases (Creutzfeldt-Jakob Disease CJD - 14-3-3 protein, RT-QuIC)"
+      ]
+    },
+    {
+      "section_number": 8,
+      "title": "Headache, Pain & Cranial Neuropathies",
+      "key_topics": [
+        "Migraine (Triptans, CGRP antagonists Rimegepant/Erenumab, Topiramate, Propranolol)",
+        "Tension-Type Headache",
+        "Cluster Headache (100% High-Flow O2, Subcutaneous Sumatriptan, Verapamil prophylaxis)",
+        "Idiopathic Intracranial Hypertension (IIH - Papilledema, Acetazolamide, LP shunting)",
+        "Trigeminal Neuralgia (Carbamazepine 1st-line, Microvascular Decompression)"
+      ]
+    },
+    {
+      "section_number": 9,
+      "title": "Traumatic Brain Injury & Spinal Cord Pathologies",
+      "key_topics": [
+        "Glasgow Coma Scale (GCS 3-15)",
+        "Epidural vs Subdural Hematoma",
+        "Spinal Cord Syndromes (Complete, Brown-Sequard, Central Cord, Anterior Cord, Cauda Equina)"
+      ]
+    }
+  ]
+}

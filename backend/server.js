@@ -1,4 +1,4 @@
-import express from 'express'; // Node Trigger: 21:09 - Backend Heartbeat Stability Fix
+import express from 'express'; // Node Trigger: 00:15 - Health Progress Engine Active
 import dotenv from 'dotenv';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -18,11 +18,12 @@ import doctorRoutes from './routes/doctors.js';
 import adminRoutes from './routes/admin.js';
 import patientRoutes from './routes/patients.js';
 import medicineRoutes from './routes/medicines.js';
-import healthRoutes from './routes/health.js';
+import healthRoutes from './routes/healthRoutes.js';
 import appointmentRoutes from './routes/appointments.js';
 import referralRoutes from './routes/referrals.js';
 import chatRoutes from './routes/chat.js';
 import diagnosisRoutes from './routes/diagnosis.js';
+import offlineAppointmentRoutes from './routes/offlineAppointments.js';
 import { standardLimiter } from './middleware/rateLimit.js';
 import { ssrfShield } from './middleware/ssrfShield.js';
 import { institutionalLogger } from './middleware/institutionalLogger.js';
@@ -79,11 +80,20 @@ const allowedOrigins = [
   'https://localhost:5173',
   'http://127.0.0.1:5173',
   'https://127.0.0.1:5173',
+  'http://192.168.1.6:5173',
+  'https://192.168.1.6:5173',
+  'http://192.168.1.6:5001',
+  'http://192.168.1.6:5000',
+  'http://10.241.68.15:5173',
+  'https://10.241.68.15:5173',
+  'http://10.241.68.15:5001',
+  'http://10.241.68.15:5000',
+  'http://10.84.153.15:5173',
+  'https://10.84.153.15:5173',
   'http://10.80.61.15:5173',
   'https://10.80.61.15:5173',
-  'http://10.80.61.15',
-  'https://10.80.61.15',
   'http://192.168.1.17:5173',
+  'https://192.168.1.17:5173',
   'http://localhost',
   'https://localhost',
   'capacitor://localhost',
@@ -92,16 +102,18 @@ const allowedOrigins = [
 
 app.use(cors({
   origin: function (origin, callback) {
-    // 1. Allow mobile apps (they often have NO origin or 'localhost' origin)
+    // 1. Allow mobile apps & requests without origin header (Postman, native webview)
     if (!origin || origin === 'null' || origin === 'localhost' || origin.startsWith('capacitor://') || origin.startsWith('http://localhost') || origin.startsWith('https://localhost')) {
       return callback(null, true);
     }
 
-    // 2. Allow known IP-based origins
-    if (allowedOrigins.indexOf(origin) !== -1 ||
-      origin.startsWith('http://10.') ||
-      origin.startsWith('http://172.23.') ||
-      origin.startsWith('http://192.168.')) {
+    // 2. Allow known IP-based origins (both HTTP and HTTPS)
+    const isLocalIP = origin.startsWith('http://10.') || origin.startsWith('https://10.') ||
+                      origin.startsWith('http://172.') || origin.startsWith('https://172.') ||
+                      origin.startsWith('http://192.168.') || origin.startsWith('https://192.168.') ||
+                      origin.startsWith('http://127.0.0.1') || origin.startsWith('https://127.0.0.1');
+
+    if (allowedOrigins.indexOf(origin) !== -1 || isLocalIP) {
       callback(null, true);
     } else {
       console.warn(`[CORS_BLOCK] Origin unauthorized: ${origin}`);
@@ -139,7 +151,13 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use('/uploads', cors(), express.static(path.join(__dirname, 'uploads'), {
+  setHeaders: (res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
+    res.set('Cross-Origin-Resource-Policy', 'cross-origin');
+  }
+}));
 
 // Root Route
 app.get('/', (req, res) => {
@@ -163,6 +181,7 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/medicines', medicineRoutes);
 app.use('/api/health', healthRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/offline-appointments', offlineAppointmentRoutes);
 app.use('/api/chat', chatRoutes);
 
 // Catch-all 404
@@ -176,14 +195,54 @@ io.on("connection", (socket) => {
   console.log(`[SOCKET] Handshake Initialized: ${socket.id}`);
 
   socket.on("register-user", (userId) => {
-    socket.join(userId);
-    console.log(`User registered in personal room: ${userId}`);
+    socket.userId = String(userId);
+    socket.join(String(userId));
+    console.log(`[SOCKET] User registered in personal room: ${userId}`);
   });
 
   socket.on("join-room", ({ roomCode, userId, userName }) => {
-    socket.join(roomCode);
-    console.log(`${userName} joined room: ${roomCode}`);
-    socket.to(roomCode).emit("user-joined", { userId, userName, socketId: socket.id });
+    socket.userId = String(userId);
+    socket.userName = userName;
+    socket.currentRoom = String(roomCode);
+
+    // 1. Get raw sockets in the room before joining
+    const rawSockets = Array.from(io.sockets.adapter.rooms.get(String(roomCode)) || []);
+
+    // 2. Filter out dead/disconnected or duplicate sockets for the same user
+    const activeExistingSockets = [];
+    rawSockets.forEach(sId => {
+      if (sId === socket.id) return;
+      const s = io.sockets.sockets.get(sId);
+      if (s && s.connected) {
+        // If this existing socket belongs to the exact same userId, remove the stale socket from room
+        if (s.userId && socket.userId && s.userId === socket.userId) {
+          console.log(`[ROOM_SYNC] Removing older duplicate socket ${sId} for user ${userId} from room ${roomCode}`);
+          s.leave(String(roomCode));
+        } else {
+          activeExistingSockets.push(s);
+        }
+      }
+    });
+
+    socket.join(String(roomCode));
+    console.log(`[ROOM_SYNC] ${userName} (${userId}, socket: ${socket.id}) joined room: ${roomCode}. Active peers:`, activeExistingSockets.map(s => s.id));
+
+    // Notify other users already in the room about this new user
+    socket.to(String(roomCode)).emit("user-joined", { 
+      userId, 
+      userName, 
+      socketId: socket.id 
+    });
+
+    // Notify this newly joined user ONLY about currently active/connected peers
+    activeExistingSockets.forEach((peerSocket) => {
+      console.log(`[ROOM_SYNC] Informing new joiner ${socket.id} about active existing peer ${peerSocket.id} (${peerSocket.userName || 'Peer'})`);
+      socket.emit("user-joined", { 
+        userId: peerSocket.userId || null, 
+        userName: peerSocket.userName || "Peer", 
+        socketId: peerSocket.id 
+      });
+    });
   });
 
   socket.on("chat-message", (data) => {
@@ -200,6 +259,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("call-user", ({ userToCall, signalData, from, name, conversationId, callType, isP2P }) => {
+    console.log(`[CALL_SIGNAL] ${name || from} (${socket.id}) calling user/room: ${userToCall} (${callType || 'video'}, signal: ${signalData ? 'offer' : 'ping'})`);
     io.to(String(userToCall)).emit("call-made", {
       signal: signalData,
       from,
@@ -212,6 +272,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("make-answer", ({ to, signal }) => {
+    console.log(`[CALL_SIGNAL] Socket ${socket.id} answering call to ${to}`);
     io.to(String(to)).emit("call-accepted", { signal, fromSocketId: socket.id });
   });
 
@@ -220,6 +281,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("decline-call", ({ to, roomCode }) => {
+    console.log(`[CALL_SIGNAL] Socket ${socket.id} declined call to ${to} / room ${roomCode}`);
     if (to) io.to(String(to)).emit("call-declined");
     if (roomCode) io.to(String(roomCode)).emit("call-declined");
   });
@@ -227,11 +289,27 @@ io.on("connection", (socket) => {
   socket.on("end-call", ({ to, roomCode, conversationId }) => {
     if (to) io.to(String(to)).emit("peer-ended-call");
     const room = roomCode || conversationId;
-    if (room) io.to(String(room)).emit("peer-ended-call");
+    if (room) {
+      io.to(String(room)).emit("peer-ended-call");
+      socket.leave(String(room));
+    }
   });
 
-  socket.on("disconnect", () => {
-    console.log("User disconnected");
+  socket.on("leave-room", ({ roomCode }) => {
+    const room = roomCode || socket.currentRoom;
+    if (room) {
+      console.log(`[ROOM_SYNC] Socket ${socket.id} explicitly left room ${room}`);
+      socket.leave(String(room));
+      socket.to(String(room)).emit("user-left", { socketId: socket.id, userId: socket.userId });
+      socket.currentRoom = null;
+    }
+  });
+
+  socket.on("disconnect", (reason) => {
+    console.log(`[SOCKET] User disconnected: ${socket.id} (reason: ${reason})`);
+    if (socket.currentRoom) {
+      socket.to(String(socket.currentRoom)).emit("user-left", { socketId: socket.id, userId: socket.userId });
+    }
   });
 });
 

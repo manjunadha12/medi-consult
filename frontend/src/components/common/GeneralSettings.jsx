@@ -3,7 +3,7 @@ import Navbar from './Navbar';
 import {
   Sun, Moon, Shield, Bell, Monitor, Lock, Trash2,
   LogOut, Lightbulb, ChevronRight, Database, Users, Info, CheckCircle,
-  Settings, Download, RefreshCw, Smartphone as MobileIcon, Sparkles, Activity, Scale, ArrowUp
+  Settings, Download, RefreshCw, Smartphone as MobileIcon, Sparkles, Activity, Scale, ArrowUp, Cpu, Zap, Brain
 } from 'lucide-react';
 import useStore from '../../store/useStore';
 import { toast } from 'react-hot-toast';
@@ -156,12 +156,15 @@ const GeneralSettings = () => {
                       <div className="space-y-4">
                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest block px-1 text-left">UI Density</label>
                         <select
-                          value={uiDensity}
-                          onChange={(e) => setUiDensity(e.target.value)}
+                          value={store.uiDensity || 'Comfortable'}
+                          onChange={(e) => {
+                            store.setUiDensity(e.target.value);
+                            toast.success(`UI Density set to ${e.target.value}`);
+                          }}
                           className={`w-full p-5 rounded-3xl border text-xs font-black uppercase tracking-widest outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-100 text-slate-700'}`}
                         >
-                          <option>Comfortable</option>
-                          <option>Compact</option>
+                          <option value="Comfortable">Comfortable</option>
+                          <option value="Compact">Compact</option>
                         </select>
                       </div>
                     </div>

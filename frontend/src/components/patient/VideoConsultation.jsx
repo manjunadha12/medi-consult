@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
-import api from '../../utils/api';
+import api, { ICE_SERVERS } from '../../utils/api';
 import FloatingVideo from '../common/FloatingVideo';
 import CommLinkPopup from '../common/CommLinkPopup';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -157,11 +157,7 @@ const VideoConsultation = () => {
     }
 
     const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-      ]
+      iceServers: ICE_SERVERS
     });
 
     peerConnectionRef.current = pc;
@@ -212,6 +208,7 @@ const VideoConsultation = () => {
         pc.connectionState === "closed"
       ) {
         console.warn("[VIDEO] WebRTC connection:", pc.connectionState);
+        setCallAccepted(false);
       }
     };
 
@@ -295,11 +292,21 @@ const VideoConsultation = () => {
           audio: true
         });
         setStream(currentStream);
+        streamRef.current = currentStream;
         if (myVideo.current) {
           myVideo.current.srcObject = currentStream;
           myVideo.current.muted = true;
           myVideo.current.playsInline = true;
           await myVideo.current.play().catch(() => {});
+        }
+
+        // WebRTC Signaling Sync: Check if offer was cached in sessionStorage while camera stream was loading
+        const pendingSignalRaw = sessionStorage.getItem('pending_signal');
+        if (pendingSignalRaw) {
+          console.log("[VIDEO_SYNC] Local stream ready, answering pending call-made offer");
+          const parsed = JSON.parse(pendingSignalRaw);
+          sessionStorage.removeItem('pending_signal');
+          answerCall(parsed, currentStream);
         }
       } catch (err) {
         console.error("[HARDWARE_SYNC_ERR]", err);
@@ -319,6 +326,8 @@ const VideoConsultation = () => {
 
     const handleCallMade = (data) => {
       console.log("[VIDEO] Patient received call-made:", data);
+      const offerSignal = data?.signal || data?.signalData;
+      if (!offerSignal) return; // Notification ping only
       if (streamRef.current) {
         answerCall(data, streamRef.current);
       } else {
@@ -374,6 +383,20 @@ const VideoConsultation = () => {
       }
     };
 
+    const handleUserLeft = ({ socketId }) => {
+      console.log("[VIDEO] Doctor left room:", socketId);
+      if (!targetSocketIdRef.current || targetSocketIdRef.current === String(socketId)) {
+        toast.error("Doctor left consultation room");
+        setCallAccepted(false);
+        setRemoteStream(null);
+        hasEmittedSignal.current = false;
+        if (peerConnectionRef.current) {
+          try { peerConnectionRef.current.close(); } catch (e) {}
+          peerConnectionRef.current = null;
+        }
+      }
+    };
+
     const handleReceiveMessage = (data) => setMessages(prev => [...prev, data]);
     const handleCallDeclined = () => {
       toast.error("Peer declined the call node");
@@ -386,6 +409,7 @@ const VideoConsultation = () => {
 
     const setupListeners = () => {
       socketRef.current.on("user-joined", handleUserJoined);
+      socketRef.current.on("user-left", handleUserLeft);
       socketRef.current.on("call-made", handleCallMade);
       socketRef.current.on("call-accepted", handleCallAccepted);
       socketRef.current.on("ice-candidate", handleIceCandidate);
@@ -398,6 +422,25 @@ const VideoConsultation = () => {
           roomCode: String(roomCode),
           userId: String(user.userId || user._id),
           userName: user.name
+        });
+      }
+
+      // Emit ringing notification to peer if patient initiated the call
+      if (
+        peerIdFromUrl &&
+        searchParams.get("incoming") !== "true" &&
+        !hasEmittedSignal.current
+      ) {
+        hasEmittedSignal.current = true;
+        console.log("[VIDEO_SYNC] Patient emitting video call notification signal to peer:", peerIdFromUrl);
+        socketRef.current.emit("call-user", {
+          userToCall: String(peerIdFromUrl),
+          signalData: null,
+          from: user?.userId || user?._id,
+          name: user?.name || "Patient",
+          conversationId: roomCode,
+          callType: "video",
+          isP2P: false
         });
       }
 
@@ -418,18 +461,23 @@ const VideoConsultation = () => {
     startStream();
 
     return () => {
-      if (peerConnectionRef.current) peerConnectionRef.current.close();
-      // NO STOP TRACK HERE to avoid race condition with re-renders
-      // Track stop is handled in handleEndCall
-
       if (socketRef.current) {
+        socketRef.current.emit("leave-room", { roomCode });
         socketRef.current.off("user-joined", handleUserJoined);
+        socketRef.current.off("user-left", handleUserLeft);
         socketRef.current.off("call-made", handleCallMade);
         socketRef.current.off("call-accepted", handleCallAccepted);
         socketRef.current.off("ice-candidate", handleIceCandidate);
         socketRef.current.off("receive-message", handleReceiveMessage);
         socketRef.current.off("call-declined", handleCallDeclined);
         socketRef.current.off("peer-ended-call", handlePeerEnded);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnectionRef.current) {
+        try { peerConnectionRef.current.close(); } catch (e) {}
+        peerConnectionRef.current = null;
       }
     };
   }, [roomCode, globalSocket]); // REMOVED stream dependency
@@ -603,9 +651,9 @@ const VideoConsultation = () => {
                   <div className="text-left overflow-hidden max-w-[80px] sm:max-w-none">
                     <p className="text-[10px] sm:text-base font-black text-white uppercase tracking-tight leading-none truncate">{peerNameFromUrl || 'Dr. Specialist'}</p>
                     <div className="flex items-center gap-2 mt-1 sm:mt-2">
-                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${callAccepted ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'} animate-pulse`}></div>
+                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${callAccepted && remoteStream ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'} animate-pulse`}></div>
                       <span className="text-[7px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                        {callAccepted ? `VOICE PEER: ${remoteAudioLevel}%` : 'PENDING'}
+                        {callAccepted && remoteStream ? `VOICE PEER: ${remoteAudioLevel}%` : 'AWAITING LINK'}
                       </span>
                     </div>
                   </div>

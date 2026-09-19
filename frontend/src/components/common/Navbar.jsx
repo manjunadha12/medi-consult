@@ -21,6 +21,33 @@ const Navbar = () => {
   const notificationsRef = useRef(null);
   const searchRef = useRef(null);
 
+  const [isScrolledUp, setIsScrolledUp] = useState(false);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const mainEl = document.querySelector('main');
+      const currentScrollY = mainEl ? mainEl.scrollTop : (window.scrollY || document.documentElement.scrollTop || 0);
+      if (currentScrollY < lastScrollY.current && currentScrollY > 30) {
+        setIsScrolledUp(true);
+      } else {
+        setIsScrolledUp(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    const mainEl = document.querySelector('main');
+    if (mainEl) {
+      mainEl.addEventListener('scroll', handleScroll, { passive: true });
+    }
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (mainEl) mainEl.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
   useEffect(() => {
     const delayDebounceFn = setTimeout(async () => {
       if (searchQuery.length >= 2 && user) {
@@ -127,7 +154,7 @@ const Navbar = () => {
       theme === 'dark'
         ? 'bg-zinc-950/90 border-white/10'
         : 'bg-white/90 border-slate-200 shadow-sm'
-    }`}>
+    } ${isScrolledUp ? 'border-blue-500/40 shadow-[0_10px_35px_rgba(37,99,235,0.25)] animate-scroll-up' : ''}`}>
 
       <div className="flex items-center gap-4 shrink-0 mr-2 sm:mr-6">
         {showSidebar && (
@@ -140,11 +167,15 @@ const Navbar = () => {
              <Menu size={20} />
            </button>
         )}
-        <div className="cursor-pointer" onClick={() => navigate('/')}>
+        <div
+          className="cursor-pointer flex items-center hover:scale-105 transition-all duration-300"
+          onClick={() => navigate('/')}
+        >
           <img
-            src={logoImg}
-            alt="Medi"
-            className="h-7 sm:h-10 w-auto object-contain transition-all duration-300"
+            src="/logo.png"
+            onError={(e) => { e.currentTarget.src = logoImg; }}
+            alt="Medi Consult"
+            className="h-8 sm:h-10 w-auto object-contain"
           />
         </div>
       </div>

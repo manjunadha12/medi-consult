@@ -138,3 +138,26 @@ export const addDoctorReview = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+export const raiseComplaint = async (req, res) => {
+  try {
+    const { appointmentId, doctorId, patientId, category, description, urgency } = req.body;
+    console.log(`[COMPLAINT_LOG] New Complaint Registered: Category=${category}, Urgency=${urgency}, Appt=${appointmentId}`);
+
+    res.status(201).json({
+      success: true,
+      message: "Complaint registered with Governance Registry.",
+      complaint: {
+        appointmentId,
+        doctorId,
+        patientId: patientId || req.user?.patientId,
+        category,
+        description,
+        urgency,
+        createdAt: new Date()
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

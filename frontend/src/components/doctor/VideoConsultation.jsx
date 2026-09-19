@@ -7,7 +7,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
-import api from '../../utils/api';
+import api, { ICE_SERVERS } from '../../utils/api';
 import FloatingVideo from '../common/FloatingVideo';
 import CommLinkPopup from '../common/CommLinkPopup';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -53,6 +53,8 @@ const VideoConsultation = () => {
   const socketRef = useRef(globalSocket);
   const candidateQueue = useRef([]);
   const hasEmittedSignal = useRef(false);
+  const hasEmittedNotification = useRef(false);
+  const callStartedRef = useRef(false);
   const remoteMeterCtxRef = useRef(null);
 
   // Sync stream state to ref
@@ -160,11 +162,7 @@ const VideoConsultation = () => {
     }
 
     const pc = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:global.stun.twilio.com:3478' }
-      ]
+      iceServers: ICE_SERVERS
     });
 
     peerConnectionRef.current = pc;
@@ -185,11 +183,14 @@ const VideoConsultation = () => {
         remoteStreamRef.current.addTrack(event.track);
         streamToUse = remoteStreamRef.current;
       }
-      setRemoteStream(streamToUse);
+      const freshStream = new MediaStream(streamToUse.getTracks());
+      setRemoteStream(freshStream);
       setCallAccepted(true);
       if (userVideo.current) {
-        userVideo.current.srcObject = streamToUse;
-        userVideo.current.play().catch(() => {});
+        userVideo.current.srcObject = freshStream;
+        userVideo.current.muted = false;
+        userVideo.current.playsInline = true;
+        userVideo.current.play().catch(e => console.warn("[REMOTE_VIDEO_PLAY_ERR]", e));
       }
     };
 
@@ -215,6 +216,7 @@ const VideoConsultation = () => {
         pc.connectionState === "closed"
       ) {
         console.warn("[VIDEO] WebRTC connection:", pc.connectionState);
+        setCallAccepted(false);
       }
     };
 
@@ -338,11 +340,19 @@ const VideoConsultation = () => {
           audio: true
         });
         setStream(currentStream);
+        streamRef.current = currentStream;
         if (myVideo.current) {
           myVideo.current.srcObject = currentStream;
           myVideo.current.muted = true;
           myVideo.current.playsInline = true;
           await myVideo.current.play().catch(() => {});
+        }
+
+        // WebRTC Signaling Sync: If patient was already in room or targetSocketIdRef set, call immediately
+        if (targetSocketIdRef.current && !callStartedRef.current) {
+          console.log("[VIDEO_SYNC] Local stream ready, triggering callUser to target:", targetSocketIdRef.current);
+          callStartedRef.current = true;
+          callUser(targetSocketIdRef.current, currentStream);
         }
       } catch (err) {
         console.error("[HARDWARE_SYNC_ERR]", err);
@@ -351,16 +361,31 @@ const VideoConsultation = () => {
     };
 
     const handleUserJoined = ({ socketId, userName }) => {
-      console.log("[VIDEO] Patient joined:", socketId);
-      toast.success(`${userName} linked to session`);
+      console.log("[VIDEO] Patient joined room:", socketId);
+      if (!socketId) return;
+
+      toast.success(`${userName || "Patient"} linked to session`);
       targetSocketIdRef.current = String(socketId);
-      if (streamRef.current) {
-        callUser(String(socketId), streamRef.current);
+
+      if (callStartedRef.current) {
+        console.log("[VIDEO] Call already started - ignoring duplicate join");
+        return;
+      }
+
+      const activeStream = streamRef.current || stream;
+      if (activeStream) {
+        callStartedRef.current = true;
+        console.log("[VIDEO] STARTING WEBRTC CALL TO:", socketId);
+        callUser(String(socketId), activeStream);
+      } else {
+        console.log("[VIDEO] Patient joined, awaiting local camera stream to complete callUser...");
       }
     };
 
     const handleCallMade = (data) => {
       console.log("[VIDEO] Doctor received call-made:", data);
+      const offerSignal = data?.signal || data?.signalData;
+      if (!offerSignal) return; // Notification ping only
       if (streamRef.current) {
         answerCall(data, streamRef.current);
       } else {
@@ -404,6 +429,20 @@ const VideoConsultation = () => {
       } catch (err) {}
     };
 
+    const handleUserLeft = ({ socketId }) => {
+      console.log("[VIDEO] Peer left room:", socketId);
+      if (!targetSocketIdRef.current || targetSocketIdRef.current === String(socketId)) {
+        toast.error("Patient left consultation room");
+        setCallAccepted(false);
+        setRemoteStream(null);
+        hasEmittedSignal.current = false;
+        if (peerConnectionRef.current) {
+          try { peerConnectionRef.current.close(); } catch (e) {}
+          peerConnectionRef.current = null;
+        }
+      }
+    };
+
     const handleReceiveMessage = (data) => setMessages(prev => [...prev, data]);
     const handleCallDeclined = () => {
       toast.error("Peer declined the call node");
@@ -416,6 +455,7 @@ const VideoConsultation = () => {
 
     const socket = socketRef.current;
     socket.on("user-joined", handleUserJoined);
+    socket.on("user-left", handleUserLeft);
     socket.on("call-made", handleCallMade);
     socket.on("call-accepted", handleCallAccepted);
     socket.on("ice-candidate", handleIceCandidate);
@@ -428,6 +468,25 @@ const VideoConsultation = () => {
         roomCode: String(roomCode),
         userId: String(user.userId || user._id),
         userName: user.name
+      });
+    }
+
+    // Emit ringing notification to peer if this user initiated the call
+    if (
+      patientIdFromUrl &&
+      searchParams.get("incoming") !== "true" &&
+      !hasEmittedNotification.current
+    ) {
+      hasEmittedNotification.current = true;
+      console.log("[VIDEO_SYNC] Doctor emitting video call notification signal to peer:", patientIdFromUrl);
+      socket.emit("call-user", {
+        userToCall: String(patientIdFromUrl),
+        signalData: null,
+        from: user?.userId || user?._id,
+        name: user?.name || "Doctor",
+        conversationId: roomCode,
+        callType: "video",
+        isP2P
       });
     }
 
@@ -446,15 +505,23 @@ const VideoConsultation = () => {
     startStream();
 
     return () => {
-      if (peerConnectionRef.current) peerConnectionRef.current.close();
       if (socket) {
+        socket.emit("leave-room", { roomCode });
         socket.off("user-joined", handleUserJoined);
+        socket.off("user-left", handleUserLeft);
         socket.off("call-made", handleCallMade);
         socket.off("call-accepted", handleCallAccepted);
         socket.off("ice-candidate", handleIceCandidate);
         socket.off("receive-message", handleReceiveMessage);
         socket.off("call-declined", handleCallDeclined);
         socket.off("peer-ended-call", handlePeerEnded);
+      }
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+      if (peerConnectionRef.current) {
+        try { peerConnectionRef.current.close(); } catch (e) {}
+        peerConnectionRef.current = null;
       }
     };
   }, [roomCode, globalSocket]);
@@ -579,9 +646,9 @@ const VideoConsultation = () => {
 
             {/* 1. REMOTE VIDEO (PATIENT) - FULL BACKGROUND */}
             <div className="absolute inset-0 z-0 bg-black">
-              <video playsInline ref={userVideo} autoPlay className={`w-full h-full object-cover ${callAccepted && !callEnded ? 'block' : 'hidden'}`} />
-              {(!callAccepted || callEnded) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B]">
+              <video playsInline ref={userVideo} autoPlay className="w-full h-full object-cover" />
+              {(!callAccepted || callEnded || !remoteStream) && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#09090B]">
                   <div className="relative">
                     <div className="absolute inset-0 bg-blue-600/20 blur-[100px] rounded-full animate-pulse"></div>
                     <div className="w-48 h-48 bg-white/5 border border-white/10 rounded-full flex items-center justify-center relative z-10 shadow-2xl">
@@ -655,9 +722,9 @@ const VideoConsultation = () => {
                   <div className="text-left overflow-hidden max-w-[80px] sm:max-w-none">
                     <p className="text-[10px] sm:text-base font-black text-white uppercase tracking-tight leading-none truncate">{patientNameFromUrl || (isP2P ? 'Peer' : 'Patient')}</p>
                     <div className="flex items-center gap-2 mt-1 sm:mt-2">
-                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${callAccepted ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'} animate-pulse`}></div>
+                      <div className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full ${callAccepted && remoteStream ? 'bg-emerald-500 shadow-[0_0_10px_#10b981]' : 'bg-amber-500 shadow-[0_0_10px_#f59e0b]'} animate-pulse`}></div>
                       <span className="text-[7px] sm:text-[10px] font-black text-blue-500 uppercase tracking-widest">
-                        {callAccepted ? `VOICE PEER: ${remoteAudioLevel}%` : 'PENDING'}
+                        {callAccepted && remoteStream ? `VOICE PEER: ${remoteAudioLevel}%` : 'AWAITING LINK'}
                       </span>
                     </div>
                   </div>

@@ -52,11 +52,11 @@ export const toggleMeetingReady = async (req, res) => {
 export const bookOP = async (req, res) => {
   try {
     const { doctorId, department, date, time, problemDescription, consultationType, paymentMethod, fee, transactionId } = req.body;
-    const patientId = req.user.patientId;
+    let patientId = req.user?.patientId || req.user?.humanId;
 
     if (!patientId) {
-      console.warn(`[BOOKING_BLOCK] User ${req.user._id} is not synchronized as a Patient.`);
-      return res.status(400).json({ success: false, message: "User node not fully synchronized as Patient. Please re-login." });
+      patientId = `PAT-${Math.floor(1000 + Math.random() * 9000)}`;
+      await User.findByIdAndUpdate(req.user._id, { patientId });
     }
 
     if (!doctorId) {
@@ -90,7 +90,7 @@ export const bookOP = async (req, res) => {
       fee: fee || 0,
       paymentStatus: 'Pending',
       transactionId: transactionId || undefined,
-      paymentScreenshot: req.file ? req.file.path : undefined
+      paymentScreenshot: req.file ? `/uploads/${req.file.path.replace(/\\/g, '/').split('/uploads/')[1]}` : undefined
     });
 
     // If Razorpay, create order
@@ -182,20 +182,23 @@ export const generateManualToken = async (req, res) => {
 
 export const getDoctorQueue = async (req, res) => {
   try {
-    const doctorId = req.user.doctorId;
-    // Get pending or live appointments for this doctor
+    const doctorId = req.user.doctorId || req.user._id || req.user.id;
+    // Find all appointments for this doctor so both active nodes and past buffer history are returned
     const queue = await Appointment.find({
-      doctorId,
-      status: { $in: ['Pending', 'Live'] }
-    }).sort({ createdAt: 1 });
+      $or: [
+        { doctorId },
+        { doctorId: req.user.doctorId },
+        { doctorId: req.user._id }
+      ].filter(Boolean)
+    }).sort({ createdAt: -1 });
 
-    // Enrich with patient names (if needed)
+    // Enrich with patient names
     const enrichedQueue = await Promise.all(queue.map(async (app) => {
       const patient = await User.findOne({ patientId: app.patientId });
       return {
         ...app._doc,
-        patientName: patient?.name || 'Unknown Patient',
-        age: 30 // Mock age or fetch from profile
+        patientName: patient?.name || app.patientName || 'Unknown Patient',
+        age: 30
       };
     }));
 
@@ -244,12 +247,30 @@ export const getPatientAppointments = async (req, res) => {
     const appointments = await Appointment.find({ patientId }).sort({ date: -1, createdAt: -1 });
 
     const enriched = await Promise.all(appointments.map(async (app) => {
-      const doctor = await User.findOne({ doctorId: app.doctorId });
-      const patient = await User.findOne({ patientId: app.patientId });
+      let doctor = null;
+      if (app.doctorId) {
+        doctor = await User.findOne({
+          $or: [
+            { doctorId: app.doctorId },
+            ...(mongoose.Types.ObjectId.isValid(app.doctorId) ? [{ _id: app.doctorId }] : [])
+          ]
+        }).select('name specialization').lean();
+      }
+
+      let patient = null;
+      if (app.patientId) {
+        patient = await User.findOne({
+          $or: [
+            { patientId: app.patientId },
+            ...(mongoose.Types.ObjectId.isValid(app.patientId) ? [{ _id: app.patientId }] : [])
+          ]
+        }).select('name').lean();
+      }
+
       return {
         ...app._doc,
-        doctorName: doctor?.name || 'Specialist Node',
-        patientName: patient?.name || 'Patient Node'
+        doctorName: doctor?.name || app.doctorName || (app.specialization ? `Dr. Specialist (${app.specialization})` : 'Dr. Specialist'),
+        patientName: patient?.name || app.patientName || 'Patient Node'
       };
     }));
 
@@ -274,13 +295,30 @@ export const getAppointmentDetails = async (req, res) => {
 
     if (!appointment) return res.status(404).json({ message: 'Appointment not found in registry' });
 
-    const patient = await User.findOne({ patientId: appointment.patientId });
-    const doctor = await User.findOne({ doctorId: appointment.doctorId });
+    let patient = null;
+    if (appointment.patientId) {
+      patient = await User.findOne({
+        $or: [
+          { patientId: appointment.patientId },
+          ...(mongoose.Types.ObjectId.isValid(appointment.patientId) ? [{ _id: appointment.patientId }] : [])
+        ]
+      }).select('name').lean();
+    }
+
+    let doctor = null;
+    if (appointment.doctorId) {
+      doctor = await User.findOne({
+        $or: [
+          { doctorId: appointment.doctorId },
+          ...(mongoose.Types.ObjectId.isValid(appointment.doctorId) ? [{ _id: appointment.doctorId }] : [])
+        ]
+      }).select('name specialization').lean();
+    }
 
     res.json({
       ...appointment._doc,
-      patientName: patient?.name || 'Patient Node',
-      doctorName: doctor?.name || 'Specialist Node'
+      patientName: patient?.name || appointment.patientName || 'Patient Node',
+      doctorName: doctor?.name || appointment.doctorName || (appointment.specialization ? `Dr. Specialist (${appointment.specialization})` : 'Dr. Specialist')
     });
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -392,18 +430,37 @@ export const getDoctorHistory = async (req, res) => {
 
 export const getPatientSummary = async (req, res) => {
   try {
-    const patientId = req.user.patientId;
-    const appointments = await Appointment.find({ patientId }).sort({ createdAt: -1 });
+    const pId = req.user?.patientId;
+    const hId = req.user?.humanId;
+    const uId = req.user?._id?.toString();
+
+    const appointments = await Appointment.find({
+      $or: [
+        { patientId: pId },
+        { patientId: hId },
+        { patientId: uId }
+      ].filter(Boolean)
+    }).sort({ date: -1, createdAt: -1 });
 
     const enriched = (await Promise.all(appointments.map(async (app) => {
-      const doctor = await User.findOne({ doctorId: app.doctorId });
-      if (!doctor) return null; // Filter out ghost nodes
+      let doctor = await User.findOne({ doctorId: app.doctorId });
+      if (!doctor && mongoose.Types.ObjectId.isValid(app.doctorId)) {
+        doctor = await User.findById(app.doctorId);
+      }
+
+      const doctorName = doctor ? doctor.name : (app.doctorName || 'Specialist Doctor');
+      const meetingId = app.meetingId || `NODE-${(app.appointmentId || app._id.toString()).slice(-6).toUpperCase()}`;
+      const meetingPassword = app.meetingPassword || Math.random().toString(36).substring(2, 8).toUpperCase();
+      const scheduledVideoTime = app.scheduledVideoTime || app.time || '09:00 AM';
 
       return {
         ...app._doc,
-        doctorName: doctor.name
+        doctorName,
+        meetingId,
+        meetingPassword,
+        scheduledVideoTime
       };
-    }))).filter(Boolean); // Remove nulls
+    })));
 
     res.json({
       success: true,
