@@ -1,3 +1,5 @@
-node_modules
 .env
-uploads
+.env.local
+!.env.example
+serviceAccountKey.json
+*.pem
