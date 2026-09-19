@@ -7,12 +7,10 @@
 serviceAccountKey.json
 *.pem
 
-# Files exceeding GitHub's 100MB single-file hard limit
-backend/books/Paul Tornetta*
-backend/books/Nelson-Textbook-of-Pediatrics*
-backend/books/Fundamentals of Diagnostic Radiology*
-backend/books/(Brain Imaging)*
-backend/books/Fields Virology*
-backend/books/Treatment of Skin Disease*
-backend/books/bradley-and-daroffs-neurology*
-backend/medical-engine/medical-db/neurology/*.pdf
+# Dependencies
+node_modules/
+
+# Builds & Caches
+dist/
+.idea/
+.vscode/
