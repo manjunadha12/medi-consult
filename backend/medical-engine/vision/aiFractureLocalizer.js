@@ -1,8 +1,14 @@
 import fs from 'fs';
 import path from 'path';
 import sharp from 'sharp';
+import axios from 'axios';
+import dns from 'dns';
 import dotenv from 'dotenv';
 dotenv.config();
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 
 /**
  * AI-Driven Radiographic Bone Fracture Localization & Multi-Fracture Coordinate Engine
@@ -99,26 +105,22 @@ Return ONLY valid JSON matching:
             }
           };
 
-          const res = await fetch(url, {
-            method: 'POST',
+          const res = await axios.post(url, payload, {
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
+            timeout: 30000
           });
 
-          if (res.ok) {
-            const json = await res.json();
-            const rawText = json.candidates?.[0]?.content?.parts?.[0]?.text;
+          if (res.data) {
+            const rawText = res.data.candidates?.[0]?.content?.parts?.[0]?.text;
             if (rawText) {
               const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
               parsed = JSON.parse(cleanText);
               console.log(`[AI_FRACTURE] ✅ Gemini Direct (${geminiModel}) detected fractures: ${parsed.isFracturePresent ? parsed.fractures?.length : 0}`);
               break;
             }
-          } else {
-            console.warn(`[AI_FRACTURE] Gemini Direct (${geminiModel}) status ${res.status}, checking next model...`);
           }
         } catch (geminiErr) {
-          console.warn(`[AI_FRACTURE] Gemini Direct (${geminiModel}) error:`, geminiErr.message);
+          console.warn(`[AI_FRACTURE] Gemini Direct (${geminiModel}) error:`, geminiErr?.response?.data?.error?.message || geminiErr.message);
         }
       }
     }
@@ -156,18 +158,16 @@ Return ONLY valid JSON matching:
             temperature: 0.05
           };
 
-          const orRes = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
+          const orRes = await axios.post('https://openrouter.ai/api/v1/chat/completions', orPayload, {
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${openrouterKey}`
             },
-            body: JSON.stringify(orPayload)
+            timeout: 30000
           });
 
-          if (orRes.ok) {
-            const orJson = await orRes.json();
-            const rawContent = orJson.choices?.[0]?.message?.content;
+          if (orRes.data) {
+            const rawContent = orRes.data.choices?.[0]?.message?.content;
             if (rawContent) {
               const cleanContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
               parsed = JSON.parse(cleanContent);
@@ -176,7 +176,7 @@ Return ONLY valid JSON matching:
             }
           }
         } catch (orErr) {
-          console.warn(`[AI_FRACTURE] OpenRouter (${modelName}) error:`, orErr.message);
+          console.warn(`[AI_FRACTURE] OpenRouter (${modelName}) error:`, orErr?.response?.data?.error?.message || orErr.message);
         }
       }
     }

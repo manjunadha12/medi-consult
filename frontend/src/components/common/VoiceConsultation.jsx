@@ -181,8 +181,9 @@ const VoiceConsultation = () => {
 
   // Fix 4 — Explicit Audio createPeerConnection
   const createPeerConnection = (targetSocketId, localStream) => {
-    if (peerConnectionRef.current) {
-      try { peerConnectionRef.current.close(); } catch (e) {}
+    if (peerConnectionRef.current && peerConnectionRef.current.signalingState !== 'closed') {
+      console.log("[WEBRTC] Reusing active PeerConnection in state:", peerConnectionRef.current.signalingState);
+      return peerConnectionRef.current;
     }
 
     const pc = new RTCPeerConnection({
@@ -431,16 +432,14 @@ const VoiceConsultation = () => {
     };
 
     const handleUserLeft = ({ socketId }) => {
-      console.log("[VOICE_SYNC] Peer left room:", socketId);
-      if (!targetSocketIdRef.current || targetSocketIdRef.current === String(socketId)) {
-        toast.error("Peer disconnected from voice session");
-        setCallAccepted(false);
-        setRemoteStream(null);
-        hasEmittedSignal.current = false;
-        if (peerConnectionRef.current) {
-          try { peerConnectionRef.current.close(); } catch (e) {}
-          peerConnectionRef.current = null;
+      console.log("[VOICE_SYNC] Socket left room:", socketId);
+      if (callAccepted && targetSocketIdRef.current && targetSocketIdRef.current === String(socketId)) {
+        if (peerConnectionRef.current && (peerConnectionRef.current.connectionState === 'connected' || peerConnectionRef.current.iceConnectionState === 'connected')) {
+          console.log("[VOICE_SYNC] WebRTC is still connected. Keeping voice call alive.");
+          return;
         }
+        toast.error("Peer disconnected from voice session");
+        handleEndCall(true);
       }
     };
 
@@ -621,7 +620,7 @@ const VoiceConsultation = () => {
         peerConnectionRef.current = null;
       }
     };
-  }, [roomCode, globalSocket]);
+  }, [roomCode]);
 
   useEffect(() => {
     let interval = null;
@@ -805,27 +804,56 @@ const VoiceConsultation = () => {
   };
 
   const handleEndCall = (isPeerEnded = false) => {
-    if (peerConnectionRef.current) peerConnectionRef.current.close();
-    if (stream) stream.getTracks().forEach(track => track.stop());
+    try {
+      if (peerConnectionRef.current) {
+        try { peerConnectionRef.current.close(); } catch (e) {}
+        peerConnectionRef.current = null;
+      }
+      if (streamRef.current) {
+        try { streamRef.current.getTracks().forEach(track => track.stop()); } catch (e) {}
+      }
+      if (stream) {
+        try { stream.getTracks().forEach(track => track.stop()); } catch (e) {}
+      }
 
-    if (!isPeerEnded && socketRef.current) {
-      socketRef.current.emit("leave-room", { roomCode });
-      socketRef.current.emit("end-call", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
-      socketRef.current.emit("end-call-signal", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
-    }
+      if (!isPeerEnded && socketRef.current) {
+        socketRef.current.emit("leave-room", { roomCode });
+        socketRef.current.emit("end-call", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
+        socketRef.current.emit("end-call-signal", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
+      }
 
-    setCallEnded(true);
-    setCallAccepted(false);
-    sessionStorage.removeItem('pending_signal');
-    hasEmittedSignal.current = false;
-    callStartedRef.current = false;
-    useStore.getState().setIncomingCall(null);
+      setCallEnded(true);
+      setCallAccepted(false);
+      sessionStorage.removeItem('pending_signal');
+      if (hasEmittedSignal) hasEmittedSignal.current = false;
+      callStartedRef.current = false;
+      useStore.getState().setIncomingCall(null);
 
-    if (user.role === 'doctor') {
-      setShowOpinionModal(true);
-    } else {
+      // Reset meeting readiness asynchronously
+      if (appointmentId || roomCode) {
+        api.put(`/appointments/toggle-meeting-ready/${appointmentId || roomCode}`, { isMeetingReady: false }).catch(() => {});
+      }
+
+      // Log call asynchronously without awaiting
+      const spentTime = SESSION_DURATION - timeLeft;
+      const duration = formatTime(spentTime);
+      api.post('/chat/log-call', {
+        conversationId: roomCode,
+        receiverId: peerIdFromUrl,
+        callType: 'voice',
+        status: 'ended',
+        duration
+      }).catch(() => {});
+
       toast.success("Voice consultation completed");
-      navigate('/patient/dashboard');
+    } catch (err) {
+      console.warn("[VOICE] Cleanup notice:", err);
+    } finally {
+      if (user?.role === 'doctor' && appointmentId) {
+        setShowOpinionModal(true);
+      } else {
+        navigate(user?.role === 'doctor' ? '/doc-dashboard' : '/patient/dashboard', { replace: true });
+      }
     }
   };
 

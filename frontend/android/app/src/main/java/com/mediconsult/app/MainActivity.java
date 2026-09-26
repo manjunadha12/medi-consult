@@ -10,6 +10,7 @@ import android.webkit.SslErrorHandler;
 import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import com.getcapacitor.BridgeWebChromeClient;
 import com.getcapacitor.BridgeWebViewClient;
 import android.view.WindowManager;
 import androidx.core.app.ActivityCompat;
@@ -33,14 +34,21 @@ public class MainActivity extends BridgeActivity {
 
     private void checkAndRequestPermissions() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            String[] permissions = {
-                Manifest.permission.RECORD_AUDIO,
-                Manifest.permission.CAMERA,
-                Manifest.permission.MODIFY_AUDIO_SETTINGS
-            };
+            java.util.List<String> permList = new java.util.ArrayList<>();
+            permList.add(Manifest.permission.RECORD_AUDIO);
+            permList.add(Manifest.permission.CAMERA);
+            permList.add(Manifest.permission.MODIFY_AUDIO_SETTINGS);
+            permList.add(Manifest.permission.ACCESS_FINE_LOCATION);
+            permList.add(Manifest.permission.ACCESS_COARSE_LOCATION);
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permList.add(Manifest.permission.READ_MEDIA_IMAGES);
+            } else {
+                permList.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+            }
 
             boolean needRequest = false;
-            for (String perm : permissions) {
+            for (String perm : permList) {
                 if (ContextCompat.checkSelfPermission(this, perm) != PackageManager.PERMISSION_GRANTED) {
                     needRequest = true;
                     break;
@@ -48,7 +56,7 @@ public class MainActivity extends BridgeActivity {
             }
 
             if (needRequest) {
-                ActivityCompat.requestPermissions(this, permissions, PERMISSION_REQUEST_CODE);
+                ActivityCompat.requestPermissions(this, permList.toArray(new String[0]), PERMISSION_REQUEST_CODE);
             }
         }
     }
@@ -71,6 +79,8 @@ public class MainActivity extends BridgeActivity {
             settings.setMediaPlaybackRequiresUserGesture(false);
             settings.setJavaScriptEnabled(true);
             settings.setDomStorageEnabled(true);
+            settings.setGeolocationEnabled(true);
+            settings.setDatabaseEnabled(true);
 
             // Bypass self-signed SSL errors in local development
             webView.setWebViewClient(new BridgeWebViewClient(this.getBridge()) {
@@ -80,7 +90,8 @@ public class MainActivity extends BridgeActivity {
                 }
             });
 
-            webView.setWebChromeClient(new WebChromeClient() {
+            // Inherit from BridgeWebChromeClient to preserve native file input chooser (onShowFileChooser)
+            webView.setWebChromeClient(new BridgeWebChromeClient(this.getBridge()) {
                 @Override
                 public void onPermissionRequest(final PermissionRequest request) {
                     runOnUiThread(new Runnable() {
@@ -90,6 +101,22 @@ public class MainActivity extends BridgeActivity {
                             request.grant(request.getResources());
                         }
                     });
+                }
+
+                @Override
+                public android.graphics.Bitmap getDefaultVideoPoster() {
+                    return android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888);
+                }
+
+                @Override
+                public boolean onConsoleMessage(android.webkit.ConsoleMessage cm) {
+                    android.util.Log.d("MC_WEBVIEW_CONSOLE", String.format("[%s:%d] %s", cm.sourceId(), cm.lineNumber(), cm.message()));
+                    return true;
+                }
+
+                @Override
+                public void onGeolocationPermissionsShowPrompt(String origin, android.webkit.GeolocationPermissions.Callback callback) {
+                    callback.invoke(origin, true, true);
                 }
 
                 @Override
@@ -107,21 +134,31 @@ public class MainActivity extends BridgeActivity {
             WebView webView = this.getBridge().getWebView();
             if (webView.canGoBack()) {
                 webView.goBack(); // Navigate back inside the web app history
-            } else {
-                // Only close the app if there is no more web history
-                super.onBackPressed();
+                return;
             }
-        } else {
+        }
+        if (!moveTaskToBack(true)) {
             super.onBackPressed();
         }
     }
 
     @Override
     public void onPause() {
-        // Prevent WebView from suspending when minimized (for background audio)
+        // Prevent WebView from suspending JS execution and WebSockets when minimized
         super.onPause();
         if (this.getBridge() != null && this.getBridge().getWebView() != null) {
             this.getBridge().getWebView().resumeTimers();
+            this.getBridge().getWebView().onResume();
+        }
+    }
+
+    @Override
+    public void onStop() {
+        // Keep Socket.IO background connections active when app is on home screen
+        super.onStop();
+        if (this.getBridge() != null && this.getBridge().getWebView() != null) {
+            this.getBridge().getWebView().resumeTimers();
+            this.getBridge().getWebView().onResume();
         }
     }
 
@@ -130,6 +167,7 @@ public class MainActivity extends BridgeActivity {
         super.onResume();
         if (this.getBridge() != null && this.getBridge().getWebView() != null) {
             this.getBridge().getWebView().resumeTimers();
+            this.getBridge().getWebView().onResume();
         }
     }
 }

@@ -9,7 +9,7 @@ const appointmentSchema = new mongoose.Schema({
   time: { type: String, required: true },
   tokenNumber: { type: Number },
   appointmentId: { type: String, unique: true },
-  consultationType: { type: String, enum: ['In-person', 'Video'], default: 'Video' },
+  consultationType: { type: String, default: 'Video' },
   problemDescription: { type: String },
   status: { type: String, enum: ['Pending', 'Accepted', 'Live', 'Completed', 'Cancelled'], default: 'Pending' },
   isEmergency: { type: Boolean, default: false },

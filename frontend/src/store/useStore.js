@@ -141,8 +141,13 @@ const useStore = create((set, get) => ({
 
     newSocket.on('disconnect', (reason) => {
       console.warn("[STORE_SOCKET] Node Disconnected:", reason);
-      if (reason === "io server disconnect") {
-        newSocket.connect();
+      if (reason !== "io client disconnect") {
+        console.log("[STORE_SOCKET] Reconnecting socket after transport close / disconnect...");
+        setTimeout(() => {
+          if (!newSocket.connected) {
+            newSocket.connect();
+          }
+        }, 1000);
       }
     });
 
@@ -162,11 +167,17 @@ const useStore = create((set, get) => ({
         return;
       }
 
-      console.log("[STORE_SOCKET] Incoming handshake received. Target ID:", currentUser?.userId, "Data:", data);
+      console.log("[STORE_SOCKET] Incoming call-made event received:", data);
       set({ incomingCall: { ...data, timestamp: Date.now() } }); // Force new object ref
     });
 
     newSocket.on('call-declined', () => {
+      console.log("[STORE_SOCKET] Call declined signal received");
+      set({ incomingCall: null });
+    });
+
+    newSocket.on('peer-ended-call', () => {
+      console.log("[STORE_SOCKET] Peer ended call signal received");
       set({ incomingCall: null });
     });
 

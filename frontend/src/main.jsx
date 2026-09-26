@@ -30,13 +30,19 @@ if (typeof window.BACKEND_URL === 'undefined') {
     if (typeof window !== 'undefined' && window.localStorage?.getItem('DEV_PC_IP')) {
       return window.localStorage.getItem('DEV_PC_IP');
     }
-    return '10.129.146.15';
+    return '192.168.1.7';
   };
   const DEV_PC_IP = getDevPcIp();
   const BACKEND_PORT = '5001';
   const isNative = window.location.origin.startsWith('capacitor:') ||
                   (window.location.origin.includes('://localhost') && !window.location.port);
-  window.BACKEND_URL = isNative ? `http://${DEV_PC_IP}:${BACKEND_PORT}` : '';
+  const resolveTarget = () => {
+    if (DEV_PC_IP.startsWith('http://') || DEV_PC_IP.startsWith('https://')) {
+      return DEV_PC_IP.replace(/\/$/, '');
+    }
+    return `http://${DEV_PC_IP}:${BACKEND_PORT}`;
+  };
+  window.BACKEND_URL = isNative ? resolveTarget() : '';
 }
 
 ReactDOM.createRoot(document.getElementById('root')).render(

@@ -8,8 +8,13 @@ serviceAccountKey.json
 *.pem
 
 # Android build cache transforms
-**/node_modules/@capacitor/android/capacitor/build/
+**/node_modules/**/.gradle/
+**/node_modules/**/build/
 
 # Builds & Caches
 .idea/
 .vscode/
+
+# Tools & Binaries
+tools/
+*.exe

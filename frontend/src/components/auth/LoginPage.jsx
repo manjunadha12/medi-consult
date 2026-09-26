@@ -63,20 +63,29 @@ const LoginPage = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // 2. Initial Auth Sync (Check for existing sessions)
+  // 2. Initial Auth Sync (Check for existing sessions or redirect results)
   useEffect(() => {
+    const handleRedirectResult = async () => {
+      try {
+        const result = await getRedirectResult(auth);
+        if (result && result.user) {
+          setLoading(true);
+          const idToken = await result.user.getIdToken();
+          const savedRole = localStorage.getItem('pending_google_role') || 'patient';
+          await processGoogleLogin(idToken, savedRole);
+        }
+      } catch (err) {
+        console.warn("[REDIRECT_RESULT_ERR]", err);
+      }
+    };
+    handleRedirectResult();
+
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
       if (user && redirectProcessing) {
         console.log('[AUTH] Active Session Detected. Synchronizing Identity...');
-        const idToken = await user.getIdToken();
-        const savedRole = localStorage.getItem('pending_google_role') || 'patient';
-        await processGoogleLogin(idToken, savedRole);
-      } else {
-        setRedirectProcessing(false);
       }
     });
 
-    // Safety Timeout
     const timer = setTimeout(() => setRedirectProcessing(false), 8000);
 
     return () => {
@@ -166,13 +175,21 @@ const LoginPage = () => {
        return toast.error("Backend node offline. Synchronize link first.");
     }
 
+    const isNative = window.location.origin.startsWith('capacitor:') || (window.location.origin.includes('://localhost') && !window.location.port);
+    if (isNative) {
+      setLoading(false);
+      toast("Google restricts sign-in inside mobile WebViews for security. Please sign in using your Email & Password below.", {
+        icon: '🔒',
+        duration: 7000
+      });
+      return;
+    }
+
     const role = activeTab === 'patient' ? 'patient' : 'doctor';
     setLoading(true);
     localStorage.setItem('pending_google_role', role);
 
     try {
-      // In Capacitor/Mobile, we use signInWithPopup to keep the UI context
-      // inside the application WebView and avoid redirect loops.
       console.log("[AUTH] Initializing Google Sign-In Popup...");
       const result = await signInWithPopup(auth, googleProvider);
 
@@ -183,13 +200,12 @@ const LoginPage = () => {
     } catch (error) {
       console.error("Google Auth Node Error:", error);
 
-      if (error.code === 'auth/popup-blocked') {
-        toast.error("Auth Popup Blocked. Please allow popups in your app settings.");
-      } else if (error.code === 'auth/internal-error' || error.message.includes('missing initial state')) {
-        toast.error("Handshake Desync. Please clear app cache and try again.");
+      if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
+        toast.error("Google popup blocked or cancelled. Please use Email & Password.");
       } else {
         toast.error(error.message);
       }
+    } finally {
       setLoading(false);
     }
   };

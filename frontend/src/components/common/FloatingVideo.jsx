@@ -106,14 +106,22 @@ const FloatingVideo = ({
 
             {/* Video Body */}
             <div className="aspect-video bg-black relative group">
-               {remoteStream ? (
+                {remoteStream ? (
                   <video
                     playsInline
+                    webkit-playsinline="true"
                     autoPlay
-                    ref={el => { if(el) el.srcObject = remoteStream }}
+                    ref={el => {
+                      if (el) {
+                        el.srcObject = remoteStream;
+                        el.muted = false;
+                        el.volume = 1.0;
+                        el.play().catch(e => console.warn("[FLOATING_VIDEO_AUTOPLAY]", e));
+                      }
+                    }}
                     className="w-full h-full object-cover"
                   />
-               ) : (
+                ) : (
                   <div className="absolute inset-0 flex flex-col items-center justify-center space-y-2 sm:space-y-4">
                      <div className="w-10 h-10 sm:w-16 sm:h-16 bg-blue-600/10 border border-blue-500/20 rounded-full flex items-center justify-center relative">
                         <div className="absolute inset-0 bg-blue-500/20 rounded-full animate-ping"></div>

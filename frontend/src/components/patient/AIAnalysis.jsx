@@ -556,42 +556,26 @@ const AIAnalysis = () => {
                 </div>
               )}
 
-              {/* 1.8 FEATURED INTERACTIVE RADIOGRAPH & FRACTURE VISION VIEWER - EXCLUSIVELY FOR BONE RADIOGRAPHS & X-RAYS */}
+              {/* 1.8 FEATURED INTERACTIVE RADIOGRAPH & IMAGE VISION VIEWER */}
               {(() => {
-                const hasLabResults = (result.structuredResults && result.structuredResults.length > 0) ||
-                  result.classifiedCategories?.some(c => {
-                    const name = (typeof c === 'string' ? c : c?.name || '').toLowerCase();
-                    return name.includes('pathology') || name.includes('laboratory') || name.includes('hematology') || name.includes('biochemistry');
-                  });
-
-                const isExplicitRadiograph = !hasLabResults && (
-                  result.isRadiographFilm === true ||
-                  result.documentBadges?.some(b => b.code === 'ORTHO_XRAY' || b.name?.toLowerCase().includes('x-ray') || b.name?.toLowerCase().includes('radiograph')) ||
-                  result.classifiedCategories?.some(c => {
-                    const name = (typeof c === 'string' ? c : c?.name || '').toLowerCase();
-                    return name.includes('x-ray') || name.includes('radiography') || name.includes('orthopedic x-ray');
-                  })
-                );
-
-                const radDiag = result.diagnosticFindings?.find(d => d.type === 'radiograph_film') ||
-                  (isExplicitRadiograph ? {
-                    type: 'radiograph_film',
-                    procedure: "Diagnostic Radiograph (Plain X-Ray Film)",
-                    fractureDetected: true,
-                    fractureLocation: result.structuredResults?.find(r => r.testName?.toLowerCase().includes('location'))?.valueString || "Bone Alignment",
-                    anatomicalRegion: "Musculoskeletal Plain Radiograph"
-                  } : null);
-
-                const isImageFile = !(selectedReport?.fileName || selectedReport?.fileUrl || result?.fileUrl)?.toLowerCase().endsWith('.pdf');
                 const targetImageSrc = selectedReport?.fileUrl || result?.fileUrl;
+                const isImageFile = Boolean(targetImageSrc) && !targetImageSrc.toLowerCase().endsWith('.pdf');
 
-                if (!hasLabResults && isExplicitRadiograph && radDiag && isImageFile && targetImageSrc) {
+                if (isImageFile && targetImageSrc) {
+                  const radDiag = result.diagnosticFindings?.find(d => d.type === 'radiograph_film') || {
+                    type: 'radiograph_film',
+                    procedure: result.documentBadges?.[0]?.name || "Diagnostic Radiograph / Medical Image",
+                    fractureDetected: result.structuredResults?.some(r => r.resultStatus === 'ABNORMAL' || r.valueString?.toLowerCase().includes('displaced') || r.valueString?.toLowerCase().includes('fracture')) || result.diagnosticFindings?.some(d => d.fractureDetected === true),
+                    fractureLocation: result.structuredResults?.find(r => r.testName?.toLowerCase().includes('location'))?.valueString || "Anatomical Region",
+                    anatomicalRegion: "Diagnostic Medical Image"
+                  };
+
                   return (
-                    <div className="space-y-3">
+                    <div className="space-y-3 my-6">
                       <RadiographViewer
                         imageSrc={targetImageSrc}
                         fractureInfo={radDiag}
-                        anatomicalRegion={radDiag.anatomicalRegion}
+                        anatomicalRegion={radDiag.anatomicalRegion || "Diagnostic Image"}
                         engineMode={result?._executedEngine || store.reportEngineMode || 'local'}
                       />
                     </div>

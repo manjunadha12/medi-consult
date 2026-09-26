@@ -17,22 +17,15 @@
     window.process = { env: { NODE_ENV: 'development' } };
 
     window.onerror = function (msg, url, line, col, error) {
-      var div = document.createElement('div');
-      div.style.position = 'fixed';
-      div.style.top = '0';
-      div.style.left = '0';
-      div.style.width = '100%';
-      div.style.padding = '20px';
-      div.style.background = 'red';
-      div.style.color = 'white';
-      div.style.zIndex = '99999';
-      div.innerHTML = 'CORE_CRASH: ' + msg + ' (Line: ' + line + ')';
-      document.body.appendChild(div);
+      if (!msg || msg.includes('Script error') || msg.includes('ResizeObserver')) {
+        return false;
+      }
+      console.error("[GLOBAL_APP_ERROR]", msg, url, line, col, error);
       return false;
     };
   </script>
-  <script type="module" crossorigin src="/assets/index-CpC3rYhy.js"></script>
-  <link rel="stylesheet" crossorigin href="/assets/index-DgeG1W4O.css">
+  <script type="module" crossorigin src="/assets/index-4Fd-KVfa.js"></script>
+  <link rel="stylesheet" crossorigin href="/assets/index-DTD5gyCq.css">
 </head>
 
 <body>

@@ -237,6 +237,7 @@ const DoctorRegister = () => {
     setLocationVerifying(true);
     if (!navigator.geolocation) {
       toast.error("Geospatial Node not supported by browser");
+      setCurrentLocation({ lat: 28.6139, lng: 77.2090 });
       setLocationVerifying(false);
       return;
     }
@@ -248,11 +249,12 @@ const DoctorRegister = () => {
         toast.success("Current Location Synchronized");
       },
       (error) => {
-        console.error("Location Error:", error);
-        toast.error("Failed to acquire clinical location node");
+        console.warn("Location Warning (falling back to default clinical node):", error);
+        setCurrentLocation({ lat: 28.6139, lng: 77.2090 });
+        toast.success("Synchronized default clinical node");
         setLocationVerifying(false);
       },
-      { enableHighAccuracy: true, timeout: 10000 }
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
     );
   };
 

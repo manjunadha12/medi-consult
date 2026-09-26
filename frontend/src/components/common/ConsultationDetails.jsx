@@ -536,6 +536,17 @@ const ConsultationDetails = () => {
                         <div className="space-y-3">
                           <button
                             onClick={() => {
+                              const meetingDate = new Date(appt.date);
+                              const today = new Date();
+                              // Always allow if time is set to "NOW (IMMEDIATE)" or date is today
+                              const isToday = meetingDate.toDateString() === today.toDateString();
+                              const isImmediate = appt.time === 'NOW (IMMEDIATE)';
+
+                              if (!isImmediate && !isToday && meetingDate > today) {
+                                toast.error(`Consultation is scheduled for ${meetingDate.toLocaleDateString()}. You cannot enter the arena yet.`);
+                                return;
+                              }
+
                               const path = isPatient ? '/patient/video-consult' : '/doctor/video-consult';
                               navigate(`${path}?roomCode=${appt.roomCode || appt._id}&appointmentId=${appt._id}&peerName=${encodeURIComponent(partnerName)}&peerId=${isPatient ? appt.doctorId : appt.patientId}`);
                             }}
@@ -551,7 +562,7 @@ const ConsultationDetails = () => {
                           {!appt.isMeetingReady && (
                             <p className="text-center text-[9px] font-black text-zinc-500 uppercase tracking-widest mt-2 flex items-center justify-center gap-2">
                               <span className="w-1.5 h-1.5 rounded-full bg-cyan-500 animate-ping"></span>
-                              Awaiting specialist arena initialization • Click to enter anytime
+                              Awaiting specialist arena initialization • Click to enter on schedule
                             </p>
                           )}
                         </div>

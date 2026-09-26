@@ -246,31 +246,32 @@ const ChatSystem = () => {
     const partner = getPartner(activeConversation);
     const partnerId = partner.userId || partner.humanId;
 
-    const isSpecialist = partner?.role === 'doctor' || (partner?.humanId && partner.humanId.toUpperCase().startsWith('DOC'));
-    if (isSpecialist) {
-      return toast.error("Calls are disabled for Specialist Peers. Available for Clinical Patients only.");
-    }
-
     const isP2P = user.role === 'doctor' && partner.role === 'doctor';
     // Use conversationId as deterministic roomCode
     const roomCode = activeConversation._id;
 
-    console.log(`[CALL] Initiating ${type} node: ${roomCode}`);
+    console.log(`[CALL] Initiating ${type} node: ${roomCode} with partner:`, partner.name, partnerId);
 
-    // Log call start to database
-    await logCallStatus('started');
+    // Log call start to database asynchronously in background
+    logCallStatus('started', null, type).catch(() => {});
 
     // Notify peer via socket
-    if (socketRef.current && socketRef.current.connected) {
+    const activeSocket = socketRef.current || socket;
+    if (activeSocket && activeSocket.connected) {
       console.log(`[CHAT_CALL] Triggering signal to ${partnerId}`);
-      socketRef.current.emit('call-user', {
-        userToCall: partnerId,
-        from: user.userId || user._id,
-        name: user.name,
-        conversationId: activeConversation._id,
-        callType: type,
-        isP2P
+      
+      const targetIds = [partner.userId, partner.humanId].filter(Boolean);
+      [...new Set(targetIds)].forEach(tId => {
+        activeSocket.emit('call-user', {
+          userToCall: String(tId),
+          from: user.userId || user._id,
+          name: user.name,
+          conversationId: activeConversation._id,
+          callType: type,
+          isP2P
+        });
       });
+
       toast.success(`Requesting ${type} link...`);
 
       // Navigate to call screen
@@ -279,7 +280,7 @@ const ChatSystem = () => {
         ? (isPatient ? '/patient/video-consult' : '/doctor/video-consult')
         : (isPatient ? '/patient/voice-consult' : '/doctor/voice-consult');
 
-      navigate(`${path}?roomCode=${roomCode}&peerName=${partner.name}&peerId=${partner.humanId || partner.userId}&isP2P=${isP2P}`);
+      navigate(`${path}?roomCode=${roomCode}&peerName=${encodeURIComponent(partner.name || 'Peer')}&peerId=${partner.humanId || partner.userId}&isP2P=${isP2P}&fromChat=true`);
     } else {
       console.error("[CHAT_CALL] Global socket disconnected or null");
       toast.error("Neural Link Offline. Reconnecting...");
@@ -291,44 +292,44 @@ const ChatSystem = () => {
     if (!incomingCall) return;
     const { conversationId, callType, from, name } = incomingCall;
 
-    // Find if we have this conversation in our list
-    const conv = conversations.find(c => c._id === conversationId);
-    if (!conv) return toast.error("Identity node mismatch");
-
-    const partner = getPartner(conv);
-    const isP2P = user.role === 'doctor' && partner.role === 'doctor';
-
     setIncomingCall(null);
     const isPatient = user.role === 'patient';
     const path = callType === 'video'
       ? (isPatient ? '/patient/video-consult' : '/doctor/video-consult')
       : (isPatient ? '/patient/voice-consult' : '/doctor/voice-consult');
 
-    navigate(`${path}?roomCode=${conversationId}&peerName=${name}&peerId=${from}&isP2P=${isP2P}`);
+    const conv = conversations.find(c => c._id === conversationId);
+    const partner = conv ? getPartner(conv) : null;
+    const isP2P = user.role === 'doctor' && partner?.role === 'doctor';
+
+    navigate(`${path}?roomCode=${conversationId}&peerName=${encodeURIComponent(name || 'Peer')}&peerId=${from}&isP2P=${isP2P}&incoming=true`);
   };
 
   const handleDeclineCall = async () => {
-    if (!incomingCall || !socket) return;
-    socket.emit('decline-call', { to: incomingCall.from });
+    if (!incomingCall) return;
+    const activeSocket = socketRef.current || socket;
+    if (activeSocket) {
+      activeSocket.emit('decline-call', { to: incomingCall.from });
+    }
 
     // Log missed/declined call
-    await api.post('/chat/log-call', {
+    api.post('/chat/log-call', {
         conversationId: incomingCall.conversationId,
         receiverId: incomingCall.from,
         callType: incomingCall.callType,
         status: 'declined'
-    });
+    }).catch(() => {});
 
     setIncomingCall(null);
     toast.error("Call Declined");
   };
 
-  const logCallStatus = async (status, duration = null) => {
+  const logCallStatus = async (status, duration = null, type = 'video') => {
     if (!activeConversation) return;
     const partner = getPartner(activeConversation);
     const receiverId = partner.userId || partner.humanId;
 
-    const callType = activeModal === 'voice' ? 'voice' : 'video';
+    const callType = type || (activeModal === 'voice' ? 'voice' : 'video');
 
     try {
       const res = await api.post('/chat/log-call', {
@@ -339,7 +340,8 @@ const ChatSystem = () => {
         duration
       });
       setMessages(prev => [...prev, res.data]);
-      socket.emit('chat-message', { ...res.data, receiverId });
+      const activeSocket = socketRef.current || socket;
+      if (activeSocket) activeSocket.emit('chat-message', { ...res.data, receiverId });
       fetchConversations();
     } catch (err) {
       console.error("Failed to log call node", err);
@@ -676,30 +678,22 @@ const ChatSystem = () => {
                 {!activeConversation.isLocked && (
                   <div className="flex items-center gap-2 sm:gap-3">
                     {initializing && <Loader2 size={16} className="animate-spin text-blue-500 mr-2" />}
-                    {(() => {
-                      const partner = getPartner(activeConversation);
-                      const isSpecialist = partner?.role === 'doctor' || (partner?.humanId && partner.humanId.toUpperCase().startsWith('DOC'));
-                      return !isSpecialist && (
-                        <>
-                          <button
-                            disabled={initializing}
-                            onClick={() => handleInitiateCall('voice')}
-                            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
-                            title="Initiate Voice Call"
-                          >
-                            <PhoneIcon size={18} />
-                          </button>
-                          <button
-                            disabled={initializing}
-                            onClick={() => handleInitiateCall('video')}
-                            className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-purple-600/10 border border-purple-500/20 text-purple-500 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}
-                            title="Initiate Video Call"
-                          >
-                            <Video size={18} />
-                          </button>
-                        </>
-                      );
-                    })()}
+                    <button
+                      disabled={initializing}
+                      onClick={() => handleInitiateCall('voice')}
+                      className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-blue-600/10 border border-blue-500/20 text-blue-500 hover:bg-blue-600 hover:text-white' : 'bg-blue-50 border border-blue-100 text-blue-600 hover:bg-blue-600 hover:text-white'}`}
+                      title="Initiate Voice Call"
+                    >
+                      <PhoneIcon size={18} />
+                    </button>
+                    <button
+                      disabled={initializing}
+                      onClick={() => handleInitiateCall('video')}
+                      className={`p-3 sm:p-4 rounded-xl sm:rounded-2xl transition-all shadow-sm flex items-center gap-2 ${initializing ? 'opacity-30 cursor-not-allowed' : theme === 'dark' ? 'bg-purple-600/10 border border-purple-500/20 text-purple-500 hover:bg-purple-600 hover:text-white' : 'bg-purple-50 border border-purple-100 text-purple-600 hover:bg-purple-600 hover:text-white'}`}
+                      title="Initiate Video Call"
+                    >
+                      <Video size={18} />
+                    </button>
                   </div>
                 )}
               </div>

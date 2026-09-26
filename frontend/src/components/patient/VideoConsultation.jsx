@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
-import api, { ICE_SERVERS } from '../../utils/api';
+import api, { ICE_SERVERS, enforceHighQualityVideo } from '../../utils/api';
 import FloatingVideo from '../common/FloatingVideo';
 import CommLinkPopup from '../common/CommLinkPopup';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,10 +28,10 @@ const VideoConsultation = () => {
   const [isMinimized, setIsMinimized] = useState(false);
   const [isPopupOpen, setIsPopupOpen] = useState(false);
 
-  const [roomCode] = useState(searchParams.get('roomCode') || '');
-  const [appointmentId] = useState(searchParams.get('appointmentId') || '');
-  const peerIdFromUrl = searchParams.get('peerId');
-  const peerNameFromUrl = searchParams.get('peerName');
+  const roomCode = searchParams.get('roomCode') || searchParams.get('appointmentId') || '';
+  const appointmentId = searchParams.get('appointmentId') || '';
+  const peerIdFromUrl = searchParams.get('peerId') || searchParams.get('doctorId');
+  const peerNameFromUrl = searchParams.get('peerName') || searchParams.get('doctorName');
 
   const [messages, setMessages] = useState([]);
   const [patientData, setPatientData] = useState(null);
@@ -41,8 +41,8 @@ const VideoConsultation = () => {
   const [localAudioLevel, setLocalAudioLevel] = useState(0);
   const [remoteAudioLevel, setRemoteAudioLevel] = useState(0);
 
-  const myVideo = useRef();
-  const userVideo = useRef();
+  const myVideo = useRef(null);
+  const userVideo = useRef(null);
   const streamRef = useRef(null);
   const peerConnectionRef = useRef(null);
   const targetSocketIdRef = useRef(null);
@@ -52,10 +52,39 @@ const VideoConsultation = () => {
   const hasEmittedSignal = useRef(false);
   const remoteMeterCtxRef = useRef(null);
 
-  // Sync stream state to ref for listeners
+  const remoteAudioRef = useRef(null);
+  const localStreamPromiseRef = useRef(null);
+
+  // Sync stream state to ref for async callbacks
   useEffect(() => {
     streamRef.current = stream;
   }, [stream]);
+
+  // Global user interaction listener to unblock mobile audio policies
+  useEffect(() => {
+    const unlockAudio = () => {
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.muted = false;
+        remoteAudioRef.current.volume = 1.0;
+        if (remoteAudioRef.current.paused) {
+          remoteAudioRef.current.play().catch(() => {});
+        }
+      }
+      if (userVideo.current && userVideo.current.paused) {
+        userVideo.current.play().catch(() => {});
+      }
+      if (remoteMeterCtxRef.current && remoteMeterCtxRef.current.state === 'suspended') {
+        remoteMeterCtxRef.current.resume().catch(() => {});
+      }
+    };
+
+    window.addEventListener('click', unlockAudio);
+    window.addEventListener('touchstart', unlockAudio);
+    return () => {
+      window.removeEventListener('click', unlockAudio);
+      window.removeEventListener('touchstart', unlockAudio);
+    };
+  }, []);
 
   // Measure local microphone level
   useEffect(() => {
@@ -84,7 +113,9 @@ const VideoConsultation = () => {
 
     return () => {
       if (inv) clearInterval(inv);
-      if (ctx) ctx.close();
+      if (ctx) {
+        try { ctx.close(); } catch (e) {}
+      }
     };
   }, [stream, isMuted]);
 
@@ -150,74 +181,137 @@ const VideoConsultation = () => {
     };
   }, [remoteStream]);
 
-  const createPeerConnection = (targetSocketId, localStream) => {
-    if (peerConnectionRef.current) {
-      try { peerConnectionRef.current.close(); } catch (e) {}
-      peerConnectionRef.current = null;
+  const createPeerConnection = (targetSocketId, localStream, isAnswerer = false) => {
+    let pc = peerConnectionRef.current;
+
+    if (!pc || pc.signalingState === 'closed') {
+      pc = new RTCPeerConnection({
+        iceServers: ICE_SERVERS,
+        iceCandidatePoolSize: 10,
+        bundlePolicy: 'max-bundle',
+        rtcpMuxPolicy: 'require'
+      });
+      peerConnectionRef.current = pc;
+    } else {
+      console.log("[WEBRTC_PATIENT] Reusing active PeerConnection in state:", pc.signalingState);
     }
 
-    const pc = new RTCPeerConnection({
-      iceServers: ICE_SERVERS
-    });
+    targetSocketIdRef.current = String(targetSocketId);
 
-    peerConnectionRef.current = pc;
-
-    if (localStream) {
-      localStream.getTracks().forEach(track => {
-        pc.addTrack(track, localStream);
-      });
+    // If this is an offerer (not answerer), bind active tracks
+    if (!isAnswerer) {
+      const activeStream = localStream || streamRef.current;
+      if (activeStream && pc) {
+        const currentSenders = pc.getSenders();
+        activeStream.getTracks().forEach(track => {
+          track.enabled = true;
+          const matchingSender = currentSenders.find(s => (s.track && s.track.kind === track.kind) || (!s.track && s.kind === track.kind));
+          if (matchingSender) {
+            console.log("[WEBRTC_PATIENT] Replacing track on existing sender:", track.kind, track.id);
+            matchingSender.replaceTrack(track).catch(e => console.warn("[WEBRTC_PATIENT] replaceTrack error:", e));
+          } else {
+            console.log("[WEBRTC_PATIENT] Adding local track to PC:", track.kind, track.id);
+            try {
+              pc.addTrack(track, activeStream);
+            } catch (e) {
+              console.warn("[WEBRTC_PATIENT] Error adding local track:", e);
+            }
+          }
+        });
+      }
     }
 
     pc.ontrack = (event) => {
-      console.log("[VIDEO] Remote track received:", event.track.kind);
-      let streamToUse = (event.streams && event.streams[0]) ? event.streams[0] : null;
-      if (!streamToUse) {
-        if (!remoteStreamRef.current) {
-          remoteStreamRef.current = new MediaStream();
-        }
-        remoteStreamRef.current.addTrack(event.track);
-        streamToUse = remoteStreamRef.current;
+      console.log("[VIDEO_PATIENT] Remote track received:", event.track.kind, event.track.id);
+      
+      if (!remoteStreamRef.current) {
+        remoteStreamRef.current = new MediaStream();
       }
-      setRemoteStream(streamToUse);
+
+      // Add/replace track in persistent remoteStreamRef
+      const currentTracks = remoteStreamRef.current.getTracks();
+      const existingTrack = currentTracks.find(t => t.kind === event.track.kind);
+      if (existingTrack) {
+        if (existingTrack.id !== event.track.id) {
+          remoteStreamRef.current.removeTrack(existingTrack);
+          remoteStreamRef.current.addTrack(event.track);
+        }
+      } else {
+        remoteStreamRef.current.addTrack(event.track);
+      }
+
+      if (event.streams && event.streams[0]) {
+        event.streams[0].getTracks().forEach(t => {
+          if (!remoteStreamRef.current.getTracks().some(existing => existing.id === t.id)) {
+            remoteStreamRef.current.addTrack(t);
+          }
+        });
+      }
+
+      const compositeStream = new MediaStream(remoteStreamRef.current.getTracks());
+      setRemoteStream(compositeStream);
       setCallAccepted(true);
+
       if (userVideo.current) {
-        userVideo.current.srcObject = streamToUse;
-        userVideo.current.play().catch(() => {});
+        const vEl = userVideo.current;
+        vEl.srcObject = remoteStreamRef.current;
+        vEl.muted = false;
+        vEl.playsInline = true;
+        vEl.play().catch(err => {
+          console.warn("[PATIENT_VIDEO_UNMUTED_AUTOPLAY_NOTICE]", err);
+          vEl.muted = true;
+          vEl.play().catch(() => {});
+        });
+      }
+
+      if (remoteAudioRef.current) {
+        remoteAudioRef.current.srcObject = remoteStreamRef.current;
+        remoteAudioRef.current.muted = false;
+        remoteAudioRef.current.volume = 1.0;
+        remoteAudioRef.current.play().catch(err => console.warn("[PATIENT_AUDIO_AUTOPLAY_NOTICE]", err));
       }
     };
 
     pc.onicecandidate = (event) => {
-      if (event.candidate && socketRef.current && targetSocketIdRef.current) {
-        socketRef.current.emit("ice-candidate", {
-          to: String(targetSocketIdRef.current),
-          candidate: event.candidate
-        });
+      if (event.candidate && socketRef.current) {
+        const target = targetSocketIdRef.current || targetSocketId;
+        if (target) {
+          socketRef.current.emit("ice-candidate", {
+            to: String(target),
+            candidate: event.candidate
+          });
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log("[VIDEO] Connection state:", pc.connectionState);
+      console.log("[VIDEO_PATIENT] Connection state:", pc.connectionState);
       if (pc.connectionState === 'connected') {
         setCallAccepted(true);
-        console.log("[VIDEO] VIDEO CONNECTION ESTABLISHED");
+        console.log("[VIDEO_PATIENT] VIDEO CONNECTION ESTABLISHED");
         toast.success("Video Consultation Tunnel Established!");
-      }
-      if (
-        pc.connectionState === "failed" ||
-        pc.connectionState === "disconnected" ||
-        pc.connectionState === "closed"
-      ) {
-        console.warn("[VIDEO] WebRTC connection:", pc.connectionState);
+      } else if (pc.connectionState === 'disconnected') {
+        console.warn("[VIDEO_PATIENT] Network packet transition, awaiting WebRTC reconnect...");
+      } else if (pc.connectionState === 'failed' || pc.connectionState === 'closed') {
+        console.warn("[VIDEO_PATIENT] WebRTC connection failed/closed:", pc.connectionState);
         setCallAccepted(false);
       }
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log("[VIDEO] ICE connection:", pc.iceConnectionState);
+      console.log("[VIDEO_PATIENT] ICE connection:", pc.iceConnectionState);
+      if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+        setCallAccepted(true);
+      } else if (pc.iceConnectionState === 'failed') {
+        if (pc.restartIce) {
+          console.log("[VIDEO_PATIENT] Triggering ICE restart...");
+          pc.restartIce();
+        }
+      }
     };
 
     pc.onsignalingstatechange = () => {
-      console.log("[VIDEO] Signaling state:", pc.signalingState);
+      console.log("[VIDEO_PATIENT] Signaling state:", pc.signalingState);
     };
 
     return pc;
@@ -225,50 +319,114 @@ const VideoConsultation = () => {
 
   const answerCall = async (data, localStream) => {
     try {
-      if (!localStream) {
-        console.error("[VIDEO] Patient: local stream missing");
-        return;
+      let activeStream = localStream || streamRef.current;
+      if (!activeStream) {
+        if (!localStreamPromiseRef.current) {
+          startStream();
+        }
+        if (localStreamPromiseRef.current) {
+          try {
+            activeStream = await Promise.race([
+              localStreamPromiseRef.current,
+              new Promise(res => setTimeout(res, 3500))
+            ]);
+          } catch (e) {
+            console.warn("[VIDEO_PATIENT] Error awaiting stream in answerCall:", e);
+          }
+        }
       }
+      activeStream = activeStream || streamRef.current;
 
       const targetSocketId = data.fromSocketId || data.from;
       if (!targetSocketId) {
-        console.error("[VIDEO] Patient: missing target socket ID");
+        console.error("[VIDEO_PATIENT] Missing target socket ID for answering call");
         return;
       }
 
       targetSocketIdRef.current = String(targetSocketId);
-      console.log("[VIDEO] Patient answering call from socket:", targetSocketId);
-      const pc = createPeerConnection(String(targetSocketId), localStream);
+      console.log("[VIDEO_PATIENT] Answering call from socket:", targetSocketId, "Has active stream:", !!activeStream);
+
+      // Clean up previous closed connection
+      if (peerConnectionRef.current && peerConnectionRef.current.signalingState === 'closed') {
+        peerConnectionRef.current = null;
+      }
+
+      // Initialize clean PeerConnection without pre-declared transceivers
+      const pc = createPeerConnection(String(targetSocketId), null, true);
       peerConnectionRef.current = pc;
 
       const offerSignal = data.signal || data.signalData || data;
       if (!offerSignal) {
-        console.error("[VIDEO] Patient: offer missing");
+        console.error("[VIDEO_PATIENT] Offer payload missing");
         return;
       }
 
+      // 1. Set remote offer FIRST so WebRTC initializes transceivers for mid:0, mid:1
       await pc.setRemoteDescription(new RTCSessionDescription(offerSignal));
-      console.log("[VIDEO] Patient remote offer set");
+      console.log("[VIDEO_PATIENT] Remote offer set successfully. Signaling state:", pc.signalingState);
 
-      const answer = await pc.createAnswer();
+      // 2. Attach local tracks to the transceivers created by the remote offer
+      const transceivers = pc.getTransceivers();
+      console.log("[VIDEO_PATIENT] Transceivers after remote description:", transceivers.map(t => `${t.mid}:${t.direction}`));
+
+      if (activeStream) {
+        activeStream.getTracks().forEach(track => {
+          track.enabled = true;
+          const tr = transceivers.find(t => 
+            (t.receiver && t.receiver.track && t.receiver.track.kind === track.kind) ||
+            (t.sender && t.sender.track && t.sender.track.kind === track.kind)
+          );
+          if (tr) {
+            tr.direction = 'sendrecv';
+            if (tr.sender) {
+              console.log("[VIDEO_PATIENT] Attaching local track to transceiver mid:", tr.mid, track.kind);
+              tr.sender.replaceTrack(track).catch(e => console.warn("[VIDEO_PATIENT] replaceTrack error:", e));
+            }
+          } else {
+            console.log("[VIDEO_PATIENT] Fallback addTrack for:", track.kind);
+            try {
+              pc.addTrack(track, activeStream);
+            } catch (e) {
+              console.warn("[VIDEO_PATIENT] Fallback addTrack error:", e);
+            }
+          }
+        });
+      }
+
+      // Ensure all transceivers in the offer are bidirectional sendrecv
+      transceivers.forEach(tr => {
+        tr.direction = 'sendrecv';
+      });
+
+      // 3. Create the answer SDP (guaranteed to contain sendrecv and patient's tracks)
+      const answer = await pc.createAnswer({
+        offerToReceiveAudio: true,
+        offerToReceiveVideo: true
+      });
       await pc.setLocalDescription(answer);
+      enforceHighQualityVideo(pc);
+
+      console.log("[VIDEO_PATIENT] Emitting answer SDP. Has sendrecv:", answer.sdp?.includes('a=sendrecv'));
 
       socketRef.current.emit("make-answer", {
         signal: answer,
         to: String(targetSocketId)
       });
-      console.log("[VIDEO] Patient answer sent");
+      console.log("[VIDEO_PATIENT] Answer emitted to socket:", targetSocketId);
 
+      // Drain queued ICE candidates
       while (candidateQueue.current.length > 0) {
         const candidate = candidateQueue.current.shift();
         try {
           await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("[VIDEO_PATIENT] Queued ICE candidate added");
         } catch (err) {
-          console.error("[VIDEO] Queued ICE error:", err);
+          console.error("[VIDEO_PATIENT] Queued ICE error:", err);
         }
       }
     } catch (err) {
-      console.error("[VIDEO] Patient answer error:", err);
+      console.error("[VIDEO_PATIENT] Answer call error:", err);
+      setCallAccepted(false);
     }
   };
 
@@ -280,65 +438,155 @@ const VideoConsultation = () => {
 
     socketRef.current = globalSocket;
 
-    const startStream = async () => {
-      try {
-        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-        const currentStream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            width: isMobile ? { max: 640 } : { ideal: 1280 },
-            height: isMobile ? { max: 480 } : { ideal: 720 },
-            frameRate: { max: 24 }
-          },
-          audio: true
-        });
-        setStream(currentStream);
-        streamRef.current = currentStream;
-        if (myVideo.current) {
-          myVideo.current.srcObject = currentStream;
-          myVideo.current.muted = true;
-          myVideo.current.playsInline = true;
-          await myVideo.current.play().catch(() => {});
-        }
+    const currentPatientId = user?.userId || user?._id || user?.id || user?.patientId;
+    if (currentPatientId) {
+      socketRef.current.emit("register-user", String(currentPatientId));
+    }
 
-        // WebRTC Signaling Sync: Check if offer was cached in sessionStorage while camera stream was loading
-        const pendingSignalRaw = sessionStorage.getItem('pending_signal');
-        if (pendingSignalRaw) {
-          console.log("[VIDEO_SYNC] Local stream ready, answering pending call-made offer");
-          const parsed = JSON.parse(pendingSignalRaw);
-          sessionStorage.removeItem('pending_signal');
-          answerCall(parsed, currentStream);
+    const startStream = () => {
+      if (localStreamPromiseRef.current) return localStreamPromiseRef.current;
+
+      localStreamPromiseRef.current = (async () => {
+        try {
+          if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+            throw new Error("SECURE_CONTEXT_REQUIRED");
+          }
+
+          let currentStream = null;
+
+          try {
+            currentStream = await navigator.mediaDevices.getUserMedia({
+              video: {
+                facingMode: 'user',
+                width: { ideal: 1280 },
+                height: { ideal: 720 },
+                frameRate: { ideal: 30 }
+              },
+              audio: {
+                echoCancellation: true,
+                noiseSuppression: true,
+                autoGainControl: true
+              }
+            });
+          } catch (constraintErr) {
+            console.warn("[VIDEO_PATIENT] Falling back to standard getUserMedia constraints:", constraintErr);
+            try {
+              currentStream = await navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+              });
+            } catch (e1) {
+              console.warn("[VIDEO_PATIENT] Falling back to audio-only getUserMedia:", e1);
+              try {
+                currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+              } catch (e2) {
+                console.warn("[VIDEO_PATIENT] Falling back to video-only getUserMedia:", e2);
+                try {
+                  currentStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                } catch (e3) {
+                  console.error("[VIDEO_PATIENT] All getUserMedia attempts failed:", e3);
+                }
+              }
+            }
+          }
+
+          if (currentStream) {
+            currentStream.getTracks().forEach(track => {
+              track.enabled = true;
+            });
+
+            setStream(currentStream);
+            streamRef.current = currentStream;
+
+            if (myVideo.current) {
+              myVideo.current.srcObject = currentStream;
+              myVideo.current.muted = true;
+              myVideo.current.playsInline = true;
+              await myVideo.current.play().catch(() => {});
+            }
+
+            // Synchronize local tracks to active peer connection using replaceTrack or addTrack
+            if (peerConnectionRef.current) {
+              const pc = peerConnectionRef.current;
+              const senders = pc.getSenders();
+              currentStream.getTracks().forEach(track => {
+                const matchingSender = senders.find(s => (s.track && s.track.kind === track.kind) || (!s.track && s.kind === track.kind));
+                if (matchingSender) {
+                  console.log("[VIDEO_PATIENT] Replacing track on existing PC sender:", track.kind, track.id);
+                  matchingSender.replaceTrack(track).catch(e => console.warn("[VIDEO_PATIENT] replaceTrack error:", e));
+                } else {
+                  console.log("[VIDEO_PATIENT] Adding local track to existing PeerConnection:", track.kind, track.id);
+                  try {
+                    pc.addTrack(track, currentStream);
+                  } catch (e) {
+                    console.warn("[VIDEO_PATIENT] addTrack error:", e);
+                  }
+                }
+              });
+            }
+          }
+
+          // Check if offer was received and cached in sessionStorage while camera was initializing
+          const pendingSignalRaw = sessionStorage.getItem('pending_signal');
+          if (pendingSignalRaw) {
+            console.log("[VIDEO_SYNC] Local camera ready, processing cached pending offer");
+            sessionStorage.removeItem('pending_signal');
+            try {
+              const parsed = JSON.parse(pendingSignalRaw);
+              await answerCall(parsed, currentStream);
+            } catch (pErr) {
+              console.error("[VIDEO_SYNC] Failed to parse pending signal:", pErr);
+            }
+          }
+
+          return currentStream;
+        } catch (err) {
+          console.error("[HARDWARE_SYNC_ERR]", err);
+          toast.error("Camera/Mic notice: Hardware check completed.");
+          return null;
         }
-      } catch (err) {
-        console.error("[HARDWARE_SYNC_ERR]", err);
-        toast.error("Hardware node offline.");
-      }
+      })();
+
+      return localStreamPromiseRef.current;
     };
 
     const handleUserJoined = ({ socketId, userName }) => {
-      console.log("[VIDEO] Doctor joined:", socketId);
-      toast.success(`${userName} linked to session`);
-      // Patient does NOT create an offer.
+      console.log("[VIDEO_PATIENT] Doctor joined room:", socketId, userName);
       if (socketId) {
         targetSocketIdRef.current = String(socketId);
-        console.log("[NATIVE_WEBRTC] Patient detected Doctor:", socketId);
+        toast.success(`${userName || "Doctor"} linked to consultation`);
       }
     };
 
-    const handleCallMade = (data) => {
-      console.log("[VIDEO] Patient received call-made:", data);
+    const handleCallMade = async (data) => {
+      console.log("[VIDEO_PATIENT] Received call-made offer signal:", data);
       const offerSignal = data?.signal || data?.signalData;
       if (!offerSignal) return; // Notification ping only
-      if (streamRef.current) {
-        answerCall(data, streamRef.current);
-      } else {
-        console.log("[VIDEO] Stream not ready for call-made, caching in session");
-        sessionStorage.setItem('pending_signal', JSON.stringify(data));
+
+      let activeStream = streamRef.current;
+      if (!activeStream) {
+        if (!localStreamPromiseRef.current) {
+          startStream();
+        }
+        if (localStreamPromiseRef.current) {
+          console.log("[VIDEO_PATIENT] Awaiting local media stream before answering offer...");
+          try {
+            activeStream = await Promise.race([
+              localStreamPromiseRef.current,
+              new Promise(res => setTimeout(res, 3500))
+            ]);
+          } catch (e) {
+            console.warn("[VIDEO_PATIENT] Error awaiting local stream:", e);
+          }
+        }
       }
+
+      await answerCall(data, activeStream || streamRef.current);
     };
 
     const handleCallAccepted = async (data) => {
       try {
-        console.log("[VIDEO] Patient call accepted signal received:", data);
+        console.log("[VIDEO_PATIENT] Call accepted signal received:", data);
         const answer = data?.signal || data?.signalData;
         if (!answer) return;
 
@@ -351,6 +599,7 @@ const VideoConsultation = () => {
 
         if (pc.signalingState === 'have-local-offer') {
           await pc.setRemoteDescription(new RTCSessionDescription(answer));
+          console.log("[VIDEO_PATIENT] Remote description set for answer");
         }
 
         while (candidateQueue.current.length > 0) {
@@ -360,7 +609,7 @@ const VideoConsultation = () => {
           } catch (err) {}
         }
       } catch (e) {
-        console.log("[VIDEO] Answer already applied or state stable:", e?.message || e);
+        console.log("[VIDEO_PATIENT] Answer already applied or state stable:", e?.message || e);
       }
     };
 
@@ -371,106 +620,108 @@ const VideoConsultation = () => {
       }
 
       const pc = peerConnectionRef.current;
-      if (!pc || !pc.remoteDescription) {
+      if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+        try {
+          await pc.addIceCandidate(new RTCIceCandidate(candidate));
+          console.log("[VIDEO_PATIENT] ICE candidate applied");
+        } catch (err) {
+          console.error("[VIDEO_PATIENT] ICE candidate error:", err);
+        }
+      } else {
         candidateQueue.current.push(candidate);
-        return;
-      }
-
-      try {
-        await pc.addIceCandidate(new RTCIceCandidate(candidate));
-      } catch (err) {
-        console.error("[VIDEO] ICE candidate error:", err);
+        console.log("[VIDEO_PATIENT] ICE candidate queued");
       }
     };
 
     const handleUserLeft = ({ socketId }) => {
-      console.log("[VIDEO] Doctor left room:", socketId);
-      if (!targetSocketIdRef.current || targetSocketIdRef.current === String(socketId)) {
-        toast.error("Doctor left consultation room");
-        setCallAccepted(false);
-        setRemoteStream(null);
-        hasEmittedSignal.current = false;
-        if (peerConnectionRef.current) {
-          try { peerConnectionRef.current.close(); } catch (e) {}
-          peerConnectionRef.current = null;
+      console.log("[VIDEO_PATIENT] Socket left room:", socketId);
+      // Only end if the call was already active and established with this specific peer
+      if (callAccepted && targetSocketIdRef.current && targetSocketIdRef.current === String(socketId)) {
+        if (peerConnectionRef.current && (peerConnectionRef.current.connectionState === 'connected' || peerConnectionRef.current.iceConnectionState === 'connected')) {
+          console.log("[VIDEO_PATIENT] WebRTC tunnel is still active despite signaling socket leave. Continuing call.");
+          return;
         }
+        toast.error("Doctor disconnected from consultation room");
+        handleEndCall(true);
       }
     };
 
     const handleReceiveMessage = (data) => setMessages(prev => [...prev, data]);
     const handleCallDeclined = () => {
-      toast.error("Peer declined the call node");
-      navigate('/patient/dashboard');
+      console.log("[VIDEO_PATIENT] Received call-declined");
+      toast.error("Doctor declined the call node");
+      handleEndCall(true);
     };
     const handlePeerEnded = () => {
-      toast.error("Peer disconnected the sync");
+      console.log("[VIDEO_PATIENT] Received peer-ended-call");
+      toast.error("Doctor disconnected the sync");
       handleEndCall(true);
     };
 
-    const setupListeners = () => {
-      socketRef.current.on("user-joined", handleUserJoined);
-      socketRef.current.on("user-left", handleUserLeft);
-      socketRef.current.on("call-made", handleCallMade);
-      socketRef.current.on("call-accepted", handleCallAccepted);
-      socketRef.current.on("ice-candidate", handleIceCandidate);
-      socketRef.current.on("receive-message", handleReceiveMessage);
-      socketRef.current.on("call-declined", handleCallDeclined);
-      socketRef.current.on("peer-ended-call", handlePeerEnded);
+    const socket = socketRef.current;
 
-      if (roomCode && user?.userId) {
-        socketRef.current.emit("join-room", {
-          roomCode: String(roomCode),
-          userId: String(user.userId || user._id),
-          userName: user.name
-        });
-      }
+    // 1. Attach listeners
+    socket.off("user-joined", handleUserJoined);
+    socket.off("user-left", handleUserLeft);
+    socket.off("call-accepted", handleCallAccepted);
+    socket.off("ice-candidate", handleIceCandidate);
+    socket.off("receive-message", handleReceiveMessage);
+    socket.off("call-declined", handleCallDeclined);
+    socket.off("peer-ended-call", handlePeerEnded);
 
-      // Emit ringing notification to peer if patient initiated the call
-      if (
-        peerIdFromUrl &&
-        searchParams.get("incoming") !== "true" &&
-        !hasEmittedSignal.current
-      ) {
-        hasEmittedSignal.current = true;
-        console.log("[VIDEO_SYNC] Patient emitting video call notification signal to peer:", peerIdFromUrl);
-        socketRef.current.emit("call-user", {
-          userToCall: String(peerIdFromUrl),
-          signalData: null,
-          from: user?.userId || user?._id,
-          name: user?.name || "Patient",
-          conversationId: roomCode,
-          callType: "video",
-          isP2P: false
-        });
-      }
+    // 2. Attach listeners
+    socket.on("user-joined", handleUserJoined);
+    socket.on("user-left", handleUserLeft);
+    socket.on("call-made", handleCallMade);
+    socket.on("call-accepted", handleCallAccepted);
+    socket.on("ice-candidate", handleIceCandidate);
+    socket.on("receive-message", handleReceiveMessage);
+    socket.on("call-declined", handleCallDeclined);
+    socket.on("peer-ended-call", handlePeerEnded);
 
-      // Initiate signaling after listeners are ready
-      const pendingSignalRaw = sessionStorage.getItem('pending_signal');
-      if (pendingSignalRaw && searchParams.get('incoming') === 'true') {
-        const parsed = JSON.parse(pendingSignalRaw);
-        sessionStorage.removeItem('pending_signal');
-        const signal = parsed?.signal || parsed;
-        const fromSocketId = parsed?.fromSocketId;
-        if (streamRef.current) {
-          answerCall({ signal, fromSocketId }, streamRef.current);
-        }
-      }
-    };
+    // 3. Join consultation room
+    if (roomCode && currentPatientId) {
+      console.log("[VIDEO_SYNC] Patient emitting join-room:", roomCode, "User:", currentPatientId);
+      socket.emit("join-room", {
+        roomCode: String(roomCode),
+        userId: String(currentPatientId),
+        userName: user?.name || "Patient"
+      });
+    }
 
-    setupListeners();
+    // 4. Emit ringing notification to doctor if patient initiated the call
+    if (
+      peerIdFromUrl &&
+      searchParams.get("incoming") !== "true" &&
+      searchParams.get("fromChat") !== "true" &&
+      !hasEmittedSignal.current
+    ) {
+      hasEmittedSignal.current = true;
+      console.log("[VIDEO_SYNC] Patient emitting video call ringing ping to peer:", peerIdFromUrl);
+      socket.emit("call-user", {
+        userToCall: String(peerIdFromUrl),
+        signalData: null,
+        from: user?.userId || user?._id,
+        name: user?.name || "Patient",
+        conversationId: roomCode,
+        callType: "video",
+        isP2P: false
+      });
+    }
+
+    // 5. Start camera stream immediately
     startStream();
 
     return () => {
-      if (socketRef.current) {
-        socketRef.current.emit("leave-room", { roomCode });
-        socketRef.current.off("user-joined", handleUserJoined);
-        socketRef.current.off("user-left", handleUserLeft);
-        socketRef.current.off("call-made", handleCallMade);
-        socketRef.current.off("call-accepted", handleCallAccepted);
-        socketRef.current.off("ice-candidate", handleIceCandidate);
-        socketRef.current.off("receive-message", handleReceiveMessage);
-        socketRef.current.off("call-declined", handleCallDeclined);
-        socketRef.current.off("peer-ended-call", handlePeerEnded);
+      if (socket) {
+        socket.emit("leave-room", { roomCode });
+        socket.off("user-joined", handleUserJoined);
+        socket.off("user-left", handleUserLeft);
+        socket.off("call-accepted", handleCallAccepted);
+        socket.off("ice-candidate", handleIceCandidate);
+        socket.off("receive-message", handleReceiveMessage);
+        socket.off("call-declined", handleCallDeclined);
+        socket.off("peer-ended-call", handlePeerEnded);
       }
       if (streamRef.current) {
         streamRef.current.getTracks().forEach(track => track.stop());
@@ -479,8 +730,9 @@ const VideoConsultation = () => {
         try { peerConnectionRef.current.close(); } catch (e) {}
         peerConnectionRef.current = null;
       }
+      useStore.getState().registerUserSockets();
     };
-  }, [roomCode, globalSocket]); // REMOVED stream dependency
+  }, [roomCode]);
 
   useEffect(() => {
     let interval = null;
@@ -499,17 +751,36 @@ const VideoConsultation = () => {
   };
 
   useEffect(() => {
-    if (remoteStream && userVideo.current) {
-      console.log("[VIDEO_SYNC] Binding remote stream to video element:", remoteStream);
-      userVideo.current.srcObject = remoteStream;
-      userVideo.current.muted = false;
-      userVideo.current.volume = 1.0;
-      userVideo.current.play().catch(e => console.warn("[VIDEO_SYNC] Autoplay blocked:", e));
+    if (remoteStream) {
+      console.log("[VIDEO_SYNC] Binding remote stream to media elements:", remoteStream);
+      if (userVideo.current) {
+        const vEl = userVideo.current;
+        if (vEl.srcObject !== remoteStream) {
+          vEl.srcObject = remoteStream;
+        }
+        vEl.muted = false;
+        vEl.play().catch(e => {
+          console.warn("[VIDEO_SYNC] Video unmuted autoplay notice:", e);
+          vEl.muted = true;
+          vEl.play().catch(() => {});
+        });
+      }
+      if (remoteAudioRef.current) {
+        const aEl = remoteAudioRef.current;
+        if (aEl.srcObject !== remoteStream) {
+          aEl.srcObject = remoteStream;
+        }
+        aEl.muted = false;
+        aEl.volume = 1.0;
+        aEl.play().catch(e => console.warn("[VIDEO_SYNC] Audio autoplay notice:", e));
+      }
     }
   }, [remoteStream, callAccepted]);
 
   const handleSendMessage = (message) => {
-    socketRef.current.emit("send-message", { roomCode, message, sender: user?.name || 'Patient' });
+    if (socketRef.current) {
+      socketRef.current.emit("send-message", { roomCode, message, sender: user?.name || 'Patient' });
+    }
   };
 
   const toggleAudio = () => {
@@ -533,35 +804,49 @@ const VideoConsultation = () => {
     }
   };
 
-  const handleEndCall = async (skipSignal = false) => {
-    if (peerConnectionRef.current) peerConnectionRef.current.close();
-    if (stream) stream.getTracks().forEach(track => track.stop());
-
-    if (!skipSignal && socketRef.current) {
-      socketRef.current.emit("end-call-signal", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
-      socketRef.current.emit("end-call", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
-    }
-
-    setCallEnded(true);
-    setCallAccepted(false);
-    sessionStorage.removeItem('pending_signal');
-    hasEmittedSignal.current = false;
-    useStore.getState().setIncomingCall(null);
-
-    const spentTime = SESSION_DURATION - timeLeft;
-    const duration = formatTime(spentTime);
+  const handleEndCall = (skipSignal = false) => {
+    console.log("[VIDEO_PATIENT] Ending call immediately...");
     try {
-      await api.post('/chat/log-call', {
+      if (peerConnectionRef.current) {
+        try { peerConnectionRef.current.close(); } catch (e) {}
+        peerConnectionRef.current = null;
+      }
+      if (streamRef.current) {
+        try { streamRef.current.getTracks().forEach(track => track.stop()); } catch (e) {}
+      }
+      if (stream) {
+        try { stream.getTracks().forEach(track => track.stop()); } catch (e) {}
+      }
+
+      if (!skipSignal && socketRef.current) {
+        socketRef.current.emit("end-call-signal", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
+        socketRef.current.emit("end-call", { to: peerIdFromUrl, roomCode, conversationId: roomCode });
+        socketRef.current.emit("leave-room", { roomCode });
+      }
+
+      setCallEnded(true);
+      setCallAccepted(false);
+      sessionStorage.removeItem('pending_signal');
+      if (hasEmittedSignal) hasEmittedSignal.current = false;
+      useStore.getState().setIncomingCall(null);
+
+      // Log call asynchronously without awaiting
+      const spentTime = SESSION_DURATION - timeLeft;
+      const duration = formatTime(spentTime);
+      api.post('/chat/log-call', {
         conversationId: roomCode,
         receiverId: peerIdFromUrl,
         callType: 'video',
         status: 'ended',
         duration
-      });
-    } catch (e) {}
+      }).catch(() => {});
 
-    toast.success("Video consultation completed");
-    navigate('/patient/dashboard');
+      toast.success("Video consultation ended");
+    } catch (err) {
+      console.warn("[VIDEO_PATIENT] Cleanup notice:", err);
+    } finally {
+      navigate('/patient/dashboard', { replace: true });
+    }
   };
 
   return (
@@ -575,9 +860,22 @@ const VideoConsultation = () => {
 
             {/* 1. REMOTE VIDEO (DOCTOR) - FULL BACKGROUND */}
             <div className="absolute inset-0 z-0 bg-black">
-              <video playsInline ref={userVideo} autoPlay className={`w-full h-full object-cover ${callAccepted && !callEnded ? 'block' : 'hidden'}`} />
-              {(!callAccepted || callEnded) && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#09090B]">
+              <audio ref={remoteAudioRef} autoPlay playsInline />
+              <video
+                playsInline
+                webkit-playsinline="true"
+                x5-playsinline="true"
+                ref={userVideo}
+                autoPlay
+                controls={false}
+                poster="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg'/>"
+                onLoadedMetadata={(e) => {
+                  e.target.play().catch(err => console.warn("[PATIENT_VIDEO_LOADED_ERR]", err));
+                }}
+                className="w-full h-full object-cover"
+              />
+              {(!callAccepted || callEnded || !remoteStream) && (
+                <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[#09090B]">
                   <div className="relative">
                     <div className="absolute inset-0 bg-blue-600/20 blur-[100px] rounded-full animate-pulse"></div>
                     <div className="w-48 h-48 bg-white/5 border border-white/10 rounded-full flex items-center justify-center relative z-10 shadow-2xl">

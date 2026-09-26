@@ -187,14 +187,26 @@ export const login = async (req, res) => {
     const upperId = cleanId.toUpperCase();
 
     let query = {};
-    if (upperId.startsWith('PAT')) {
+    if (cleanId.includes('@')) {
+      // Prioritize email lookups when @ is present
+      query = { email: cleanId.toLowerCase() };
+    } else if (cleanId.toLowerCase() === 'admin' || upperId === 'ADMIN') {
+      // Direct alias for central administrator
+      query = {
+        $or: [
+          { role: 'admin' },
+          { adminId: 'ADM1001' },
+          { email: 'admin@mediconsult.com' }
+        ]
+      };
+    } else if (/^PAT/i.test(cleanId)) {
       query = { patientId: upperId };
-    } else if (upperId.startsWith('DOC')) {
+    } else if (/^DOC/i.test(cleanId)) {
       query = { doctorId: upperId };
-    } else if (upperId.startsWith('ADM')) {
+    } else if (/^ADM/i.test(cleanId)) {
       query = { adminId: upperId };
     } else {
-      // Search by email, phone or applicationNumber (Case-insensitive for email)
+      // Search by phone or applicationNumber
       query = {
         $or: [
           { email: cleanId.toLowerCase() },
@@ -217,12 +229,14 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Invalid identity code or encryption key' });
     }
 
-    // Role-Tab Enforcement: Ensure user is on the correct side of the portal
-    if (tab === 'patient' && user.role !== 'patient') {
-       return res.status(403).json({ message: 'This node is registered as STAFF. Please use the Operator portal.' });
-    }
-    if (tab === 'staff' && user.role === 'patient') {
-       return res.status(403).json({ message: 'This node is registered as a PATIENT. Please use the Patient portal.' });
+    // Role-Tab Enforcement: Admins can log in from any tab; doctors/patients are auto-redirected
+    if (user.role !== 'admin') {
+      if (tab === 'patient' && user.role !== 'patient') {
+         return res.status(403).json({ message: 'This node is registered as STAFF. Please use the Operator portal.' });
+      }
+      if (tab === 'staff' && user.role === 'patient') {
+         return res.status(403).json({ message: 'This node is registered as a PATIENT. Please use the Patient portal.' });
+      }
     }
 
     if (user && isMatch) {
@@ -312,11 +326,11 @@ export const updateSecuritySettings = async (req, res) => {
 export const registerPatientOtp = async (req, res) => {
   console.log(`[REGISTRATION] Received request body:`, JSON.stringify(req.body, null, 2));
   try {
-    const { name, email, phone, age, gender, password } = req.body;
+    const { name, email, phone, age, gender, password, dob, bloodGroup, address, guardianName, guardianPhone, profession, aadhaarNumber } = req.body;
 
     // Basic Validation
     if (!name || !email || !phone || !age || !gender || !password) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'All required fields must be filled' });
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -328,12 +342,21 @@ export const registerPatientOtp = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    const userExists = await User.findOne({ $or: [{ email }, { phone }] });
-    if (userExists) {
-      return res.status(400).json({ message: 'User with this Email or Phone Number already exists' });
+    let queryConditions = [{ email }, { phone }];
+    if (aadhaarNumber && aadhaarNumber.trim() !== '') {
+      queryConditions.push({ aadhaarNumber: aadhaarNumber.trim() });
     }
 
-    await TempUser.deleteMany({ $or: [{ email }, { phone }] });
+    const userExists = await User.findOne({ $or: queryConditions });
+    if (userExists) {
+      return res.status(400).json({ message: 'User with this Email, Phone Number, or Aadhaar Number already exists. Only a single account per Aadhaar is permitted.' });
+    }
+
+    let tempConditions = [{ email }, { phone }];
+    if (aadhaarNumber && aadhaarNumber.trim() !== '') {
+      tempConditions.push({ aadhaarNumber: aadhaarNumber.trim() });
+    }
+    await TempUser.deleteMany({ $or: tempConditions });
 
     const emailOtp = randomInt(100000, 999999).toString();
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
@@ -345,6 +368,13 @@ export const registerPatientOtp = async (req, res) => {
       age: parseInt(age),
       gender,
       password,
+      dob,
+      bloodGroup,
+      address,
+      guardianName,
+      guardianPhone,
+      profession,
+      aadhaarNumber,
       emailOtp,
       emailOtpExpires: otpExpires,
       lastOtpSentAt: new Date()
@@ -410,14 +440,27 @@ export const verifyPatientOtp = async (req, res) => {
       phone: tempUser.phone,
       password: tempUser.password, // already hashed
       role: 'patient',
-      patientId
+      patientId,
+      dob: tempUser.dob,
+      bloodGroup: tempUser.bloodGroup,
+      address: tempUser.address,
+      guardianName: tempUser.guardianName,
+      guardianPhone: tempUser.guardianPhone,
+      profession: tempUser.profession,
+      aadhaarNumber: tempUser.aadhaarNumber
     });
 
     await PatientProfile.create({
       userId: user._id,
       patientId,
       age: tempUser.age,
-      gender: tempUser.gender
+      gender: tempUser.gender,
+      bloodGroup: tempUser.bloodGroup,
+      address: tempUser.address,
+      guardianName: tempUser.guardianName,
+      guardianPhone: tempUser.guardianPhone,
+      profession: tempUser.profession,
+      aadhaarNumber: tempUser.aadhaarNumber
     });
 
     // Delete temp registration session

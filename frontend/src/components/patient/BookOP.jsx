@@ -588,6 +588,7 @@ const BookOP = () => {
                                 type="file"
                                 accept="image/*"
                                 className="hidden"
+                                onClick={(e) => e.stopPropagation()}
                                 onChange={handleScreenshotChange}
                               />
                             </div>

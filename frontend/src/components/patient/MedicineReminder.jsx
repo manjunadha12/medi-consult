@@ -35,6 +35,12 @@ const MedicineReminder = () => {
     try {
       const { data } = await api.get(`/medicines/${user.userId}`);
       setMedicines(data);
+      if (Array.isArray(data) && data.length > 0) {
+        await requestNotificationPermission();
+        for (const med of data) {
+          scheduleMedicineAlarm(med);
+        }
+      }
     } catch (error) {
       toast.error("Failed to load medicines");
     } finally {

@@ -5,7 +5,7 @@ import { toast } from 'react-hot-toast';
 import {
   User as UserIcon, Mail, Phone as PhoneIcon, Calendar, ArrowRight, ShieldCheck as ShieldCheckIcon,
   CheckCircle2, RotateCcw, AlertTriangle, Sparkles, Shield, Activity,
-  Globe, Headphones, UserPlus, Lock, Plus, Users
+  Globe, Headphones, UserPlus, Lock, Plus, Users, Home, Briefcase, Heart
 } from 'lucide-react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, googleProvider } from '../../utils/firebase';
@@ -16,8 +16,15 @@ const PatientRegister = () => {
   const [step, setStep] = useState(1); // 1: Info Form, 2: OTP Verify, 3: Success
   const [formData, setFormData] = useState({
     name: '',
+    dob: '',
     age: '',
     gender: '',
+    bloodGroup: '',
+    address: '',
+    guardianName: '',
+    guardianPhone: '',
+    profession: '',
+    aadhaarNumber: '',
     phone: '',
     email: '',
     password: '',
@@ -42,6 +49,22 @@ const PatientRegister = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleDobChange = (e) => {
+    const dobValue = e.target.value;
+    let calculatedAge = '';
+    if (dobValue) {
+      const dobDate = new Date(dobValue);
+      const today = new Date();
+      let ageYears = today.getFullYear() - dobDate.getFullYear();
+      const m = today.getMonth() - dobDate.getMonth();
+      if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
+        ageYears--;
+      }
+      if (ageYears >= 0) calculatedAge = ageYears.toString();
+    }
+    setFormData({ ...formData, dob: dobValue, age: calculatedAge });
   };
 
   const handleRequestOtp = async (e) => {
@@ -112,6 +135,16 @@ const PatientRegister = () => {
   const handleGoogleLogin = async () => {
     setLoading(true);
     try {
+      const isNative = window.location.origin.startsWith('capacitor:') || (window.location.origin.includes('://localhost') && !window.location.port);
+      if (isNative) {
+        setLoading(false);
+        toast("Google restricts sign-in inside mobile WebViews for security. Please sign in using your Email & Password below.", {
+          icon: '🔒',
+          duration: 7000
+        });
+        return;
+      }
+
       const result = await signInWithPopup(auth, googleProvider);
       const idToken = await result.user.getIdToken();
 
@@ -133,10 +166,10 @@ const PatientRegister = () => {
       navigate(data.redirectTo);
     } catch (error) {
       console.error(error);
-      if (error.code === 'auth/popup-closed-by-user') {
+      if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         toast.error('Google Sign-In cancelled');
       } else {
-        toast.error(error.response?.data?.message || 'Google Authentication failed');
+        toast.error(error.response?.data?.message || error.message || 'Google Authentication failed');
       }
     } finally {
       setLoading(false);
@@ -145,9 +178,6 @@ const PatientRegister = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#000] font-sans overflow-x-hidden relative text-left">
-      {/* 1. Outer Container */}
-
-      {/* GLOBAL BACKGROUND */}
       <div className="absolute inset-0 z-0 overflow-hidden">
           <img src="/login-bg.png" alt="Hand Sync" className="w-full h-full object-cover opacity-50 scale-105" />
           <div className="absolute top-[40%] md:top-[50%] left-[50%] md:left-[55%] -translate-x-1/2 -translate-y-1/2 z-10">
@@ -161,9 +191,6 @@ const PatientRegister = () => {
       </div>
 
       <div className="flex-1 flex flex-col md:flex-row relative z-20">
-         {/* 2. Main Wrapper */}
-
-         {/* LEFT SECTION */}
          <div className="hidden md:flex flex-[1.3] p-12 lg:p-20 flex flex-col h-full w-full text-left">
              <div className="flex items-center gap-3 mb-16">
                <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Logo" className="w-12 h-12 object-contain" />
@@ -192,24 +219,20 @@ const PatientRegister = () => {
              </div>
          </div>
 
-         {/* RIGHT SECTION */}
          <div className="flex-1 flex flex-col items-center justify-center p-6 lg:p-14 relative z-30">
-            {/* 3. Right Section Wrapper */}
-            <div className="max-w-[520px] w-full bg-white/5 backdrop-blur-2xl p-8 lg:p-12 rounded-[20px] shadow-2xl border border-white/10 flex flex-col items-center">
-              {/* 4. Registration Card */}
-
-              <div className="mb-8 flex justify-center">
-                 <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Medi Consult Logo" className="w-32 sm:w-36 h-auto object-contain" />
+            <div className="max-w-[560px] w-full bg-white/5 backdrop-blur-2xl p-8 lg:p-12 rounded-[20px] shadow-2xl border border-white/10 flex flex-col items-center">
+              <div className="mb-6 flex justify-center">
+                 <img src="/logo.png" onError={(e) => { e.currentTarget.src = '/logo.jpeg'; }} alt="Medi Consult Logo" className="w-28 sm:w-32 h-auto object-contain" />
               </div>
 
-              <div className="text-center mb-8">
-                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">{step === 1 ? 'Create Account' : step === 2 ? 'OTP Verify' : 'Success'}</h2>
-                 <p className="text-[9px] sm:text-[10px] font-black text-zinc-500 mt-2 uppercase tracking-widest">{step === 1 ? 'Join Medi Consult for smarter healthcare' : step === 2 ? 'Identity Authentication Required' : 'Patient ID Assigned'}</p>
+              <div className="text-center mb-6">
+                 <h2 className="text-2xl sm:text-3xl font-black text-white tracking-tighter uppercase leading-none">{step === 1 ? 'Patient Registration' : step === 2 ? 'OTP Verification' : 'Registration Success'}</h2>
+                 <p className="text-[9px] sm:text-[10px] font-black text-zinc-500 mt-2 uppercase tracking-widest">{step === 1 ? 'Phase 1: Patient Clinical Credentials' : step === 2 ? 'Phase 2: Security & OTP Verification' : 'Patient ID Assigned Successfully'}</p>
               </div>
 
               {step === 1 && (
                 <div className="w-full">
-                   <div className="w-full flex bg-white/5 border border-white/10 p-1.5 rounded-[20px] mb-8 gap-1">
+                   <div className="w-full flex bg-white/5 border border-white/10 p-1.5 rounded-[20px] mb-6 gap-1">
                       <button className="flex-1 py-3 bg-blue-600 text-white shadow-lg shadow-blue-500/25 rounded-[20px] text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all">Patient</button>
                       <button onClick={() => navigate('/register/doctor')} className="flex-1 py-3 text-zinc-400 hover:text-white rounded-[20px] text-[10px] sm:text-xs font-black uppercase tracking-widest transition-all">Operator</button>
                    </div>
@@ -217,44 +240,101 @@ const PatientRegister = () => {
                    <form onSubmit={handleRequestOtp} className="space-y-4 text-left">
                       <div className="relative group text-left">
                          <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="name" type="text" placeholder="Full Name" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-sm text-white placeholder:text-zinc-600" required />
+                         <input name="name" type="text" placeholder="Full Name *" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-sm text-white placeholder:text-zinc-600" required />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-left">
+                         <div className="space-y-1">
+                            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Date of Birth *</label>
+                            <div className="relative group text-left">
+                               <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                               <input name="dob" type="date" value={formData.dob} onChange={handleDobChange} className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                            </div>
+                         </div>
+                         <div className="space-y-1">
+                            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Age (Auto)</label>
+                            <div className="relative group text-left">
+                               <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
+                               <input name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                            </div>
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 text-left">
+                         <div className="space-y-1">
+                            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Gender *</label>
+                            <select name="gender" value={formData.gender} onChange={handleChange} className="w-full px-5 py-3.5 bg-zinc-900 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 font-bold text-sm text-zinc-300" required>
+                               <option value="">Select Gender</option>
+                               <option value="Male">Male</option>
+                               <option value="Female">Female</option>
+                               <option value="Other">Other</option>
+                            </select>
+                         </div>
+                         <div className="space-y-1">
+                            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Blood Group *</label>
+                            <select name="bloodGroup" value={formData.bloodGroup} onChange={handleChange} className="w-full px-5 py-3.5 bg-zinc-900 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 font-bold text-sm text-zinc-300" required>
+                               <option value="">Select Blood Group</option>
+                               <option value="O+">O+</option>
+                               <option value="O-">O-</option>
+                               <option value="A+">A+</option>
+                               <option value="A-">A-</option>
+                               <option value="B+">B+</option>
+                               <option value="B-">B-</option>
+                               <option value="AB+">AB+</option>
+                               <option value="AB-">AB-</option>
+                               <option value="Other">Other</option>
+                            </select>
+                         </div>
+                      </div>
+
+                      <div className="relative group text-left">
+                         <Home className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                         <input name="address" type="text" placeholder="Residential Address *" value={formData.address} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" required />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 text-left">
                          <div className="relative group text-left">
-                            <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                            <input name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                            <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                            <input name="guardianName" type="text" placeholder="Guardian Name" value={formData.guardianName} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
                          </div>
-                         <select name="gender" value={formData.gender} onChange={handleChange} className="px-6 py-3.5 bg-zinc-900 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 font-bold text-sm text-zinc-300" required>
-                            <option value="">Gender</option>
-                            <option value="Male">Male</option>
-                            <option value="Female">Female</option>
-                            <option value="Other">Other</option>
-                         </select>
+                         <div className="relative group text-left">
+                            <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                            <input name="guardianPhone" type="tel" placeholder="Guardian Phone" value={formData.guardianPhone} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
+                         </div>
+                      </div>
+
+                      <div className="relative group text-left">
+                         <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                         <input name="profession" type="text" placeholder="Profession / Occupation" value={formData.profession} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
+                      </div>
+
+                      <div className="relative group text-left">
+                         <ShieldCheckIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
+                         <input name="aadhaarNumber" type="text" maxLength={12} placeholder="Aadhaar Card Number (12 Digits)" value={formData.aadhaarNumber} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
                       </div>
 
                       <div className="relative group text-left">
                          <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="phone" type="tel" placeholder="Mobile Number" value={formData.phone} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                         <input name="phone" type="tel" placeholder="Mobile Number *" value={formData.phone} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
                       </div>
 
                       <div className="relative group text-left">
                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="email" type="email" placeholder="Email Address" value={formData.email} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                         <input name="email" type="email" placeholder="Email Address *" value={formData.email} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 text-left">
                          <div className="relative group text-left">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                            <input name="password" type="password" placeholder="Password" value={formData.password} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                            <input name="password" type="password" placeholder="Password *" value={formData.password} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
                          </div>
                          <div className="relative group text-left">
                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                            <input name="confirmPassword" type="password" placeholder="Confirm" value={formData.confirmPassword} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                            <input name="confirmPassword" type="password" placeholder="Confirm *" value={formData.confirmPassword} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
                          </div>
                       </div>
 
-                      <button type="submit" disabled={loading} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[20px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-2 disabled:opacity-50">{loading ? 'Processing Node...' : <>Sign Up <ArrowRight size={18} /></>}</button>
+                      <button type="submit" disabled={loading} className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-[20px] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-blue-500/25 transition-all active:scale-[0.98] flex items-center justify-center gap-3 mt-4 disabled:opacity-50">{loading ? 'Processing Node...' : <>Request Verification OTP <ArrowRight size={18} /></>}</button>
 
                       <div className="relative my-6 flex items-center justify-center"><div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div><span className="relative px-3 bg-black/40 text-[9px] font-black text-zinc-500 uppercase tracking-widest whitespace-nowrap">or continue with</span></div>
 
@@ -287,13 +367,9 @@ const PatientRegister = () => {
 
               <p className="mt-8 text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Already have an account? <Link to="/" className="text-blue-400 font-black hover:underline ml-1">Sign in</Link></p>
            </div>
-           {/* Close 4. Registration Card */}
          </div>
-         {/* Close 3. Right Section Wrapper */}
       </div>
-      {/* Close 2. Main Wrapper */}
 
-      {/* FOOTER STATS */}
       <div className="bg-zinc-950/50 backdrop-blur-xl border-t border-white/5 py-8 px-6 lg:px-20 z-30 relative text-left">
          <div className="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8 text-left">
             {[
@@ -309,9 +385,7 @@ const PatientRegister = () => {
             ))}
          </div>
       </div>
-
     </div>
-    /* Close 1. Outer Container */
   );
 };
 

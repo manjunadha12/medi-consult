@@ -5,6 +5,11 @@ import helmet from 'helmet';
 import mongoSanitize from 'express-mongo-sanitize';
 import connectDB from './config/db.js';
 import path from 'path';
+import dns from 'dns';
+
+try {
+  dns.setDefaultResultOrder('ipv4first');
+} catch (e) {}
 import { fileURLToPath } from 'url';
 import { createServer as createHttpServer } from 'http';
 import { createServer as createHttpsServer } from 'https';
@@ -80,6 +85,26 @@ const allowedOrigins = [
   'https://localhost:5173',
   'http://127.0.0.1:5173',
   'https://127.0.0.1:5173',
+  'http://192.168.1.7:5173',
+  'https://192.168.1.7:5173',
+  'http://192.168.1.7:5001',
+  'http://192.168.1.7:5000',
+  'http://192.168.1.3:5173',
+  'https://192.168.1.4:5173',
+  'http://192.168.1.4:5001',
+  'http://192.168.1.4:5000',
+  'http://192.168.1.5:5173',
+  'https://192.168.1.5:5173',
+  'http://192.168.1.5:5001',
+  'http://192.168.1.5:5000',
+  'http://192.168.1.9:5173',
+  'https://192.168.1.9:5173',
+  'http://192.168.1.9:5001',
+  'http://192.168.1.9:5000',
+  'http://10.92.68.15:5173',
+  'https://10.92.68.15:5173',
+  'http://10.92.68.15:5001',
+  'http://10.92.68.15:5000',
   'http://192.168.1.6:5173',
   'https://192.168.1.6:5173',
   'http://192.168.1.6:5001',
@@ -107,11 +132,13 @@ app.use(cors({
       return callback(null, true);
     }
 
-    // 2. Allow known IP-based origins (both HTTP and HTTPS)
+    // 2. Allow known IP-based origins and public tunnel domains (HTTP and HTTPS)
     const isLocalIP = origin.startsWith('http://10.') || origin.startsWith('https://10.') ||
                       origin.startsWith('http://172.') || origin.startsWith('https://172.') ||
                       origin.startsWith('http://192.168.') || origin.startsWith('https://192.168.') ||
-                      origin.startsWith('http://127.0.0.1') || origin.startsWith('https://127.0.0.1');
+                      origin.startsWith('http://127.0.0.1') || origin.startsWith('https://127.0.0.1') ||
+                      origin.includes('ngrok') || origin.includes('loca.lt') || origin.includes('mediconsult') ||
+                      origin.includes('trycloudflare.com') || origin.includes('cloudflare');
 
     if (allowedOrigins.indexOf(origin) !== -1 || isLocalIP) {
       callback(null, true);
@@ -282,15 +309,16 @@ io.on("connection", (socket) => {
 
   socket.on("decline-call", ({ to, roomCode }) => {
     console.log(`[CALL_SIGNAL] Socket ${socket.id} declined call to ${to} / room ${roomCode}`);
-    if (to) io.to(String(to)).emit("call-declined");
-    if (roomCode) io.to(String(roomCode)).emit("call-declined");
+    if (to) socket.to(String(to)).emit("call-declined");
+    if (roomCode) socket.to(String(roomCode)).emit("call-declined");
   });
 
   socket.on("end-call", ({ to, roomCode, conversationId }) => {
-    if (to) io.to(String(to)).emit("peer-ended-call");
+    console.log(`[CALL_SIGNAL] Socket ${socket.id} ended call (to: ${to}, room: ${roomCode || conversationId})`);
+    if (to) socket.to(String(to)).emit("peer-ended-call");
     const room = roomCode || conversationId;
     if (room) {
-      io.to(String(room)).emit("peer-ended-call");
+      socket.to(String(room)).emit("peer-ended-call");
       socket.leave(String(room));
     }
   });
@@ -312,6 +340,8 @@ io.on("connection", (socket) => {
     }
   });
 });
+
+
 
 app.use((err, req, res, next) => {
   console.error(`[CRITICAL_FAIL] ${err.message}`);

@@ -5,18 +5,23 @@ import { Phone as PhoneIcon, Video, PhoneOff, Zap, User, Bell } from 'lucide-rea
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
 import api from '../../utils/api';
+import { LocalNotifications } from '@capacitor/local-notifications';
 
 const GlobalCallListener = () => {
-  const { user, theme, socket, incomingCall, setIncomingCall, initializeGlobalSocket } = useStore();
+  const { user, theme, socket, incomingCall, setIncomingCall, initializeGlobalSocket, registerUserSockets } = useStore();
   const navigate = useNavigate();
   const ringtoneRef = useRef(null);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   useEffect(() => {
-    if (user && !socket) {
-      initializeGlobalSocket();
+    if (user) {
+      if (!socket) {
+        initializeGlobalSocket();
+      } else {
+        registerUserSockets();
+      }
     }
-  }, [user, socket, initializeGlobalSocket]);
+  }, [user, socket, window.location.pathname]);
 
   // Backend Heartbeat - Check if the server is actually reachable
   useEffect(() => {
@@ -40,10 +45,33 @@ const GlobalCallListener = () => {
   }, []);
 
   useEffect(() => {
-    // Request notification permissions
+    // Request notification permissions and setup native channel
     if ("Notification" in window && Notification.permission !== "granted") {
       Notification.requestPermission();
     }
+
+    const initNativeNotifications = async () => {
+      try {
+        const status = await LocalNotifications.checkPermissions();
+        if (status.display !== 'granted') {
+          await LocalNotifications.requestPermissions();
+        }
+
+        await LocalNotifications.createChannel({
+          id: 'incoming_calls_channel',
+          name: 'Incoming Call Alerts',
+          description: 'Heads-up notification alerts for incoming voice and video calls',
+          importance: 5, // High/Max importance for heads-up banner on home screen
+          visibility: 1, // Public lockscreen visibility
+          vibration: true,
+          sound: 'ringtone'
+        });
+      } catch (err) {
+        console.warn("[NATIVE_NOTIF_INIT_ERR]", err);
+      }
+    };
+
+    initNativeNotifications();
 
     // Setup ringtone sound
     ringtoneRef.current = new Audio('https://assets.mixkit.co/active_storage/sfx/1359/1359-preview.mp3');
@@ -91,6 +119,26 @@ const GlobalCallListener = () => {
         icon: '📞'
       });
 
+      // Schedule Native Android Notification for Home Screen & Lock Screen
+      try {
+        LocalNotifications.schedule({
+          notifications: [
+            {
+              title: `📞 Incoming ${incomingCall.callType?.toUpperCase() || 'VIDEO'} Call`,
+              body: `${incomingCall.name} is calling you. Tap to join consultation.`,
+              id: 99999,
+              schedule: { at: new Date(Date.now() + 100) },
+              channelId: 'incoming_calls_channel',
+              extra: {
+                incomingCallData: incomingCall
+              }
+            }
+          ]
+        }).catch(err => console.warn("[LOCAL_NOTIF_SCHEDULE_ERR]", err));
+      } catch (err) {
+        console.warn("[LOCAL_NOTIF_ERR]", err);
+      }
+
       // Show system level notification safely
       if ("Notification" in window && Notification.permission === "granted") {
         try {
@@ -103,12 +151,16 @@ const GlobalCallListener = () => {
         }
       }
 
-      // Ensure we are not on a consult page already
+      // If on a consult page, only ignore if already inside the exact same active room
       if (window.location.pathname.includes('consult')) {
-        console.warn("[GLOBAL_CALL] Peer is already in a consultation node. Ignoring signal.");
-        setIncomingCall(null);
-        stopRinging();
-        toast.dismiss('incoming-call-alert');
+        const currentParams = new URLSearchParams(window.location.search);
+        const currentRoom = currentParams.get('roomCode') || currentParams.get('appointmentId');
+        if (currentRoom && currentRoom === incomingCall.conversationId) {
+          console.log("[GLOBAL_CALL] Already in the exact same room. Ignoring duplicate ringing ping.");
+          setIncomingCall(null);
+          stopRinging();
+          toast.dismiss('incoming-call-alert');
+        }
       }
     } else {
       stopRinging();
@@ -121,7 +173,39 @@ const GlobalCallListener = () => {
       ringtoneRef.current.pause();
       ringtoneRef.current.currentTime = 0;
     }
+    try {
+      LocalNotifications.cancel({ notifications: [{ id: 99999 }] }).catch(() => {});
+    } catch (err) {}
   };
+
+  useEffect(() => {
+    let listener = null;
+    try {
+      LocalNotifications.addListener('localNotificationActionPerformed', (notification) => {
+        console.log("[NATIVE_NOTIF] User tapped native call notification:", notification);
+        const data = notification.notification?.extra?.incomingCallData;
+        if (data) {
+          stopRinging();
+          const { conversationId, callType, from, name, signal, fromSocketId } = data;
+          if (signal) {
+            sessionStorage.setItem('pending_signal', JSON.stringify({ signal, fromSocketId }));
+          }
+          setIncomingCall(null);
+          const isPatient = user?.role === 'patient';
+          const path = callType === 'video'
+            ? (isPatient ? '/patient/video-consult' : '/doctor/video-consult')
+            : (isPatient ? '/patient/voice-consult' : '/doctor/voice-consult');
+          navigate(`${path}?roomCode=${conversationId}&peerName=${name}&peerId=${from}&incoming=true`);
+        }
+      }).then(res => { listener = res; });
+    } catch (err) {}
+
+    return () => {
+      if (listener && listener.remove) {
+        listener.remove();
+      }
+    };
+  }, [user]);
 
   const handleAcceptCall = () => {
     if (!incomingCall) return;

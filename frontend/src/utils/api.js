@@ -2,13 +2,13 @@ import axios from 'axios';
 
 /**
  * [MOBILE HANDSHAKE CONFIG]
- * Current PC IPv4 Address: 10.129.146.15
+ * Current PC IPv4 Address: 192.168.1.7
  */
 const getDevPcIp = () => {
   if (typeof window !== 'undefined' && window.localStorage?.getItem('DEV_PC_IP')) {
     return window.localStorage.getItem('DEV_PC_IP');
   }
-  return '10.129.146.15';
+  return '192.168.1.7';
 };
 
 const DEV_PC_IP = getDevPcIp();
@@ -25,40 +25,76 @@ const getIsNative = () => {
 
 const isNative = getIsNative();
 
+const resolveMobileBackendUrl = () => {
+  const target = getDevPcIp();
+  if (target.startsWith('http://') || target.startsWith('https://')) {
+    return target.replace(/\/$/, '');
+  }
+  return `${PROTOCOL}://${target}:${BACKEND_PORT}`;
+};
+
 const getBaseURL = () => {
   if (typeof window === 'undefined') return '/api';
-  // On mobile native, connect via HTTP to PC IP on Port 5001
-  return isNative ? `${PROTOCOL}://${DEV_PC_IP}:${BACKEND_PORT}/api` : '/api';
+  if (isNative) {
+    return `${resolveMobileBackendUrl()}/api`;
+  }
+  return '/api';
 };
 
 export const getBackendURL = () => {
   if (typeof window === 'undefined') return `${PROTOCOL}://localhost:${BACKEND_PORT}`;
-  return isNative ? `${PROTOCOL}://${DEV_PC_IP}:${BACKEND_PORT}` : '';
+  return isNative ? resolveMobileBackendUrl() : '';
 };
 
 export const BACKEND_URL = getBackendURL();
 
+export const enforceHighQualityVideo = (pc) => {
+  if (!pc) return;
+  try {
+    const senders = pc.getSenders();
+    senders.forEach((sender) => {
+      if (sender.track && sender.track.kind === 'video') {
+        const parameters = sender.getParameters() || {};
+        if (!parameters.encodings || parameters.encodings.length === 0) {
+          parameters.encodings = [{}];
+        }
+        parameters.encodings[0].maxBitrate = 4000000; // 4 Mbps for crystal clear HD
+        parameters.encodings[0].maxFramerate = 30;
+        parameters.encodings[0].scaleResolutionDownBy = 1.0;
+        parameters.degradationPreference = 'maintain-resolution';
+
+        sender.setParameters(parameters)
+          .then(() => console.log("🎥 [WEBRTC] Enforced 1080p/720p HD Maintain-Resolution Mode"))
+          .catch(e => console.warn("[WEBRTC_BITRATE_NOTICE]", e));
+      }
+    });
+  } catch (err) {
+    console.warn("[WEBRTC_QUALITY_NOTICE]", err);
+  }
+};
+
 export const ICE_SERVERS = [
-  { urls: 'stun:stun.l.google.com:19302' },
-  { urls: 'stun:stun1.l.google.com:19302' },
-  { urls: 'stun:stun2.l.google.com:19302' },
-  { urls: 'stun:stun3.l.google.com:19302' },
-  { urls: 'stun:stun4.l.google.com:19302' },
-  { urls: 'stun:global.stun.twilio.com:3478' },
   {
-    urls: 'turn:openrelay.metered.ca:80',
-    username: 'openrelay',
-    credential: 'openrelay'
+    urls: [
+      'stun:stun.l.google.com:19302',
+      'stun:stun1.l.google.com:19302',
+      'stun:stun2.l.google.com:19302',
+      'stun:stun3.l.google.com:19302',
+      'stun:stun4.l.google.com:19302',
+      'stun:openrelay.metered.ca:80',
+      'stun:openrelay.metered.ca:443',
+      'stun:stun.cloudflare.com:3478'
+    ]
   },
   {
-    urls: 'turn:openrelay.metered.ca:443',
-    username: 'openrelay',
-    credential: 'openrelay'
-  },
-  {
-    urls: 'turn:openrelay.metered.ca:443?transport=tcp',
-    username: 'openrelay',
-    credential: 'openrelay'
+    urls: [
+      'turn:openrelay.metered.ca:80',
+      'turn:openrelay.metered.ca:443',
+      'turn:openrelay.metered.ca:443?transport=tcp',
+      'turns:openrelay.metered.ca:443?transport=tcp'
+    ],
+    username: 'openrelayproject',
+    credential: 'openrelayproject'
   }
 ];
 

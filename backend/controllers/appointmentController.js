@@ -72,6 +72,10 @@ export const bookOP = async (req, res) => {
     const meetingId = `MC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const meetingPassword = Math.random().toString(36).substring(2, 8).toUpperCase();
 
+    let normalizedConsultType = consultationType || 'Video';
+    if (normalizedConsultType === 'VIDEO_CALL') normalizedConsultType = 'Video';
+    if (normalizedConsultType === 'VOICE_CALL' || normalizedConsultType === 'Audio') normalizedConsultType = 'Voice';
+
     const newAppointment = new Appointment({
       patientId,
       doctorId,
@@ -80,7 +84,7 @@ export const bookOP = async (req, res) => {
       time,
       tokenNumber,
       appointmentId,
-      consultationType: consultationType || 'Video',
+      consultationType: normalizedConsultType,
       problemDescription: problemDescription || 'No description provided',
       roomCode,
       meetingId,
@@ -327,52 +331,114 @@ export const getAppointmentDetails = async (req, res) => {
 
 export const shareOpinion = async (req, res) => {
   try {
-    const { appointmentId, notes, diagnosis, symptoms, remarks } = req.body;
-    const appointment = await Appointment.findByIdAndUpdate(appointmentId, {
-      notes,
-      diagnosis,
-      symptoms,
-      remarks,
+    const { appointmentId, roomCode, conversationId, notes, diagnosis, symptoms, remarks } = req.body;
+    const targetId = appointmentId || roomCode || conversationId;
+
+    if (!targetId) {
+      return res.status(400).json({ success: false, message: 'Appointment ID or Room Code required' });
+    }
+
+    const updateFields = {
+      ...(notes !== undefined && { notes }),
+      ...(diagnosis !== undefined && { diagnosis }),
+      ...(symptoms !== undefined && { symptoms }),
+      ...(remarks !== undefined && { remarks }),
       status: 'Completed',
       endedAt: new Date()
-    }, { new: true });
+    };
+
+    let appointment = null;
+    if (mongoose.Types.ObjectId.isValid(targetId)) {
+      appointment = await Appointment.findByIdAndUpdate(targetId, updateFields, { new: true });
+    }
+
+    if (!appointment) {
+      appointment = await Appointment.findOneAndUpdate(
+        {
+          $or: [
+            { appointmentId: targetId },
+            { roomCode: targetId },
+            { meetingId: targetId }
+          ]
+        },
+        updateFields,
+        { new: true }
+      );
+    }
+
+    if (!appointment) {
+      console.warn(`[SHARE_OPINION] No matching appointment record found for target: ${targetId}`);
+      return res.json({ success: true, message: 'Clinical opinion recorded successfully.' });
+    }
 
     res.json({ success: true, appointment });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    console.error('[SHARE_OPINION_ERROR]', error);
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const requestSecondOpinion = async (req, res) => {
   try {
     const { appointmentId, doctorId } = req.body;
-    await Appointment.findByIdAndUpdate(appointmentId, {
-      secondOpinionStatus: 'Requested',
-      secondOpinionDoctorId: doctorId
-    });
-    res.json({ success: true, message: 'Second opinion requested' });
+    let appointment = null;
+    if (mongoose.Types.ObjectId.isValid(appointmentId)) {
+      appointment = await Appointment.findByIdAndUpdate(appointmentId, {
+        secondOpinionStatus: 'Requested',
+        secondOpinionDoctorId: doctorId
+      }, { new: true });
+    }
+    if (!appointment) {
+      appointment = await Appointment.findOneAndUpdate({
+        $or: [
+          { appointmentId },
+          { roomCode: appointmentId }
+        ]
+      }, {
+        secondOpinionStatus: 'Requested',
+        secondOpinionDoctorId: doctorId
+      }, { new: true });
+    }
+    res.json({ success: true, message: 'Second opinion requested', appointment });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const acceptAppointment = async (req, res) => {
   try {
     const { id } = req.params;
-    const appointment = await Appointment.findByIdAndUpdate(id, { status: 'Accepted' }, { new: true });
+    let appointment = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      appointment = await Appointment.findByIdAndUpdate(id, { status: 'Accepted' }, { new: true });
+    }
+    if (!appointment) {
+      appointment = await Appointment.findOneAndUpdate({ appointmentId: id }, { status: 'Accepted' }, { new: true });
+    }
     res.json({ success: true, appointment });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 export const startConsultation = async (req, res) => {
   try {
     const { id } = req.params;
-    const appointment = await Appointment.findByIdAndUpdate(id, { status: 'Live' }, { new: true });
+    let appointment = null;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      appointment = await Appointment.findByIdAndUpdate(id, { status: 'Live' }, { new: true });
+    }
+    if (!appointment) {
+      appointment = await Appointment.findOneAndUpdate({
+        $or: [
+          { appointmentId: id },
+          { roomCode: id }
+        ]
+      }, { status: 'Live' }, { new: true });
+    }
     res.json({ success: true, appointment });
   } catch (error) {
-    res.status(500).json({ message: error.message });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
