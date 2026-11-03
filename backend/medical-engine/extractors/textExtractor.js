@@ -38,6 +38,43 @@ export async function extractDocumentText(filePath) {
         await parser.destroy();
       }
 
+      // If PDF text is empty or too short (scanned image-based PDF), use Sharp to render pages and run Tesseract OCR
+      if (!rawText || rawText.trim().length < 20) {
+        console.log(`[PDF_OCR] Scanned image-based PDF detected. Rendering pages via Sharp & OCR...`);
+        try {
+          const worker = await createWorker('eng');
+          await worker.setParameters({ tessedit_pageseg_mode: '3' });
+
+          let scannedText = '';
+          for (let i = 0; i < Math.min(numPages || 5, 5); i++) {
+            try {
+              const pageBuffer = await sharp(fileBuffer, { page: i })
+                .resize({ width: 2400, withoutEnlargement: false })
+                .grayscale()
+                .normalize()
+                .sharpen()
+                .png()
+                .toBuffer();
+
+              const ocrRes = await worker.recognize(pageBuffer);
+              if (ocrRes?.data?.text) {
+                scannedText += `\n--- Page ${i + 1} ---\n` + ocrRes.data.text;
+              }
+            } catch (pageErr) {
+              break;
+            }
+          }
+          await worker.terminate();
+
+          if (scannedText.trim().length > 10) {
+            rawText = scannedText;
+            console.log(`[PDF_OCR] Successfully extracted ${rawText.length} characters via OCR from scanned PDF`);
+          }
+        } catch (ocrPdfErr) {
+          console.warn(`[PDF_OCR_ERR] ${ocrPdfErr.message}`);
+        }
+      }
+
       const rawPages = rawText.split(/\f|\n--- Page \d+ ---\n|\n-- \d+ of \d+ --\n/);
       
       if (rawPages.length > 1) {

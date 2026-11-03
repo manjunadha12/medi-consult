@@ -16,7 +16,9 @@ import {
   updatePatientDetails,
   getProfileAuditHistory,
   getPayments,
-  overridePaymentStatus
+  overridePaymentStatus,
+  getAdminComplaints,
+  updateComplaintStatus
 } from '../controllers/adminController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/roleCheck.js';
@@ -40,5 +42,7 @@ router.delete('/patient/:id', deletePatient);
 router.get('/payments', getPayments);
 router.put('/payment-override/:id', overridePaymentStatus);
 router.post('/backup', backupSystem);
+router.get('/complaints', getAdminComplaints);
+router.put('/complaints/:id/status', updateComplaintStatus);
 
 export default router;

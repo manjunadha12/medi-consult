@@ -170,14 +170,15 @@ const OPTIONAL_DOCS = [
 ];
 
 const DoctorRegister = () => {
+  const { theme, user } = useStore();
   const [formData, setFormData] = useState({
-    name: '',
+    name: user?.name || '',
     specialization: '',
-    email: '',
+    email: user?.email || '',
     password: '',
     confirmPassword: '',
     experience: '',
-    medicalRegistrationNumber: ''
+    medicalRegistrationNumber: user?.medicalRegistrationNumber || ''
   });
 
   const [step, setStep] = useState(1);
@@ -189,6 +190,7 @@ const DoctorRegister = () => {
   const [hospitalDetails, setHospitalDetails] = useState(null);
   const [currentLocation, setCurrentLocation] = useState(null);
   const [locationVerifying, setLocationVerifying] = useState(false);
+  const [instValidationError, setInstValidationError] = useState(null);
   const instDropdownRef = useRef(null);
 
   const [specQuery, setSpecQuery] = useState('');
@@ -199,7 +201,6 @@ const DoctorRegister = () => {
 
   const [documents, setDocuments] = useState({});
   const [loading, setLoading] = useState(false);
-  const { theme } = useStore();
   const navigate = useNavigate();
 
   const { isLoaded } = useJsApiLoader({
@@ -235,9 +236,9 @@ const DoctorRegister = () => {
 
   const verifyLocation = () => {
     setLocationVerifying(true);
+
     if (!navigator.geolocation) {
-      toast.error("Geospatial Node not supported by browser");
-      setCurrentLocation({ lat: 28.6139, lng: 77.2090 });
+      toast.error("Geolocation is not supported by your browser or device.");
       setLocationVerifying(false);
       return;
     }
@@ -246,15 +247,14 @@ const DoctorRegister = () => {
         const { latitude, longitude } = position.coords;
         setCurrentLocation({ lat: latitude, lng: longitude });
         setLocationVerifying(false);
-        toast.success("Current Location Synchronized");
+        toast.success("Current GPS Location Synchronized");
       },
       (error) => {
-        console.warn("Location Warning (falling back to default clinical node):", error);
-        setCurrentLocation({ lat: 28.6139, lng: 77.2090 });
-        toast.success("Synchronized default clinical node");
+        console.warn("Location Warning:", error);
+        toast.error("Unable to access GPS coordinates. Please enable device location.");
         setLocationVerifying(false);
       },
-      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60000 }
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
     );
   };
 
@@ -306,22 +306,26 @@ const DoctorRegister = () => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
-  const handleInstSelect = (inst) => {
+  const handleInstSelect = async (inst) => {
+    const instLat = inst.latitude !== undefined ? inst.latitude : (inst.lat !== undefined ? inst.lat : null);
+    const instLng = inst.longitude !== undefined ? inst.longitude : (inst.lng !== undefined ? inst.lng : null);
+
     setInstQuery(inst.name);
-    setHospitalDetails({
+    const selectedHosp = {
       placeId: inst.id || inst.uuid || 'AI-NODE-' + Date.now(),
       name: inst.name,
       address: inst.address,
       rating: inst.googleRating || inst.rating || 4.5,
       website: inst.website,
       phone: inst.phone,
-      lat: inst.latitude || inst.lat,
-      lng: inst.longitude || inst.lng,
+      lat: instLat,
+      lng: instLng,
       city: inst.city,
       state: inst.state,
-      country: inst.country,
+      country: inst.country || 'India',
       postalCode: inst.postalCode,
       district: inst.district,
+      campus: inst.campus || inst.city,
       type: inst.type,
       university: inst.university,
       ownership: inst.ownership,
@@ -332,11 +336,63 @@ const DoctorRegister = () => {
       collegeId: inst.collegeId,
       verificationStatus: inst.verificationStatus || 'Verified',
       logo: inst.logo
-    });
+    };
+    setHospitalDetails(selectedHosp);
     setShowInstDropdown(false);
-    toast.success(`${inst.shortName || inst.name} node synchronized.`);
-    verifyLocation();
+    setInstValidationError(null);
+
+    // Immediate validation against registered credentials and verified database
+    try {
+      const { data } = await api.post('/auth/validate-institution', {
+        institutionName: inst.name,
+        city: inst.city,
+        state: inst.state,
+        campus: inst.campus || inst.city,
+        address: inst.address,
+        medicalRegistrationNumber: formData.medicalRegistrationNumber || user?.medicalRegistrationNumber,
+        email: formData.email || user?.email,
+        name: formData.name || user?.name,
+        latitude: currentLocation?.lat,
+        longitude: currentLocation?.lng
+      });
+      if (data.valid) {
+        setInstValidationError(null);
+        toast.success(`${inst.shortName || inst.name} node verified.`);
+      }
+    } catch (err) {
+      const errMsg = err.response?.data?.message || "Institutional affiliation mismatch detected.";
+      setInstValidationError(errMsg);
+      toast.error(errMsg, { duration: 6000 });
+    }
   };
+
+  // Re-validate dynamically if user modifies medicalRegistrationNumber, email, or name after hospital selection
+  useEffect(() => {
+    if (!hospitalDetails?.name) return;
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.post('/auth/validate-institution', {
+          institutionName: hospitalDetails.name,
+          city: hospitalDetails.city,
+          state: hospitalDetails.state,
+          campus: hospitalDetails.campus || hospitalDetails.city,
+          address: hospitalDetails.address,
+          medicalRegistrationNumber: formData.medicalRegistrationNumber || user?.medicalRegistrationNumber,
+          email: formData.email || user?.email,
+          name: formData.name || user?.name,
+          latitude: currentLocation?.lat,
+          longitude: currentLocation?.lng
+        });
+        if (data.valid) {
+          setInstValidationError(null);
+        }
+      } catch (err) {
+        const errMsg = err.response?.data?.message || "Institutional affiliation mismatch detected.";
+        setInstValidationError(errMsg);
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [formData.medicalRegistrationNumber, formData.email, formData.name, hospitalDetails?.name, currentLocation]);
 
   const handleSpecSelect = (spec) => {
     setSpecQuery(spec.name);
@@ -361,7 +417,9 @@ const DoctorRegister = () => {
     else if (e.key === 'Escape') setShowInstDropdown(false);
   };
 
-  const distanceToHosp = (currentLocation && hospitalDetails) ? calculateDistance(currentLocation.lat, currentLocation.lng, hospitalDetails.lat, hospitalDetails.lng) : null;
+  const distanceToHosp = (currentLocation && hospitalDetails && hospitalDetails.lat && hospitalDetails.lng) 
+    ? calculateDistance(currentLocation.lat, currentLocation.lng, hospitalDetails.lat, hospitalDetails.lng) 
+    : null;
   const isLocationMatched = distanceToHosp !== null && distanceToHosp <= 5;
 
   const handleFileChange = (docName, file) => {
@@ -375,12 +433,45 @@ const DoctorRegister = () => {
     setDocuments(newDocs);
   };
 
-  const handleNextStep = () => {
-    if (!formData.name || !formData.email || !formData.specialization || !formData.experience || !formData.medicalRegistrationNumber) return toast.error("Identity fields mandatory");
-    if (!hospitalDetails) return toast.error("Hospital node mandatory");
-    if (!isLocationMatched) return toast.error("Physical presence required (within 5km)");
-    setStep(2);
-    window.scrollTo(0,0);
+  const handleNextStep = async () => {
+    if (!formData.name || !formData.email || !formData.specialization || !formData.experience || !formData.medicalRegistrationNumber) {
+      return toast.error("Identity fields mandatory");
+    }
+    if (!hospitalDetails || !hospitalDetails.name) {
+      return toast.error("Institutional Node mandatory. Please select a verified medical institution.");
+    }
+
+    try {
+      const { data } = await api.post('/auth/validate-institution', {
+        institutionName: hospitalDetails.name,
+        city: hospitalDetails.city,
+        state: hospitalDetails.state,
+        campus: hospitalDetails.campus || hospitalDetails.city,
+        address: hospitalDetails.address,
+        medicalRegistrationNumber: formData.medicalRegistrationNumber || user?.medicalRegistrationNumber,
+        email: formData.email || user?.email,
+        name: formData.name || user?.name,
+        latitude: currentLocation?.lat,
+        longitude: currentLocation?.lng
+      });
+
+      if (!data.valid) {
+        setInstValidationError(data.message || "Institutional Affiliation Mismatch.");
+        return toast.error(data.message || "Institutional affiliation mismatch. Progression halted.");
+      }
+
+      if (currentLocation && distanceToHosp !== null && distanceToHosp > 5) {
+        return toast.error(`Geospatial Link Warning: You are ${distanceToHosp.toFixed(1)}km away from the verified campus (${hospitalDetails.name}). Proximity check failed.`);
+      }
+
+      setInstValidationError(null);
+      setStep(2);
+      window.scrollTo(0, 0);
+    } catch (err) {
+      const errMsg = err.response?.data?.message || "Institutional Node validation failed. Progression halted.";
+      setInstValidationError(errMsg);
+      return toast.error(errMsg, { duration: 6000 });
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -476,13 +567,13 @@ const DoctorRegister = () => {
                         {showInstDropdown && (instSuggestions.length > 0 || instQuery.length >= 2) && !isSearching && (<div className="absolute z-[100] left-0 right-0 mt-2 bg-[#0A0A0C] border border-white/10 rounded-[20px] shadow-2xl max-h-[300px] overflow-y-auto custom-scrollbar">{instSuggestions.map((inst, i) => (<div key={i} onClick={() => handleInstSelect(inst)} className={`p-4 cursor-pointer border-b border-white/5 last:border-0 transition-all flex gap-4 text-left ${focusedIndex === i ? 'bg-white/10' : 'hover:bg-white/5'}`}><div className={`w-10 h-10 rounded-[20px] border flex items-center justify-center ${focusedIndex === i ? 'bg-blue-600 text-white' : 'bg-white/5 text-blue-500'}`}><Building size={18} /></div><div className="flex-1 overflow-hidden text-left"><h4 className="text-sm font-black text-white uppercase">{highlightMatch(inst.name, instQuery)}</h4><p className="text-[9px] font-black text-blue-400 uppercase">{inst.type}</p><p className="text-[8px] font-bold text-zinc-500 uppercase flex items-center gap-1"><MapPin size={8}/> {inst.city}</p></div></div>))}</div>)}
                         {hospitalDetails && (
                           <div className="p-5 bg-blue-500/5 border border-blue-500/20 rounded-[20px] space-y-4 text-left relative overflow-hidden">
-                             <div className="flex justify-between items-start relative z-10 text-left"><div><h4 className="text-xs font-black text-white uppercase">{hospitalDetails.name}</h4><p className="text-[8px] font-bold text-zinc-500 uppercase flex items-center gap-1 mt-1"><MapPin size={8}/> {hospitalDetails.address}</p></div><button type="button" onClick={() => {setHospitalDetails(null); setInstQuery('');}} className="p-1.5 bg-white/5 rounded-[20px] border border-white/10 text-zinc-400 hover:text-red-400"><X size={14}/></button></div>
-                             <div className={`p-3 rounded-[20px] border flex items-center justify-between ${isLocationMatched ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}><div className="flex items-center gap-2 text-left"><div className={`w-6 h-6 rounded-[20px] flex items-center justify-center ${isLocationMatched ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}><MapPin size={12} /></div><div><p className="text-[7px] font-black text-zinc-400 uppercase">Geospatial Link</p><p className={`text-[9px] font-black uppercase ${isLocationMatched ? 'text-emerald-400' : 'text-rose-400'}`}>{currentLocation ? `Distance: ${distanceToHosp?.toFixed(2)} km` : 'Waiting for GPS...'}</p></div></div><button type="button" onClick={verifyLocation} className="text-[7px] font-black uppercase bg-white/5 px-2.5 py-1 rounded-[20px] border border-white/10 text-blue-400">Re-Sync</button></div>
+                             <div className="flex justify-between items-start relative z-10 text-left"><div><h4 className="text-xs font-black text-white uppercase">{hospitalDetails.name}</h4><p className="text-[8px] font-bold text-zinc-500 uppercase flex items-center gap-1 mt-1"><MapPin size={8}/> {hospitalDetails.address}</p></div><button type="button" onClick={() => {setHospitalDetails(null); setInstQuery(''); setInstValidationError(null);}} className="p-1.5 bg-white/5 rounded-[20px] border border-white/10 text-zinc-400 hover:text-red-400"><X size={14}/></button></div>
+                             <div className={`p-3 rounded-[20px] border flex items-center justify-between ${!instValidationError && (!currentLocation || isLocationMatched) ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-rose-500/10 border-rose-500/20'}`}><div className="flex items-center gap-2 text-left"><div className={`w-6 h-6 rounded-[20px] flex items-center justify-center ${!instValidationError && (!currentLocation || isLocationMatched) ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'}`}><MapPin size={12} /></div><div><p className="text-[7px] font-black text-zinc-400 uppercase">Geospatial Link</p><p className={`text-[9px] font-black uppercase ${!instValidationError && (!currentLocation || isLocationMatched) ? 'text-emerald-400' : 'text-rose-400'}`}>{instValidationError ? instValidationError : (currentLocation ? `Distance: ${distanceToHosp?.toFixed(2)} km` : 'Campus Verified • Ready for Phase 2')}</p></div></div><button type="button" onClick={verifyLocation} className="text-[7px] font-black uppercase bg-white/5 px-2.5 py-1 rounded-[20px] border border-white/10 text-blue-400">Re-Sync</button></div>
                           </div>
                         )}
                      </div>
 
-                     <button type="button" onClick={handleNextStep} className={`w-full py-4 rounded-[20px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 mt-4 ${isLocationMatched ? 'bg-blue-600 text-white shadow-blue-500/25 shadow-xl' : 'bg-white/5 text-zinc-600 cursor-not-allowed border border-white/5'}`}>Initialize Phase 2 <ArrowRight size={18}/></button>
+                     <button type="button" onClick={handleNextStep} disabled={!hospitalDetails || !!instValidationError || (currentLocation && !isLocationMatched)} className={`w-full py-4 rounded-[20px] font-black text-xs uppercase tracking-[0.2em] flex items-center justify-center gap-3 mt-4 ${hospitalDetails && !instValidationError && (!currentLocation || isLocationMatched) ? 'bg-blue-600 text-white shadow-blue-500/25 shadow-xl' : 'bg-white/5 text-zinc-600 cursor-not-allowed border border-white/5'}`}>Initialize Phase 2 <ArrowRight size={18}/></button>
                    </>
                  ) : (
                    <>

@@ -10,6 +10,7 @@ import HealthLog from '../models/HealthLog.js';
 import Notification from '../models/Notification.js';
 import AuditLog from '../models/AuditLog.js';
 import ClinicalDiagnosis from '../models/ClinicalDiagnosis.js';
+import Complaint from '../models/Complaint.js';
 import { sendEmail } from '../utils/sendEmail.js';
 
 export const getDashboardSummary = async (req, res) => {
@@ -515,6 +516,44 @@ export const overridePaymentStatus = async (req, res) => {
 
     res.json({ success: true, message: `Payment status synchronized to ${status}`, appointment });
   } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getAdminComplaints = async (req, res) => {
+  try {
+    const { status, urgency } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (urgency) filter.urgency = urgency;
+
+    const complaints = await Complaint.find(filter).sort({ createdAt: -1 });
+    res.json({ success: true, complaints });
+  } catch (error) {
+    console.error('[GET_ADMIN_COMPLAINTS_ERR]:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const updateComplaintStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status, adminNotes } = req.body;
+
+    const complaint = await Complaint.findById(id);
+    if (!complaint) {
+      return res.status(404).json({ message: 'Complaint record not found' });
+    }
+
+    if (status) complaint.status = status;
+    if (adminNotes !== undefined) complaint.adminNotes = adminNotes;
+    if (status === 'Resolved') complaint.resolutionDate = new Date();
+    complaint.updatedAt = new Date();
+
+    await complaint.save();
+    res.json({ success: true, message: 'Complaint status updated', complaint });
+  } catch (error) {
+    console.error('[UPDATE_COMPLAINT_ERR]:', error);
     res.status(500).json({ message: error.message });
   }
 };

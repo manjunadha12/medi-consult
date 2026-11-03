@@ -18,3 +18,8 @@ serviceAccountKey.json
 # Tools & Binaries
 tools/
 *.exe
+*.traineddata
+
+# Test temp outputs
+tests/fixtures/
+backend/uploads/doctor/

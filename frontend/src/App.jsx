@@ -118,6 +118,11 @@ class GlobalErrorBoundary extends React.Component {
             <div className="space-y-2">
               <h2 className="text-xl font-black uppercase tracking-tight">System Node Recovery</h2>
               <p className="text-xs text-zinc-400 font-bold uppercase tracking-wider">A temporary UI stream error occurred. System recovered automatically.</p>
+              {this.state.error && (
+                <p className="text-[10px] text-red-400 font-mono bg-black/50 p-3 rounded-xl border border-red-500/20 text-left overflow-x-auto max-h-32">
+                  {this.state.error.toString()}
+                </p>
+              )}
             </div>
             <button
               onClick={() => {

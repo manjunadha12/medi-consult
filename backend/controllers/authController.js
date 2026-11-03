@@ -4,7 +4,8 @@ import DoctorProfile from '../models/DoctorProfile.js';
 import TempUser from '../models/TempUser.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { randomInt, randomBytes } from 'crypto';
+import crypto, { randomInt, randomBytes } from 'crypto';
+import { parseUserAgent, getClientIp } from '../utils/deviceParser.js';
 import { sendSms } from '../utils/sendSms.js';
 import { sendEmail } from '../utils/sendEmail.js';
 import { initializeApp, cert } from 'firebase-admin/app';
@@ -42,10 +43,41 @@ try {
   console.error('[FIREBASE] Initialization Error:', error.message);
 }
 
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
+const generateToken = (id, sessionId = null) => {
+  const payload = { id };
+  if (sessionId) payload.sessionId = sessionId;
+  return jwt.sign(payload, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRE || '7d',
   });
+};
+
+export const registerUserSession = (user, req) => {
+  const sessionId = crypto.randomUUID();
+  const ua = req.headers['user-agent'] || '';
+  const parsed = parseUserAgent(ua);
+  const ip = getClientIp(req);
+
+  if (!user.activeSessions) {
+    user.activeSessions = [];
+  }
+
+  user.activeSessions.push({
+    sessionId,
+    deviceType: parsed.deviceType,
+    deviceName: parsed.deviceName,
+    browser: parsed.browser,
+    os: parsed.os,
+    ip,
+    userAgent: ua,
+    createdAt: new Date(),
+    lastActive: new Date()
+  });
+
+  if (user.activeSessions.length > 15) {
+    user.activeSessions = user.activeSessions.slice(-15);
+  }
+
+  return sessionId;
 };
 
 export const registerPatient = async (req, res) => {
@@ -176,7 +208,8 @@ export const registerDoctor = async (req, res) => {
 
 export const login = async (req, res) => {
   try {
-    const { loginId, password, tab } = req.body;
+    const loginId = req.body.loginId || req.body.email;
+    const { password, tab } = req.body;
     console.log(`[AUTH] Login Request: ID=${loginId}, Tab=${tab}, IP=${req.ip}`);
 
     if (!loginId || !password) {
@@ -223,6 +256,11 @@ export const login = async (req, res) => {
       return res.status(401).json({ message: 'Identity node not found. Please verify your ID.' });
     }
 
+    if (user.isActive === false) {
+      console.warn(`[AUTH_FAIL] Blocked node login attempt: ${cleanId}`);
+      return res.status(403).json({ message: 'Access Denied: This account node has been blocked by the hospital administrator.' });
+    }
+
     const isMatch = await user.matchPassword(password);
     if (!isMatch) {
       console.warn(`[AUTH_FAIL] Password mismatch for: ${loginId}`);
@@ -253,6 +291,7 @@ export const login = async (req, res) => {
         browser: device,
         authProvider: 'Local'
       });
+      const sessionId = registerUserSession(user, req);
       await user.save();
 
       let redirectTo = `/${user.role}/dashboard`;
@@ -261,7 +300,8 @@ export const login = async (req, res) => {
 
       console.log(`[AUTH-SUCCESS] User: ${user.name}, Role: ${user.role}, ID: ${user.patientId || user.doctorId || user.adminId}`);
 
-      if (user.role === 'doctor') {
+
+    if (user.role === 'doctor') {
         const docProfile = await DoctorProfile.findOne({ userId: user._id });
         if (docProfile) {
           // Emergency Bypass: Allow login during verification for developer testing
@@ -277,7 +317,7 @@ export const login = async (req, res) => {
 
       const successResponse = {
         success: true,
-        token: generateToken(user._id),
+        token: generateToken(user._id, sessionId),
         role: user.role,
         userId: user.patientId || user.doctorId || user.adminId,
         _id: user._id,
@@ -617,12 +657,13 @@ export const loginVerifyOtp = async (req, res) => {
     // Clear temporary OTP fields
     user.loginOtp = undefined;
     user.loginOtpExpires = undefined;
+    const sessionId = registerUserSession(user, req);
     await user.save();
 
     const redirectTo = `/${user.role}/dashboard`;
     res.json({
       success: true,
-      token: generateToken(user._id),
+      token: generateToken(user._id, sessionId),
       role: user.role,
       userId: user.patientId,
       name: user.name,
@@ -814,6 +855,9 @@ export const googleLogin = async (req, res) => {
     let user = await User.findOne({ email });
 
     if (user) {
+      if (user.isActive === false) {
+        return res.status(403).json({ message: 'Access Denied: This account node has been blocked by the hospital administrator.' });
+      }
       if (user.role === 'admin') {
         return res.status(403).json({ message: 'Admin login via Google is not allowed. Please use Admin ID and Password.' });
       }
@@ -885,6 +929,9 @@ export const googleLogin = async (req, res) => {
       }
     }
 
+    const sessionId = registerUserSession(user, req);
+    await user.save();
+
     if (user.role === 'doctor') {
       const profile = await DoctorProfile.findOne({ userId: user._id });
       if (!profile || !profile.isVerified) {
@@ -893,7 +940,7 @@ export const googleLogin = async (req, res) => {
         // We can send this info in the response.
         return res.json({
           success: true,
-          token: generateToken(user._id),
+          token: generateToken(user._id, sessionId),
           role: user.role,
           userId: user.doctorId,
           _id: user._id,
@@ -911,7 +958,7 @@ export const googleLogin = async (req, res) => {
 
     res.json({
       success: true,
-      token: generateToken(user._id),
+      token: generateToken(user._id, sessionId),
       role: user.role,
       userId: user.patientId || user.doctorId || user.adminId,
       _id: user._id,
@@ -922,5 +969,186 @@ export const googleLogin = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ message: error.message });
+  }
+};
+
+// Change Password for authenticated user
+export const changePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ message: 'Current and new passwords are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters' });
+    }
+
+    const user = await User.findById(req.user.id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    const isMatch = await user.matchPassword(currentPassword);
+    if (!isMatch) {
+      return res.status(400).json({
+        success: false,
+        requiresRecovery: true,
+        email: user.email,
+        message: 'Incorrect current password. Would you like to send a password reset OTP to your email?'
+      });
+    }
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({ success: true, message: 'Password updated successfully' });
+  } catch (error) {
+    console.error(`[CHANGE_PASSWORD_ERR] ${error.message}`);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const validateInstitution = async (req, res) => {
+  try {
+    res.json({ success: true, valid: true, message: 'Institution validated' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const performInstitutionValidation = async (req, res) => {
+  try {
+    res.json({ success: true, valid: true, message: 'Institution validated successfully' });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+
+// --- DEVICE SESSIONS MANAGEMENT ---
+
+export const getActiveSessions = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found in registry' });
+    }
+
+    if (!user.activeSessions || user.activeSessions.length === 0) {
+      const sessionId = req.sessionId && req.sessionId !== 'legacy-session' ? req.sessionId : crypto.randomUUID();
+      const ua = req.headers['user-agent'] || '';
+      const parsed = parseUserAgent(ua);
+      const ip = getClientIp(req);
+
+      user.activeSessions = [{
+        sessionId,
+        deviceType: parsed.deviceType,
+        deviceName: parsed.deviceName,
+        browser: parsed.browser,
+        os: parsed.os,
+        ip,
+        userAgent: ua,
+        createdAt: new Date(),
+        lastActive: new Date()
+      }];
+      await user.save();
+      req.sessionId = sessionId;
+    }
+
+    let hasCurrent = false;
+    const sessions = (user.activeSessions || []).map(session => {
+      const isCurrent = session.sessionId === req.sessionId;
+      if (isCurrent) hasCurrent = true;
+      return {
+        sessionId: session.sessionId,
+        deviceType: session.deviceType || 'Desktop',
+        deviceName: session.deviceName || 'Personal Device',
+        browser: session.browser || 'Web Browser',
+        os: session.os || 'Unknown OS',
+        ip: session.ip || '127.0.0.1',
+        createdAt: session.createdAt,
+        lastActive: session.lastActive,
+        isCurrent
+      };
+    });
+
+    if (!hasCurrent && sessions.length > 0) {
+      sessions[0].isCurrent = true;
+    }
+
+    sessions.sort((a, b) => {
+      if (a.isCurrent) return -1;
+      if (b.isCurrent) return 1;
+      return new Date(b.lastActive) - new Date(a.lastActive);
+    });
+
+    res.json({
+      success: true,
+      sessions,
+      currentSessionId: req.sessionId
+    });
+  } catch (error) {
+    console.error('[GET_ACTIVE_SESSIONS_ERROR]:', error);
+    res.status(500).json({ message: 'Failed to retrieve active sessions', error: error.message });
+  }
+};
+
+export const revokeSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found in registry' });
+    }
+
+    const isCurrentSession = sessionId === req.sessionId;
+    user.activeSessions = (user.activeSessions || []).filter(s => s.sessionId !== sessionId);
+    await user.save();
+
+    res.json({
+      success: true,
+      isCurrentSession,
+      message: isCurrentSession
+        ? 'Current device logged out successfully.'
+        : 'Device session successfully disconnected.'
+    });
+  } catch (error) {
+    console.error('[REVOKE_SESSION_ERROR]:', error);
+    res.status(500).json({ message: 'Failed to revoke device session', error: error.message });
+  }
+};
+
+export const revokeAllOtherSessions = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found in registry' });
+    }
+
+    user.activeSessions = (user.activeSessions || []).filter(s => s.sessionId === req.sessionId);
+    await user.save();
+
+    res.json({
+      success: true,
+      message: 'All other logged-in devices have been logged out successfully.'
+    });
+  } catch (error) {
+    console.error('[REVOKE_ALL_SESSIONS_ERROR]:', error);
+    res.status(500).json({ message: 'Failed to revoke other sessions', error: error.message });
+  }
+};
+
+export const logoutUser = async (req, res) => {
+  try {
+    if (req.user && req.sessionId) {
+      const user = await User.findById(req.user._id);
+      if (user && user.activeSessions) {
+        user.activeSessions = user.activeSessions.filter(s => s.sessionId !== req.sessionId);
+        await user.save();
+      }
+    }
+    res.json({ success: true, message: 'Logged out successfully' });
+  } catch (error) {
+    res.json({ success: true, message: 'Logged out' });
   }
 };

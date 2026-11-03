@@ -274,36 +274,8 @@ const RadiographViewer = ({ imageSrc, fractureInfo, anatomicalRegion, engineMode
 
   return (
     <div className="rounded-3xl border border-white/10 bg-[#0A0A0A] p-6 text-left shadow-2xl space-y-5">
-      {/* Header & Toolbar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-white/5">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="p-1.5 rounded-lg bg-red-500/10 text-red-400 border border-red-500/20">
-              <Activity size={16} />
-            </span>
-            <h4 className="text-sm font-black text-white uppercase tracking-tight">
-              Radiograph Vision & Fracture Locator
-            </h4>
-            {(() => {
-              const isAIPowered = fractureInfo?.analyzedByEngine === 'AI_MULTIMODAL_VISION' || Boolean(fractureInfo?.aiModelUsed) || engineMode === 'ai';
-              const aiModelName = fractureInfo?.aiModelUsed || 'Gemini 2.5 Flash Vision';
-              return (
-                <span className={`px-2.5 py-1 rounded-md text-[10px] font-black uppercase tracking-wider border flex items-center gap-1.5 ${
-                  isAIPowered
-                    ? 'bg-purple-500/15 border-purple-500/30 text-purple-300 shadow-sm shadow-purple-500/20'
-                    : 'bg-blue-500/15 border-blue-500/30 text-blue-400'
-                }`}>
-                  {isAIPowered ? `🤖 AI Multimodal Vision (${aiModelName})` : '⚡ Local CV Engine'}
-                </span>
-              );
-            })()}
-          </div>
-          <p className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest">
-            Pinpoint Localized ROI Target Circle • Exact X & Y Coordinate Axes
-          </p>
-        </div>
-
-        {/* Toolbar Actions */}
+      {/* Toolbar Actions */}
+      <div className="flex flex-wrap items-center justify-end gap-4 pb-4 border-b border-white/5">
         <div className="flex flex-wrap items-center gap-2">
           {annotatedImageUrl && (
             <button

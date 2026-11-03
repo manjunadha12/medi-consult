@@ -30,7 +30,6 @@ const LoginPage = () => {
   const [loginId, setLoginId] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [redirectProcessing, setRedirectProcessing] = useState(true);
   const [backendStatus, setBackendStatus] = useState('checking');
 
   // 1. Connection Heartbeat (Robust Check)
@@ -81,16 +80,13 @@ const LoginPage = () => {
     handleRedirectResult();
 
     const unsubscribe = auth.onAuthStateChanged(async (user) => {
-      if (user && redirectProcessing) {
+      if (user) {
         console.log('[AUTH] Active Session Detected. Synchronizing Identity...');
       }
     });
 
-    const timer = setTimeout(() => setRedirectProcessing(false), 8000);
-
     return () => {
       unsubscribe();
-      clearTimeout(timer);
     };
   }, []);
 
@@ -120,8 +116,7 @@ const LoginPage = () => {
     } catch (error) {
       console.error("Google Server Sync Error:", error);
       toast.error(error.response?.data?.message || "Backend synchronization failed.");
-      setRedirectProcessing(false);
-    } finally {
+          } finally {
       setLoading(false);
     }
   };
@@ -209,19 +204,6 @@ const LoginPage = () => {
       setLoading(false);
     }
   };
-
-  // Render Full Screen Loader while handling redirect
-  if (redirectProcessing && !loading) {
-    return (
-      <div className="min-h-screen bg-[#000] flex flex-col items-center justify-center space-y-6">
-         <div className="relative">
-            <div className="absolute inset-0 bg-blue-600/20 blur-3xl rounded-full animate-pulse"></div>
-            <Loader2 className="w-16 h-16 text-blue-500 animate-spin relative z-10" strokeWidth={3} />
-         </div>
-         <p className="text-zinc-500 font-black uppercase tracking-[0.5em] text-[10px]">Verifying Neural Handshake...</p>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex flex-col bg-black font-sans overflow-x-hidden relative text-left">

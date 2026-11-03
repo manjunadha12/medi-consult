@@ -13,7 +13,8 @@ import {
   createPrescriptionTemplate,
   getDoctorPrescriptions,
   deletePrescription,
-  markCompleted
+  markCompleted,
+  getDoctorReviews
 } from '../controllers/doctorController.js';
 import { protect } from '../middleware/auth.js';
 import { authorize } from '../middleware/roleCheck.js';
@@ -34,5 +35,6 @@ router.delete('/prescription/:id', deletePrescription);
 router.get('/prescription-templates', getPrescriptionTemplates);
 router.post('/prescription-templates', createPrescriptionTemplate);
 router.post('/mark-completed', markCompleted);
+router.get('/reviews', getDoctorReviews);
 
 export default router;

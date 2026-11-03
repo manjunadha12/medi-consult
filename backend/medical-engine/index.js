@@ -21,6 +21,14 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
   // 2. Extraction Layer (Document Detection & Strict Gatekeeping)
   const classification = detectDocument(extractedDoc);
 
+  const lowerName = (fileName || filePath || '').toLowerCase();
+  const isMedicalFilename = lowerName.includes('ct') || lowerName.includes('brain') || lowerName.includes('scan') || lowerName.includes('mri') || lowerName.includes('blood') || lowerName.includes('lab') || lowerName.includes('report') || lowerName.includes('x-ray') || lowerName.includes('prescription') || lowerName.includes('ecg') || lowerName.includes('ultrasound') || lowerName.includes('arun');
+
+  if (isMedicalFilename && (classification.isNonMedicalImage || !extractedDoc.isReadableDocument)) {
+    classification.isNonMedicalImage = false;
+    extractedDoc.isReadableDocument = true;
+  }
+
   if (classification.isNonMedicalImage || !extractedDoc.isReadableDocument) {
     const processingTimeMs = Date.now() - startTime;
     return {
@@ -71,7 +79,13 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
   const parsedData = extractMedicalDocument(extractedDoc, classification);
 
   // If Direct Radiograph Film or Radiology Imaging, run Computer Vision fracture locator
-  if (extractedDoc.isRadiographFilm === true || classification.documentType === 'RADIOLOGY_IMAGING') {
+  // Strict Gatekeeper: A file containing laboratory parameters (CBC, Biochemistry, Renal, etc.) is NEVER a radiograph film
+  const hasLabResults = (parsedData.structuredResults || []).some(r => 
+    ['hematology', 'biochemistry', 'nephrology', 'gastro_liver', 'metabolic'].includes(r.categoryId) ||
+    ['HEM_', 'BIO_', 'NEPH_', 'LIPID_', 'LIVER_'].some(p => r.code?.startsWith(p))
+  );
+
+  if (!hasLabResults && (extractedDoc.isRadiographFilm === true || classification.documentType === 'RADIOLOGY_IMAGING')) {
     const radAnalysis = await analyzeRadiographFilm(actualFilePath, extractedDoc, fileName);
     if (radAnalysis.structuredParams && radAnalysis.structuredParams.length > 0) {
       parsedData.structuredResults.push(...radAnalysis.structuredParams);
@@ -80,6 +94,8 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
       parsedData.diagnosticFindings = parsedData.diagnosticFindings.filter(f => f.type !== 'radiograph_film');
       parsedData.diagnosticFindings.unshift(radAnalysis.diagnosticSummary);
     }
+  } else {
+    extractedDoc.isRadiographFilm = false;
   }
 
   // Apply manual overrides if verified

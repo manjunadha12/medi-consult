@@ -4,7 +4,7 @@ async function runTests() {
   const images = [
     {
       name: 'Forearm (Dual-View)',
-      path: 'E:/clone app/backend/uploads/patient/PAT1001/report-1788338624256-173417135.jpg'
+      path: 'E:/clone app/backend/uploads/patient/PAT1001/report-1788338539478-970693608.jpg'
     },
     {
       name: 'Hand (Proximal Phalanx)',
@@ -18,7 +18,7 @@ async function runTests() {
     const res = await processRadiographFilm({
       filePath: img.path,
       fileName: img.name,
-      extractedDoc: { fullText: '' }
+      extractedDoc: { fullText: 'Digital Radiograph X-Ray Fracture Study', isRadiographFilm: true }
     });
 
     console.log('Anatomical Region:', res.anatomicalRegion);

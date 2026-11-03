@@ -4,6 +4,7 @@ import Navbar from '../common/Navbar';
 import { Settings, Cpu, Shield, Key, Bell, Database, Save, Activity, Monitor } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
+import DeviceSessionsManager from '../common/DeviceSessionsManager';
 
 const SystemSettings = () => {
   const { theme, navigationType, setNavigationType } = useStore();
@@ -126,6 +127,9 @@ const SystemSettings = () => {
                </div>
 
             </div>
+
+            {/* Logged-In Devices / Active Device Sessions */}
+            <DeviceSessionsManager isDarkMode={theme === 'dark'} />
 
             <div className="flex justify-end pt-10">
                <button onClick={() => toast.success("System configuration saved to node storage")} className="bg-blue-600 text-white px-10 py-5 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/30 flex items-center gap-3 hover:bg-blue-700 transition-all active:scale-95">

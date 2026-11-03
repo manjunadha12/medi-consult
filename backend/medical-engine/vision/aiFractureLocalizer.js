@@ -65,7 +65,7 @@ Return ONLY valid JSON matching:
 }
 `;
 
-    console.log(`[AI_FRACTURE] 🤖 AI Multimodal Vision analyzing radiograph film: ${path.basename(filePath)} (${origW}x${origH}px)`);
+    // console.log(`[AI_FRACTURE] ...`);
 
     let parsed = null;
     const apiKey = process.env.GEMINI_API_KEY;
@@ -115,12 +115,12 @@ Return ONLY valid JSON matching:
             if (rawText) {
               const cleanText = rawText.replace(/```json/g, '').replace(/```/g, '').trim();
               parsed = JSON.parse(cleanText);
-              console.log(`[AI_FRACTURE] ✅ Gemini Direct (${geminiModel}) detected fractures: ${parsed.isFracturePresent ? parsed.fractures?.length : 0}`);
+    // console.log(...);
               break;
             }
           }
         } catch (geminiErr) {
-          console.warn(`[AI_FRACTURE] Gemini Direct (${geminiModel}) error:`, geminiErr?.response?.data?.error?.message || geminiErr.message);
+          // console.warn(...)
         }
       }
     }
@@ -139,7 +139,7 @@ Return ONLY valid JSON matching:
       for (const modelName of modelsToTry) {
         if (parsed) break;
         try {
-          console.log(`[AI_FRACTURE] 🔄 Trying OpenRouter AI Vision (${modelName})...`);
+          // console.log(...)
           const orPayload = {
             model: modelName,
             messages: [
@@ -171,18 +171,18 @@ Return ONLY valid JSON matching:
             if (rawContent) {
               const cleanContent = rawContent.replace(/```json/g, '').replace(/```/g, '').trim();
               parsed = JSON.parse(cleanContent);
-              console.log(`[AI_FRACTURE] ✅ OpenRouter (${modelName}) detected fractures: ${parsed.isFracturePresent ? parsed.fractures?.length : 0}`);
+              // console.log(...)
               break;
             }
           }
         } catch (orErr) {
-          console.warn(`[AI_FRACTURE] OpenRouter (${modelName}) error:`, orErr?.response?.data?.error?.message || orErr.message);
+          // console.warn(...)
         }
       }
     }
 
     if (!parsed) {
-      console.warn('[AI_FRACTURE] AI vision endpoint unavailable; delegating to local high-resolution CV discontinuity scanner.');
+      // console.warn(...)
       return null;
     }
 

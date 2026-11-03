@@ -4,7 +4,16 @@ import path from 'path';
 import fs from 'fs';
 
 async function testPreprocessing() {
-  const filePath = './uploads/patient/PAT1001/report-1787985694060-94468612.jpg';
+  const possiblePaths = [
+    './uploads/patient/PAT1001/report-1787980769399-553229705.jpg',
+    './uploads/report-1785429702756-479377469.jpg',
+    './uploads/avatar-1787758861799-726147079.jpg'
+  ];
+  let filePath = possiblePaths.find(p => fs.existsSync(p));
+  if (!filePath) {
+    console.log("No test image found for OCR preprocessing test, skipping.");
+    return;
+  }
   const preprocessedPath = './temp_preprocessed.png';
 
   // Preprocess with sharp: upscale 3x, grayscale, sharpen, threshold

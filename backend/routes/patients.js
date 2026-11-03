@@ -1,6 +1,6 @@
 import express from 'express';
 const router = express.Router();
-import { getPatientProfile, updatePatientProfile, getPatientPrescriptions, deletePrescription, addDoctorReview, raiseComplaint } from '../controllers/patientController.js';
+import { getPatientProfile, updatePatientProfile, getPatientPrescriptions, deletePrescription, addDoctorReview, raiseComplaint, getPatientComplaints } from '../controllers/patientController.js';
 import { protect } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
 
@@ -10,6 +10,7 @@ router.get('/prescriptions', protect, getPatientPrescriptions);
 router.delete('/prescription/:id', protect, deletePrescription);
 router.post('/review', protect, addDoctorReview);
 router.post('/raise-complaint', protect, raiseComplaint);
+router.get('/complaints', protect, getPatientComplaints);
 
 router.get('/node-ping', (req, res) => res.json({ message: "Patient node active" }));
 

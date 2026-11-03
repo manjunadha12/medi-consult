@@ -3,6 +3,7 @@ import PatientProfile from '../models/PatientProfile.js';
 import Prescription from '../models/Prescription.js';
 import DoctorReview from '../models/DoctorReview.js';
 import Appointment from '../models/Appointment.js';
+import Complaint from '../models/Complaint.js';
 
 export const getPatientProfile = async (req, res) => {
   try {
@@ -141,23 +142,56 @@ export const addDoctorReview = async (req, res) => {
 
 export const raiseComplaint = async (req, res) => {
   try {
-    const { appointmentId, doctorId, patientId, category, description, urgency } = req.body;
-    console.log(`[COMPLAINT_LOG] New Complaint Registered: Category=${category}, Urgency=${urgency}, Appt=${appointmentId}`);
+    const { appointmentId, doctorId, doctorName, patientId, category, description, urgency } = req.body;
+    
+    const pId = patientId || req.user?.patientId || req.user?._id;
+    const pName = req.user?.name || 'Patient';
+
+    let dName = doctorName;
+    if (!dName && doctorId) {
+      const docUser = await User.findOne({ $or: [{ doctorId }, { _id: doctorId }] });
+      if (docUser) dName = docUser.name;
+    }
+
+    const complaint = new Complaint({
+      appointmentId: appointmentId || '',
+      patientId: pId,
+      patientName: pName,
+      doctorId: doctorId || '',
+      doctorName: dName || 'Assigned Specialist',
+      category: category || 'Billing / Payment Issue',
+      description,
+      urgency: urgency || 'Normal',
+      status: 'Pending Review'
+    });
+
+    await complaint.save();
+    console.log(`[COMPLAINT_PERSISTED] Complaint ${complaint.complaintId} created by ${pName} for Appt=${appointmentId}`);
 
     res.status(201).json({
       success: true,
       message: "Complaint registered with Governance Registry.",
-      complaint: {
-        appointmentId,
-        doctorId,
-        patientId: patientId || req.user?.patientId,
-        category,
-        description,
-        urgency,
-        createdAt: new Date()
-      }
+      complaint
     });
   } catch (error) {
+    console.error('[RAISE_COMPLAINT_ERROR]:', error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getPatientComplaints = async (req, res) => {
+  try {
+    const pId = req.user?.patientId || req.user?._id;
+    const query = { patientId: pId };
+    
+    if (req.query.appointmentId) {
+      query.appointmentId = req.query.appointmentId;
+    }
+
+    const complaints = await Complaint.find(query).sort({ createdAt: -1 });
+    res.json({ success: true, complaints });
+  } catch (error) {
+    console.error('[GET_PATIENT_COMPLAINTS_ERR]:', error);
     res.status(500).json({ message: error.message });
   }
 };

@@ -3,7 +3,7 @@ import dotenv from 'dotenv';
 import sharp from 'sharp';
 dotenv.config();
 
-const imgPath = 'E:/clone app/backend/uploads/patient/PAT1001/report-1788338624256-173417135.jpg';
+const imgPath = 'E:/clone app/backend/uploads/patient/PAT1001/report-1788338539478-970693608.jpg';
 const meta = await sharp(imgPath).metadata();
 const imgW = meta.width;
 const imgH = meta.height;

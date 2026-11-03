@@ -3,14 +3,15 @@ import Navbar from '../common/Navbar';
 import api from '../../utils/api';
 import {
   User as UserIcon, Stethoscope, Search, Save, History as HistoryIcon,
-  ChevronRight, Edit3, X, Loader2, CheckCircle, Shield, Calendar, Mail, Phone, Activity
+  ChevronRight, Edit3, X, Loader2, CheckCircle, Shield, Calendar, Mail, Phone, Activity,
+  AlertCircle, AlertTriangle, FileText, CheckCircle2
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
 
 const ProfileGovernance = () => {
   const { theme } = useStore();
-  const [activeTab, setActiveTab] = useState('doctor'); // 'doctor' or 'patient'
+  const [activeTab, setActiveTab] = useState('doctor'); // 'doctor', 'patient', 'complaints'
   const [list, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -19,14 +20,25 @@ const ProfileGovernance = () => {
   const [history, setHistory] = useState([]);
   const [fetchingHistory, setFetchingHistory] = useState(false);
 
+  // Profile Edit State
   const [formData, setFormData] = useState({});
+
+  // Complaint Management State
+  const [complaintStatus, setComplaintStatus] = useState('Pending Review');
+  const [adminNotes, setAdminNotes] = useState('');
+  const [savingComplaint, setSavingComplaint] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const endpoint = activeTab === 'doctor' ? '/admin/doctors' : '/admin/patients';
-      const { data } = await api.get(endpoint);
-      setLogs(data);
+      if (activeTab === 'complaints') {
+        const { data } = await api.get('/admin/complaints');
+        setLogs(data.complaints || []);
+      } else {
+        const endpoint = activeTab === 'doctor' ? '/admin/doctors' : '/admin/patients';
+        const { data } = await api.get(endpoint);
+        setLogs(data);
+      }
     } catch (err) {
       toast.error(`Failed to load ${activeTab} registry`);
     } finally {
@@ -41,32 +53,39 @@ const ProfileGovernance = () => {
     setHistory([]);
   }, [activeTab]);
 
-  const handleUserClick = async (user) => {
-    setSelectedUser(user);
+  const handleUserClick = async (item) => {
+    setSelectedUser(item);
     setEditMode(false);
-    fetchHistory(user.doctorId || user.patientId);
+
+    if (activeTab === 'complaints') {
+      setComplaintStatus(item.status || 'Pending Review');
+      setAdminNotes(item.adminNotes || '');
+      return;
+    }
+
+    fetchHistory(item.doctorId || item.patientId);
 
     // Initialize form data
     if (activeTab === 'doctor') {
       setFormData({
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        specialization: user.specialization,
-        hospitalName: user.hospitalName,
-        department: user.department,
-        experience: user.experience,
-        age: user.age,
-        gender: user.gender
+        name: item.name,
+        email: item.email,
+        phone: item.phone,
+        specialization: item.specialization,
+        hospitalName: item.hospitalName,
+        department: item.department,
+        experience: item.experience,
+        age: item.age,
+        gender: item.gender
       });
     } else {
       setFormData({
-        name: user.name,
-        email: user.email,
-        phone: user.phone,
-        age: user.age,
-        gender: user.gender,
-        bloodGroup: user.bloodGroup
+        name: item.name,
+        email: item.email,
+        phone: item.phone,
+        age: item.age,
+        gender: item.gender,
+        bloodGroup: item.bloodGroup
       });
     }
   };
@@ -99,14 +118,47 @@ const ProfileGovernance = () => {
     }
   };
 
-  const filtered = list.filter(u =>
-    u.name?.toLowerCase().includes(search.toLowerCase()) ||
-    u.doctorId?.toLowerCase().includes(search.toLowerCase()) ||
-    u.patientId?.toLowerCase().includes(search.toLowerCase())
-  );
+  const handleComplaintStatusUpdate = async (e) => {
+    e.preventDefault();
+    if (!selectedUser?._id) return;
+    try {
+      setSavingComplaint(true);
+      const res = await api.put(`/admin/complaints/${selectedUser._id}/status`, {
+        status: complaintStatus,
+        adminNotes
+      });
+      toast.success(res.data?.message || 'Complaint status updated');
+      if (res.data?.complaint) {
+        setSelectedUser(res.data.complaint);
+      }
+      fetchData();
+    } catch (err) {
+      toast.error('Failed to update complaint status');
+    } finally {
+      setSavingComplaint(false);
+    }
+  };
+
+  const filtered = list.filter(item => {
+    const q = search.toLowerCase();
+    if (activeTab === 'complaints') {
+      return (
+        (item.complaintId && item.complaintId.toLowerCase().includes(q)) ||
+        (item.patientName && item.patientName.toLowerCase().includes(q)) ||
+        (item.doctorName && item.doctorName.toLowerCase().includes(q)) ||
+        (item.category && item.category.toLowerCase().includes(q)) ||
+        (item.urgency && item.urgency.toLowerCase().includes(q)) ||
+        (item.status && item.status.toLowerCase().includes(q))
+      );
+    }
+    const name = item.name ? item.name.toLowerCase() : '';
+    const id = (item.doctorId || item.patientId || '').toLowerCase();
+    const email = item.email ? item.email.toLowerCase() : '';
+    return name.includes(q) || id.includes(q) || email.includes(q);
+  });
 
   return (
-    <div className={`flex min-h-screen transition-colors duration-500 text-left ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'} pb-24`}>
+    <div className={`flex min-h-screen transition-colors duration-500 text-left ${theme === 'dark' ? 'bg-[#050505] text-zinc-300' : 'bg-[#F8FAFC] text-slate-600'}`}>
       <div className="flex-1 flex flex-col overflow-hidden relative">
         <Navbar />
         <main className="p-4 sm:p-6 lg:p-8 space-y-8 relative z-10 overflow-y-auto custom-scrollbar">
@@ -114,21 +166,33 @@ const ProfileGovernance = () => {
           <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
             <div className="text-left">
               <p className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em]">Institutional Governance</p>
-              <h1 className={`text-3xl font-black uppercase tracking-tight mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Profile Management</h1>
-              <p className="text-zinc-500 font-medium mt-1 uppercase text-[10px] tracking-widest">Global registry modification & change forensics</p>
+              <h1 className={`text-3xl font-black uppercase tracking-tight mt-1 ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                {activeTab === 'complaints' ? 'Service Discrepancy Registry' : 'Profile Governance'}
+              </h1>
+              <p className="text-zinc-500 font-medium mt-1 uppercase text-[10px] tracking-widest">
+                {activeTab === 'complaints' 
+                  ? 'Audit and resolve patient-reported consultation discrepancies and quality issues'
+                  : 'Global registry modification & change forensics'}
+              </p>
             </div>
-            <div className="flex bg-white/5 p-1 rounded-2xl border border-white/5 shadow-2xl">
+            <div className="flex flex-wrap bg-white/5 p-1 rounded-2xl border border-white/5 shadow-2xl gap-1">
               <button
                 onClick={() => setActiveTab('doctor')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'doctor' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'doctor' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 <Stethoscope size={14} /> Doctor Registry
               </button>
               <button
                 onClick={() => setActiveTab('patient')}
-                className={`px-6 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'patient' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'patient' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 <UserIcon size={14} /> Patient Registry
+              </button>
+              <button
+                onClick={() => setActiveTab('complaints')}
+                className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 ${activeTab === 'complaints' ? 'bg-rose-600 text-white shadow-lg shadow-rose-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+              >
+                <AlertCircle size={14} /> Complaints & Discrepancies
               </button>
             </div>
           </header>
@@ -141,7 +205,7 @@ const ProfileGovernance = () => {
                 <Search size={18} className="text-zinc-500" />
                 <input
                   type="text"
-                  placeholder={`Search ${activeTab}s...`}
+                  placeholder={activeTab === 'complaints' ? 'Search complaints...' : `Search ${activeTab}s...`}
                   className="bg-transparent border-none outline-none text-xs font-bold w-full uppercase tracking-widest"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
@@ -161,19 +225,52 @@ const ProfileGovernance = () => {
                   </div>
                 ) : (
                   <div className="divide-y divide-white/5">
-                    {filtered.map((user) => (
+                    {filtered.map((item) => (
                       <button
-                        key={user._id}
-                        onClick={() => handleUserClick(user)}
-                        className={`w-full p-6 flex items-center gap-4 text-left transition-all ${selectedUser?._id === user._id ? 'bg-blue-600/10 border-l-4 border-blue-600' : 'hover:bg-white/5'}`}
+                        key={item._id}
+                        onClick={() => handleUserClick(item)}
+                        className={`w-full p-6 flex items-center gap-4 text-left transition-all ${selectedUser?._id === item._id ? 'bg-blue-600/10 border-l-4 border-blue-600' : 'hover:bg-white/5'}`}
                       >
                         <div className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 border ${theme === 'dark' ? 'bg-zinc-950 border-white/10' : 'bg-slate-50 border-slate-200'}`}>
-                          {activeTab === 'doctor' ? <Stethoscope className="text-blue-500" size={20} /> : <UserIcon className="text-emerald-500" size={20} />}
+                          {activeTab === 'doctor' ? (
+                            <Stethoscope className="text-blue-500" size={20} />
+                          ) : activeTab === 'patient' ? (
+                            <UserIcon className="text-emerald-500" size={20} />
+                          ) : (
+                            <AlertCircle className={item.urgency === 'Critical' ? 'text-red-400' : item.urgency === 'High' ? 'text-amber-400' : 'text-blue-400'} size={20} />
+                          )}
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <p className={`font-black uppercase truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{user.name}</p>
-                          <p className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">{user.doctorId || user.patientId}</p>
-                        </div>
+
+                        {activeTab === 'complaints' ? (
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between">
+                              <p className={`font-black uppercase truncate text-xs ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>
+                                #{item.complaintId}
+                              </p>
+                              <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                item.urgency === 'Critical' ? 'bg-red-500/20 text-red-400' : item.urgency === 'High' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                              }`}>
+                                {item.urgency}
+                              </span>
+                            </div>
+                            <p className="text-[10px] font-bold text-zinc-400 truncate mt-0.5">{item.category}</p>
+                            <p className="text-[9px] text-zinc-500 truncate mt-0.5">{item.patientName || item.patientId} • vs {item.doctorName || 'Doctor'}</p>
+                            <div className="flex items-center justify-between mt-1">
+                              <span className="text-[8px] text-zinc-600 uppercase">
+                                {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                              </span>
+                              <span className={`text-[8px] font-bold uppercase ${item.status === 'Resolved' ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                {item.status}
+                              </span>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex-1 min-w-0">
+                            <p className={`font-black uppercase truncate ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>{item.name}</p>
+                            <p className="text-[10px] font-black text-blue-500 uppercase tracking-tighter">{item.doctorId || item.patientId}</p>
+                          </div>
+                        )}
+
                         <ChevronRight size={16} className="text-zinc-600" />
                       </button>
                     ))}
@@ -187,9 +284,124 @@ const ProfileGovernance = () => {
               {!selectedUser ? (
                 <div className={`h-full rounded-[48px] border-2 border-dashed flex flex-col items-center justify-center gap-6 transition-all duration-500 ${theme === 'dark' ? 'border-white/5 bg-white/[0.02]' : 'border-slate-100 bg-slate-50/50'}`}>
                    <Shield size={64} className="text-zinc-800" strokeWidth={1} />
-                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.5em]">Select Node to Manage</p>
+                   <p className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.5em]">
+                     {activeTab === 'complaints' ? 'Select Complaint Record to Review' : 'Select Node to Manage'}
+                   </p>
+                </div>
+              ) : activeTab === 'complaints' ? (
+                /* COMPLAINTS DETAILS & RESOLUTION VIEW */
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
+                  {/* Left: Complaint Dossier */}
+                  <div className={`p-8 rounded-[48px] border flex flex-col space-y-6 transition-all duration-500 overflow-y-auto custom-scrollbar ${theme === 'dark' ? 'bg-[#0A0A0B] border-white/5 shadow-2xl' : 'bg-white border-slate-100 shadow-xl'}`}>
+                    <div className="flex items-center justify-between pb-4 border-b border-white/5">
+                      <div>
+                        <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest">Discrepancy Record</span>
+                        <h2 className="text-xl font-black text-white uppercase tracking-tight mt-0.5">#{selectedUser.complaintId}</h2>
+                      </div>
+                      <span className={`px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                        selectedUser.urgency === 'Critical' ? 'bg-red-500/20 text-red-400 border border-red-500/30' : selectedUser.urgency === 'High' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' : 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                      }`}>
+                        {selectedUser.urgency} Urgency
+                      </span>
+                    </div>
+
+                    <div className="space-y-4 text-xs font-bold">
+                      <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                        <span className="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Complaint Category</span>
+                        <p className="text-white text-sm">{selectedUser.category}</p>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                          <span className="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Complainant (Patient)</span>
+                          <p className="text-white">{selectedUser.patientName || 'Patient'}</p>
+                          <p className="text-[9px] text-blue-400 font-mono">{selectedUser.patientId}</p>
+                        </div>
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                          <span className="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Assigned Doctor</span>
+                          <p className="text-white">{selectedUser.doctorName || 'Specialist'}</p>
+                          <p className="text-[9px] text-zinc-400 font-mono">{selectedUser.doctorId || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      {selectedUser.appointmentId && (
+                        <div className="p-4 rounded-2xl bg-white/5 border border-white/5 space-y-1">
+                          <span className="text-[9px] font-black text-zinc-500 uppercase tracking-wider">Appointment Reference</span>
+                          <p className="text-zinc-300 font-mono text-[11px]">{selectedUser.appointmentId}</p>
+                        </div>
+                      )}
+
+                      <div className="p-5 rounded-2xl bg-rose-500/5 border border-rose-500/10 space-y-2">
+                        <span className="text-[9px] font-black text-rose-400 uppercase tracking-wider">Reported Incident Description</span>
+                        <p className="text-zinc-200 font-medium text-xs leading-relaxed whitespace-pre-wrap">
+                          "{selectedUser.description}"
+                        </p>
+                      </div>
+
+                      <div className="text-[10px] text-zinc-500 flex justify-between px-1">
+                        <span>Filed: {new Date(selectedUser.createdAt).toLocaleString()}</span>
+                        <span>Current Status: <strong className="text-white">{selectedUser.status}</strong></span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right: Governance Resolution Panel */}
+                  <div className={`p-8 rounded-[48px] border flex flex-col space-y-6 transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0B] border-white/5 shadow-2xl' : 'bg-white border-slate-100 shadow-xl'}`}>
+                    <div className="flex items-center gap-4 pb-4 border-b border-white/5">
+                      <div className="w-10 h-10 rounded-xl bg-rose-500/10 flex items-center justify-center text-rose-500 border border-rose-500/20">
+                        <Shield size={20} />
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-white">Governance Audit Action</h3>
+                        <p className="text-[9px] font-bold text-zinc-500 uppercase mt-0.5">Formal investigation & dispute settlement</p>
+                      </div>
+                    </div>
+
+                    <form onSubmit={handleComplaintStatusUpdate} className="flex-1 flex flex-col justify-between space-y-6">
+                      <div className="space-y-5">
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+                            Resolution Status
+                          </label>
+                          <select
+                            value={complaintStatus}
+                            onChange={(e) => setComplaintStatus(e.target.value)}
+                            className="w-full p-4 rounded-2xl border bg-zinc-900 border-white/10 text-white font-bold text-xs uppercase outline-none focus:border-rose-500 transition-all"
+                          >
+                            <option value="Pending Review">Pending Review</option>
+                            <option value="Under Investigation">Under Investigation</option>
+                            <option value="Resolved">Resolved</option>
+                            <option value="Dismissed">Dismissed</option>
+                          </select>
+                        </div>
+
+                        <div className="space-y-2">
+                          <label className="text-[9px] font-black text-zinc-400 uppercase tracking-widest ml-1">
+                            Governance Audit Notes / Action Taken
+                          </label>
+                          <textarea
+                            rows={6}
+                            value={adminNotes}
+                            onChange={(e) => setAdminNotes(e.target.value)}
+                            placeholder="Document internal investigation steps, corrective actions, patient contact, or refund references..."
+                            className="w-full p-4 rounded-2xl border bg-zinc-900 border-white/10 text-white font-medium text-xs outline-none focus:border-rose-500 transition-all resize-none placeholder:text-zinc-600"
+                          />
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={savingComplaint}
+                        className="w-full py-4 bg-rose-600 hover:bg-rose-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-rose-600/20 flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-50"
+                      >
+                        {savingComplaint ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                        Save Resolution Record
+                      </button>
+                    </form>
+                  </div>
                 </div>
               ) : (
+                /* REGULAR DOCTOR / PATIENT PROFILE EDIT & HISTORY VIEW */
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 h-full">
 
                   {/* EDIT FORM */}
@@ -199,7 +411,7 @@ const ProfileGovernance = () => {
                      <div className="flex justify-between items-center relative z-10">
                         <div className="flex items-center gap-4">
                            <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black">
-                              {selectedUser.name.charAt(0)}
+                              {selectedUser.name?.charAt(0) || 'U'}
                            </div>
                            <h3 className="text-sm font-black uppercase tracking-widest">Profile Parameters</h3>
                         </div>
@@ -263,9 +475,38 @@ const ProfileGovernance = () => {
                                     onChange={e => setFormData({...formData, hospitalName: e.target.value})}
                                   />
                                </div>
+                               <div className="grid grid-cols-2 gap-4">
+                                  <div className="space-y-1">
+                                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1">Experience (Yrs)</label>
+                                     <input
+                                       disabled={!editMode}
+                                       className={`w-full p-4 border rounded-2xl text-xs font-bold outline-none transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'} ${editMode ? 'focus:border-blue-500/50' : 'opacity-60 cursor-not-allowed'}`}
+                                       value={formData.experience || ''}
+                                       onChange={e => setFormData({...formData, experience: e.target.value})}
+                                     />
+                                  </div>
+                                  <div className="space-y-1">
+                                     <label className="text-[9px] font-black text-zinc-500 uppercase ml-1">Department</label>
+                                     <input
+                                       disabled={!editMode}
+                                       className={`w-full p-4 border rounded-2xl text-xs font-bold outline-none transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'} ${editMode ? 'focus:border-blue-500/50' : 'opacity-60 cursor-not-allowed'}`}
+                                       value={formData.department || ''}
+                                       onChange={e => setFormData({...formData, department: e.target.value})}
+                                     />
+                                  </div>
+                               </div>
                              </>
                            ) : (
                              <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-1">
+                                   <label className="text-[9px] font-black text-zinc-500 uppercase ml-1">Patient Age</label>
+                                   <input
+                                     disabled={!editMode}
+                                     className={`w-full p-4 border rounded-2xl text-xs font-bold outline-none transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'} ${editMode ? 'focus:border-blue-500/50' : 'opacity-60 cursor-not-allowed'}`}
+                                     value={formData.age || ''}
+                                     onChange={e => setFormData({...formData, age: e.target.value})}
+                                   />
+                                </div>
                                 <div className="space-y-1">
                                    <label className="text-[9px] font-black text-zinc-500 uppercase ml-1">Blood Group</label>
                                    <input
@@ -275,16 +516,6 @@ const ProfileGovernance = () => {
                                      onChange={e => setFormData({...formData, bloodGroup: e.target.value})}
                                    />
                                 </div>
-                                <div className="space-y-1">
-                                   <label className="text-[9px] font-black text-zinc-500 uppercase ml-1">Node Age</label>
-                                   <input
-                                     disabled={!editMode}
-                                     type="number"
-                                     className={`w-full p-4 border rounded-2xl text-xs font-bold outline-none transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-white' : 'bg-slate-50 border-slate-200'} ${editMode ? 'focus:border-blue-500/50' : 'opacity-60 cursor-not-allowed'}`}
-                                     value={formData.age || ''}
-                                     onChange={e => setFormData({...formData, age: e.target.value})}
-                                   />
-                                </div>
                              </div>
                            )}
                         </div>
@@ -292,9 +523,9 @@ const ProfileGovernance = () => {
                         {editMode && (
                           <button
                             type="submit"
-                            className="w-full py-5 bg-blue-600 text-white rounded-3xl font-black text-xs uppercase tracking-[0.3em] shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all active:scale-[0.98] flex items-center justify-center gap-3"
+                            className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 transition-all"
                           >
-                             <Save size={18} /> Commit Changes
+                             <Save size={16} /> Save Node Parameters
                           </button>
                         )}
                      </form>
@@ -334,7 +565,6 @@ const ProfileGovernance = () => {
                                             toast.success("Security rights updated");
                                             fetchData();
                                             fetchHistory(selectedUser.doctorId || selectedUser.patientId);
-                                            // Update local selected user state
                                             setSelectedUser(prev => ({ ...prev, isActive: !prev.isActive }));
                                          } catch (err) {
                                             toast.error("Handshake failed");

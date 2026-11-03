@@ -11,6 +11,7 @@ import PrescriptionTemplate from '../models/PrescriptionTemplate.js';
 import HealthLog from '../models/HealthLog.js';
 import DoctorReview from '../models/DoctorReview.js';
 import ClinicalDiagnosis from '../models/ClinicalDiagnosis.js';
+import { performInstitutionValidation } from './authController.js';
 
 export const getDoctorProfile = async (req, res) => {
   try {
@@ -36,6 +37,21 @@ export const updateDoctorProfile = async (req, res) => {
       gender,
       phone
     } = req.body;
+
+    if (hospitalName) {
+      const currentProfile = await DoctorProfile.findOne({ userId: req.user._id });
+      const instValidation = await performInstitutionValidation({
+        institutionName: hospitalName,
+        city: city || currentProfile?.city,
+        address: address || currentProfile?.address,
+        medicalRegistrationNumber: currentProfile?.medicalRegistrationNumber,
+        email: req.user.email,
+        userId: req.user._id
+      });
+      if (!instValidation.valid) {
+        return res.status(400).json({ message: instValidation.message, code: instValidation.code });
+      }
+    }
 
     if (name || phone) {
       const userUpdate = {};
@@ -354,6 +370,34 @@ export const getPublicDoctorProfile = async (req, res) => {
         surgicalStats: profileData.surgicalStats || { totalSurgeries: 1500, successRate: "98.4%" }
       },
       reviews: (reviews && reviews.length > 0) ? reviews : [{ patientName: "Verified Patient", rating: 5, reviewComment: "Clinical precision matched." }]
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+export const getDoctorReviews = async (req, res) => {
+  try {
+    const doctorId = req.user.doctorId || req.user._id.toString();
+    const user = await User.findById(req.user._id);
+    const searchIds = [user?.doctorId, user?.applicationNumber, doctorId].filter(Boolean);
+
+    const reviews = await DoctorReview.find({
+      $or: [
+        { doctorId: { $in: searchIds } },
+        { doctorId: req.user._id.toString() }
+      ]
+    }).sort({ createdAt: -1 });
+
+    const avgRating = reviews.length > 0
+      ? (reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length).toFixed(1)
+      : 4.8;
+
+    res.json({
+      success: true,
+      avgRating,
+      totalReviews: reviews.length,
+      reviews
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

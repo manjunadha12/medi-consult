@@ -4,7 +4,7 @@ dotenv.config();
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-console.log(`[SWARM_INIT] API Keys Detected: OpenRouter(${OPENROUTER_API_KEY ? 'YES' : 'NO'}), Gemini(${GEMINI_API_KEY ? 'YES' : 'NO'})`);
+// console.log(`[SWARM_INIT] API Keys Detected: OpenRouter(${OPENROUTER_API_KEY ? 'YES' : 'NO'}), Gemini(${GEMINI_API_KEY ? 'YES' : 'NO'})`);
 
 // Advanced multi-tier model swarm for maximum reliability
 const DEFAULT_MODELS = [

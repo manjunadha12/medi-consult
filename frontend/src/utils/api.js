@@ -2,13 +2,13 @@ import axios from 'axios';
 
 /**
  * [MOBILE HANDSHAKE CONFIG]
- * Current PC IPv4 Address: 192.168.1.7
+ * Current PC IPv4 Address: 10.100.47.15
  */
 const getDevPcIp = () => {
   if (typeof window !== 'undefined' && window.localStorage?.getItem('DEV_PC_IP')) {
     return window.localStorage.getItem('DEV_PC_IP');
   }
-  return '192.168.1.7';
+  return '10.100.47.15';
 };
 
 const DEV_PC_IP = getDevPcIp();

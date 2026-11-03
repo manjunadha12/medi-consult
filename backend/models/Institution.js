@@ -20,6 +20,9 @@ const institutionSchema = new mongoose.Schema({
   nmcApproval: { type: String },
   naacGrade: { type: String },
   district: { type: String },
+  campus: { type: String },
+  latitude: { type: Number },
+  longitude: { type: Number },
   isActive: { type: Boolean, default: true }
 }, { timestamps: true });
 

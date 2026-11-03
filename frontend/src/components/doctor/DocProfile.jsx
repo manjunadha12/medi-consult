@@ -3,7 +3,7 @@ import Navbar from '../common/Navbar';
 import api from '../../utils/api';
 import {
   User as UserIcon, Mail, Phone as PhoneIcon, MapPin, Activity,
-  Stethoscope, Shield, Edit2, Camera, Star, Save, X, Loader2
+  Stethoscope, Shield, Edit2, Camera, Star, Save, X, Loader2, MessageSquare, ThumbsUp
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
@@ -29,6 +29,8 @@ const DocProfile = () => {
     gender: 'Male',
     age: ''
   });
+  const [reviews, setReviews] = useState([]);
+  const [avgRating, setAvgRating] = useState('4.8');
 
   const fetchProfile = async () => {
     setLoading(true);
@@ -53,8 +55,21 @@ const DocProfile = () => {
     }
   };
 
+  const fetchReviews = async () => {
+    try {
+      const { data } = await api.get('/doctor/reviews');
+      if (data.success) {
+        setReviews(data.reviews || []);
+        setAvgRating(data.avgRating || '4.8');
+      }
+    } catch (err) {
+      console.warn("Failed to fetch doctor reviews", err);
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
+    fetchReviews();
   }, []);
 
   const handleSave = async (e) => {
@@ -311,6 +326,49 @@ const DocProfile = () => {
                         <Camera size={32} className="text-zinc-650 mx-auto mb-3 group-hover:text-blue-500 transition-colors" />
                         <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest">Click to upload digital signature</p>
                       </div>
+                   </div>
+                </div>
+
+                {/* PATIENT FEEDBACK & REVIEWS */}
+                <div className={`p-10 rounded-[48px] border shadow-sm transition-all duration-500 text-left ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+                   <div className="flex items-center justify-between mb-8">
+                      <h3 className="text-lg font-black text-white flex items-center gap-3 uppercase tracking-tight">
+                        <Star size={22} className="text-amber-400 fill-current" /> Patient Feedback & Reviews ({reviews.length})
+                      </h3>
+                      <div className="px-4 py-1.5 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl font-black text-xs flex items-center gap-2">
+                         <Star size={14} className="fill-current" /> {avgRating} Overall Rating
+                      </div>
+                   </div>
+
+                   <div className="space-y-4">
+                      {reviews.length > 0 ? (
+                        reviews.map((r, idx) => (
+                          <div key={idx} className="p-6 bg-white/5 border border-white/5 rounded-3xl space-y-3">
+                             <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                   <div className="w-10 h-10 rounded-xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center text-blue-400 font-black text-xs uppercase">
+                                      {r.patientName?.charAt(0) || 'P'}
+                                   </div>
+                                   <div className="text-left">
+                                      <p className="text-xs font-black text-white uppercase">{r.patientName || 'Verified Patient'}</p>
+                                      <p className="text-[9px] font-bold text-zinc-500">{new Date(r.createdAt || r.reviewDate || Date.now()).toLocaleDateString()}</p>
+                                   </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-amber-400 font-black text-xs">
+                                   {[...Array(5)].map((_, i) => (
+                                      <Star key={i} size={12} className={i < Math.floor(r.rating || 5) ? 'fill-current' : 'text-zinc-700'} />
+                                   ))}
+                                   <span className="ml-1 text-white">({r.rating || 5}.0)</span>
+                                </div>
+                             </div>
+                             <p className="text-xs font-medium text-zinc-300 italic">"{r.reviewComment || r.comment || 'Clinical feedback synchronized.'}"</p>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="py-12 text-center text-zinc-500 italic text-xs font-bold uppercase tracking-widest">
+                           No patient reviews logged in registry yet.
+                        </div>
+                      )}
                    </div>
                 </div>
               </div>

@@ -75,26 +75,31 @@ export function classifyDocument(extractedDoc) {
     (fullTextLower.includes('sinus rhythm') && fullTextLower.includes('pr interval'))
   );
 
-  // 7. Plain Radiograph Film / X-Ray Signatures
-  const isDirectXRayFilm = Boolean(extractedDoc.isRadiographFilm);
-  const isXRayReport = !isCTBrain && !isMRIBrain && !isUSG && !isENT && (
-    fullTextLower.includes('plain radiograph') ||
-    fullTextLower.includes('x-ray') ||
-    fullTextLower.includes('chest x-ray') ||
-    fullTextLower.includes('knee radiograph')
-  );
-
-  // 8. Lab / Biochemistry / Hematology Signatures
+  // 7. Lab / Biochemistry / Hematology Signatures
   const isLab = (
     fullTextLower.includes('complete blood count') ||
     fullTextLower.includes('hemogram') ||
+    fullTextLower.includes('hemoglobin') ||
+    fullTextLower.includes('platelet') ||
+    fullTextLower.includes('wbc') ||
+    fullTextLower.includes('creatinine') ||
     fullTextLower.includes('lipid profile') ||
     fullTextLower.includes('liver function') ||
     fullTextLower.includes('kidney function') ||
     fullTextLower.includes('reference interval') ||
     fullTextLower.includes('biological reference') ||
+    fullTextLower.includes('reference range') ||
     fullTextLower.includes('methodology') ||
     fullTextLower.includes('specimen')
+  );
+
+  // 8. Plain Radiograph Film / X-Ray Signatures
+  const isDirectXRayFilm = !isLab && Boolean(extractedDoc.isRadiographFilm);
+  const isXRayReport = !isLab && !isCTBrain && !isMRIBrain && !isUSG && !isENT && (
+    fullTextLower.includes('plain radiograph') ||
+    fullTextLower.includes('chest x-ray') ||
+    fullTextLower.includes('knee radiograph') ||
+    fullTextLower.includes('radiographic examination')
   );
 
   // 9. Dental Signatures
@@ -130,10 +135,10 @@ export function classifyDocument(extractedDoc) {
   else if (isEcho) primaryDocType = 'CARDIOLOGY_ECHO';
   else if (isEcg && isLab) primaryDocType = 'COMPOSITE_MULTI_PANEL';
   else if (isEcg) primaryDocType = 'CARDIOLOGY_ECG';
+  else if (isLab) primaryDocType = 'STANDARD_LAB_REPORT';
   else if (isDirectXRayFilm || isXRayReport) primaryDocType = 'RADIOLOGY_IMAGING';
   else if (isDental) primaryDocType = 'DENTAL_REPORT';
   else if (isCheckup) primaryDocType = 'GENERAL_CHECKUP_REPORT';
-  else if (isLab) primaryDocType = 'STANDARD_LAB_REPORT';
 
   const classifiedCategories = [];
   const detectedTests = [];

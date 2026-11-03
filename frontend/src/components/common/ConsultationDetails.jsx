@@ -31,12 +31,25 @@ const ConsultationDetails = () => {
 
   // Raise Complaint State
   const [showComplaintModal, setShowComplaintModal] = useState(false);
+  const [complaints, setComplaints] = useState([]);
   const [complaintData, setComplaintData] = useState({
     category: 'Billing / Payment Issue',
     description: '',
     urgency: 'Normal'
   });
   const [submittingComplaint, setSubmittingComplaint] = useState(false);
+
+  const fetchComplaints = async (apptId) => {
+    if (!apptId) return;
+    try {
+      const res = await api.get(`/patients/complaints?appointmentId=${apptId}`);
+      if (res.data?.success && Array.isArray(res.data.complaints)) {
+        setComplaints(res.data.complaints);
+      }
+    } catch (e) {
+      console.warn('[COMPLAINTS_FETCH_NOTICE]', e.message);
+    }
+  };
 
   const submitComplaint = async (e) => {
     e.preventDefault();
@@ -45,21 +58,24 @@ const ConsultationDetails = () => {
     }
     setSubmittingComplaint(true);
     try {
-      await api.post('/patients/raise-complaint', {
-        appointmentId: appt?._id || appt?.appointmentId,
-        doctorId: appt?.doctorId,
-        patientId: appt?.patientId,
+      const apptId = appt?._id || appt?.appointmentId;
+      const res = await api.post('/patients/raise-complaint', {
+        appointmentId: apptId,
+        doctorId: appt?.doctorId?._id || appt?.doctorId,
+        doctorName: partnerName,
+        patientId: appt?.patientId?._id || appt?.patientId,
         category: complaintData.category,
         description: complaintData.description,
         urgency: complaintData.urgency
       });
       toast.success("Complaint registered with Governance Registry.");
+      if (res.data?.complaint) {
+        setComplaints(prev => [res.data.complaint, ...prev]);
+      }
       setShowComplaintModal(false);
       setComplaintData({ category: 'Billing / Payment Issue', description: '', urgency: 'Normal' });
     } catch (err) {
-      toast.success("Complaint registered with Governance Registry.");
-      setShowComplaintModal(false);
-      setComplaintData({ category: 'Billing / Payment Issue', description: '', urgency: 'Normal' });
+      toast.error(err.response?.data?.message || "Failed to register complaint.");
     } finally {
       setSubmittingComplaint(false);
     }
@@ -76,6 +92,9 @@ const ConsultationDetails = () => {
   useEffect(() => {
     if (appt?.patientId) {
       fetchPatientHistory(appt.patientId);
+    }
+    if (appt?._id || appt?.appointmentId) {
+      fetchComplaints(appt._id || appt.appointmentId);
     }
   }, [appt?._id, appt?.patientId]);
 
@@ -568,12 +587,46 @@ const ConsultationDetails = () => {
                         </div>
                       )}
 
+                      {/* Registered Discrepancy & Complaint Records */}
+                      {complaints.length > 0 && (
+                        <div className={`p-6 rounded-[28px] border text-left space-y-3 ${
+                          theme === 'dark' ? 'bg-rose-950/20 border-rose-500/20' : 'bg-rose-50 border-rose-200'
+                        }`}>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2 text-rose-500 font-black text-xs uppercase tracking-wider">
+                              <AlertCircle size={16} /> Discrepancy Record Logged
+                            </div>
+                            <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider bg-rose-500/15 text-rose-400 border border-rose-500/30">
+                              {complaints[0].status}
+                            </span>
+                          </div>
+                          {complaints.map(c => (
+                            <div key={c._id || c.complaintId} className="p-4 rounded-2xl bg-black/30 border border-white/5 space-y-1.5">
+                              <div className="flex items-center justify-between text-[10px]">
+                                <span className="font-mono font-bold text-rose-400">#{c.complaintId}</span>
+                                <span className={`px-2 py-0.5 rounded text-[8px] font-black uppercase ${
+                                  c.urgency === 'Critical' ? 'bg-red-500/20 text-red-400' : c.urgency === 'High' ? 'bg-amber-500/20 text-amber-400' : 'bg-blue-500/20 text-blue-400'
+                                }`}>
+                                  {c.urgency} Urgency
+                                </span>
+                              </div>
+                              <p className="text-xs font-bold text-white uppercase tracking-tight">{c.category}</p>
+                              <p className="text-xs text-zinc-300 font-medium leading-relaxed">{c.description}</p>
+                              <div className="flex items-center justify-between text-[9px] text-zinc-500 pt-1 border-t border-white/5">
+                                <span>Logged: {new Date(c.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                <span className="text-emerald-400 font-bold">{c.status}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
                       {/* Raise a Complaint Button */}
                       <button
                         onClick={() => setShowComplaintModal(true)}
                         className="w-full py-4 rounded-[28px] font-black text-[10px] uppercase tracking-[0.25em] transition-all bg-rose-500/10 hover:bg-rose-500 hover:text-white text-rose-400 border border-rose-500/20 flex items-center justify-center gap-3 active:scale-95 shadow-lg"
                       >
-                        <AlertCircle size={16} /> Raise a Complaint
+                        <AlertCircle size={16} /> {complaints.length > 0 ? 'Raise Another Discrepancy / Complaint' : 'Raise a Complaint'}
                       </button>
                     </div>
                 </div>

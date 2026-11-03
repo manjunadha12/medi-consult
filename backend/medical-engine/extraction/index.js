@@ -2,6 +2,7 @@ import { detectDocument } from './documentDetector.js';
 import { extractPatientInfo } from './patientExtractor.js';
 import { extractTableRows } from './tableExtractor.js';
 import { extractValueAndRange } from './valueExtractor.js';
+import { extractDedicatedEchoParameters } from '../parsers/medicalParser.js';
 import medicalDb from '../medical-db/index.js';
 
 /**
@@ -112,6 +113,29 @@ export function extractMedicalDocument(extractedDoc, classification) {
       hygieneAdvice,
       reportedInterpretation: `${toothAssessment} • Plan: ${workRecommended}`
     });
+  }
+
+  // Echocardiogram (2D Echo / Doppler)
+  if (classification.documentType === 'CARDIOLOGY_ECHO' || fullTextLower.includes('adult echo') || fullTextLower.includes('echocardiogram') || fullTextLower.includes('mm-teich') || fullTextLower.includes('teich')) {
+    const echoResults = extractDedicatedEchoParameters(extractedDoc.lines, fullText);
+    if (echoResults.structuredEchoParams && echoResults.structuredEchoParams.length > 0) {
+      structuredResults.push(...echoResults.structuredEchoParams);
+    }
+    if (echoResults.echoDiagnosticSummary) {
+      diagnosticFindings.push(echoResults.echoDiagnosticSummary);
+    }
+    if (echoResults.echoDemographics?.patientName) {
+      demographics.patientName = echoResults.echoDemographics.patientName;
+    }
+    if (echoResults.echoDemographics?.age) {
+      demographics.age = echoResults.echoDemographics.age;
+    }
+    if (echoResults.echoDemographics?.sex) {
+      demographics.sex = echoResults.echoDemographics.sex;
+    }
+    if (echoResults.echoDemographics?.studyDate) {
+      demographics.reportDate = echoResults.echoDemographics.studyDate;
+    }
   }
 
   // Radiograph Film

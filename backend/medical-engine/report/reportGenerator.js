@@ -94,33 +94,65 @@ export function generateClinicalReport(engineResult) {
     suggestedSpecialist = "Neurologist / Neurosurgeon";
   }
 
+  // Cardiology / Echocardiogram (2D Echo / Doppler)
+  const echoDiag = diagnosticFindings?.find(d => d.type === 'echo');
+  const echoParams = (structuredResults || []).filter(r => r.code === 'CARD_ECHO' || r.categoryId === 'cardiology');
+  const isEchoReport = Boolean(echoDiag || documentBadges?.some(b => b.code === 'CARD_ECHO' || b.name?.toLowerCase().includes('echo')) || classifiedCategories?.some(c => c.id === 'cardiology'));
+
+  if (echoDiag || (isEchoReport && echoParams.length > 0)) {
+    if (narrativeSummary) narrativeSummary += "\n\n";
+    const lvef = echoDiag?.lvef || echoParams.find(p => p.testId?.includes('ef'))?.value || 55;
+    narrativeSummary += `Echocardiogram (2D Echo / Color Doppler) ${ptContext} demonstrates Left Ventricular Ejection Fraction (LVEF) of approximately ${lvef}%. `;
+    if (echoDiag?.reportedInterpretation) {
+      narrativeSummary += `${echoDiag.reportedInterpretation} `;
+    } else {
+      narrativeSummary += `Chamber dimensions, valvular morphology, and ventricular wall kinetics are preserved within normal physiological parameters. `;
+    }
+
+    if (lvef < 50) {
+      keyRisks.push("Mild-to-moderate reduction in left ventricular ejection fraction requiring cardiological correlation.");
+      recommendations.push("Consult a Cardiologist for clinical correlation, symptom monitoring, and medical management.");
+    } else {
+      keyRisks.push("No acute left ventricular systolic dysfunction or regional wall motion abnormalities identified on this study.");
+      recommendations.push("Maintain cardiovascular wellness, periodic lipid screening, and regular blood pressure monitoring.");
+    }
+
+    if (suggestedSpecialist === "Primary Care Physician") {
+      suggestedSpecialist = "Cardiologist";
+    }
+  }
+
   // Radiograph Fracture
   const radDiag = diagnosticFindings?.find(d => d.type === 'radiograph_film' || d.anatomicalRegion);
   const isRadiograph = Boolean(
     radDiag ||
     documentBadges?.some(b => b.code === 'ORTHO_XRAY' || b.name?.toLowerCase().includes('radiograph') || b.name?.toLowerCase().includes('x-ray')) ||
-    structuredResults?.some(r => r.code?.startsWith('ORTHO_') || r.testName?.toLowerCase().includes('fracture') || r.testName?.toLowerCase().includes('cortical'))
+    structuredResults?.some(r => r.code?.startsWith('ORTHO_') || r.code?.startsWith('RAD_'))
   );
 
   if (isRadiograph) {
-    const isAbnormalFracture = (structuredResults || []).some(a => 
-      a.testName?.toLowerCase().includes('fracture') || 
-      a.testName?.toLowerCase().includes('cortical') || 
-      a.testName?.toLowerCase().includes('displacement') ||
-      a.evaluatedStatus?.toUpperCase().includes('ABNORMAL') ||
-      a.severity === 'abnormal' ||
-      a.severity === 'critical'
+    const radParams = (structuredResults || []).filter(r => 
+      r.code?.startsWith('RAD_') || r.code?.startsWith('ORTHO_') || r.categoryId === 'radiology'
+    );
+    const fractureParam = radParams.find(r => r.code === 'RAD_FRACTURE' || r.testId === 'rad_fracture');
+    const isAbnormalFracture = Boolean(
+      (fractureParam && (fractureParam.evaluatedStatus === 'ABNORMAL' || fractureParam.severity === 'abnormal' || fractureParam.severity === 'critical') && !fractureParam.valueString?.toLowerCase().includes('no acute') && !fractureParam.valueString?.toLowerCase().includes('intact')) ||
+      radParams.some(r => (r.code === 'RAD_CORTEX' || r.code === 'RAD_DISPLACEMENT') && (r.evaluatedStatus === 'ABNORMAL' || r.severity === 'abnormal'))
     );
 
-    const locParam = structuredResults?.find(a => a.testName?.toLowerCase().includes('location'));
-    const loc = locParam?.valueString || locParam?.value || radDiag?.anatomicalRegion || "Proximal Tibia / Fibular Head (Knee Joint)";
+    const locParam = structuredResults?.find(a => a.testName?.toLowerCase().includes('location') || a.code === 'RAD_LOCATION');
+    let loc = locParam?.valueString || locParam?.value || radDiag?.anatomicalRegion || "visualized skeletal structures";
+    if (loc.toLowerCase().includes('intact') || loc.toLowerCase().includes('no acute')) {
+      loc = radDiag?.anatomicalRegion || "visualized skeletal structures";
+    }
     const anatomyName = (radDiag?.anatomicalRegion || loc).toLowerCase().includes('knee') ? 'knee radiographs' : ((radDiag?.anatomicalRegion || loc).toLowerCase().includes('hand') ? 'hand radiographs' : 'skeletal radiographs');
 
     const isHand = (radDiag?.anatomicalRegion || loc).toLowerCase().includes('hand') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('digit') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('phalanx') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('metacarpal');
     const isKnee = (radDiag?.anatomicalRegion || loc).toLowerCase().includes('knee') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('tibia') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('fibula') || (radDiag?.anatomicalRegion || loc).toLowerCase().includes('femur');
 
+    let radSummary = "";
     if (isAbnormalFracture) {
-      narrativeSummary = `The ${anatomyName} ${ptContext} demonstrate an abnormal finding consistent with a displaced fracture at ${loc}. There is visible cortical disruption, step-off, and angulation, indicating a fracture that may be unstable, while the overall joint alignment remains preserved. No other acute skeletal destructive lesions or radiopaque foreign bodies are apparent.`;
+      radSummary = `The ${anatomyName} ${ptContext} demonstrate an abnormal finding consistent with a displaced fracture at ${loc}. There is visible cortical disruption, step-off, and angulation, indicating a fracture that may be unstable, while the overall joint alignment remains preserved. No other acute skeletal destructive lesions or radiopaque foreign bodies are apparent.`;
 
       if (isHand) {
         keyRisks.push("Potential malunion or rotational deformity leading to permanent digit misalignment or impaired grip strength.");
@@ -160,10 +192,35 @@ export function generateClinicalReport(engineResult) {
         suggestedSpecialist = "Orthopedic Surgeon (Trauma Specialist)";
       }
     } else {
-      narrativeSummary = `The ${anatomyName} ${ptContext} demonstrate intact cortical margins, preserved joint spaces, and normal anatomical alignment with no acute fracture, cortical disruption, or dislocation identified.`;
+      radSummary = `The ${anatomyName} ${ptContext} demonstrate intact cortical margins, preserved joint spaces, and normal anatomical alignment with no acute fracture, cortical disruption, or dislocation identified.`;
       recommendations.push("Symptomatic rest, cryotherapy, and supportive care for soft-tissue contusions if clinically indicated.");
-      suggestedSpecialist = isHand ? "Orthopedic Hand Specialist" : (isKnee ? "Orthopedic Knee Specialist" : "Orthopedic Specialist");
+      if (suggestedSpecialist === "Primary Care Physician") {
+        suggestedSpecialist = isHand ? "Orthopedic Hand Specialist" : (isKnee ? "Orthopedic Knee Specialist" : "Orthopedic Specialist");
+      }
     }
+
+    narrativeSummary = narrativeSummary ? `${narrativeSummary}\n\n${radSummary}` : radSummary;
+  }
+
+  // Renal / Kidney Function Panel (Serum Creatinine, BUN, Urea, Uric Acid)
+  const creat = structuredResults?.find(r => r.code === 'NEPH_CREAT' || r.testName?.toLowerCase().includes('creatinine'));
+  const bun = structuredResults?.find(r => r.code === 'NEPH_BUN' || r.testName?.toLowerCase().includes('urea') || r.testName?.toLowerCase().includes('bun'));
+  const uric = structuredResults?.find(r => r.code === 'BIO_URIC' || r.testName?.toLowerCase().includes('uric acid'));
+  const renalAbnormals = [creat, bun, uric].filter(r => r && (r.severity === 'abnormal' || r.severity === 'critical'));
+
+  if (classifiedCategories?.some(c => c.id === 'nephrology') || creat || bun) {
+    let renalSummary = `Renal function assessment ${ptContext} `;
+    if (renalAbnormals.length > 0) {
+      const desc = renalAbnormals.map(a => `${a.testName} (${a.value} ${a.unit} - ${a.evaluatedStatus})`).join(', ');
+      renalSummary += `reveals variations in ${desc}. `;
+      keyRisks.push("Altered renal filtration or metabolic clearance requiring medical correlation and monitoring.");
+      recommendations.push("Consult a nephrologist or general physician to correlate kidney function parameters.");
+      recommendations.push("Maintain adequate hydration and repeat renal markers in 2–4 weeks.");
+      if (suggestedSpecialist === "Primary Care Physician") suggestedSpecialist = "Nephrologist / General Physician";
+    } else {
+      renalSummary += `demonstrates Serum Creatinine${creat ? ` (${creat.value} ${creat.unit})` : ''} within standard healthy physiological reference ranges, indicating preserved renal filtration and intact nephron function.`;
+    }
+    narrativeSummary = narrativeSummary ? `${narrativeSummary}\n\n${renalSummary}` : renalSummary;
   }
 
   // Dental

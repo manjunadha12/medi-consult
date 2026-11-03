@@ -18,6 +18,7 @@ const PatientHistory = () => {
   const [historyData, setHistoryData] = useState([]);
   const [diagnosisData, setDiagnosisData] = useState([]);
   const [search, setSearch] = useState('');
+  const [selectedFullReport, setSelectedFullReport] = useState(null);
 
   // Review System Nodes
   const [showReviewModal, setShowReviewModal] = useState(false);
@@ -127,12 +128,20 @@ const PatientHistory = () => {
     : historyData.filter(item => {
         const searchMatch = (item.doctorName?.toLowerCase().includes(search.toLowerCase()) ||
                              item.diagnosis?.toLowerCase().includes(search.toLowerCase()) ||
-                             item.appointmentId?.toLowerCase().includes(search.toLowerCase()));
+                             item.appointmentId?.toLowerCase().includes(search.toLowerCase()) ||
+                             item.hospitalName?.toLowerCase().includes(search.toLowerCase()));
 
         if (!activeFolder) return false;
-        if (activeFolder === 'payment') return searchMatch && item.paymentStatus === 'Paid';
-        if (activeFolder === 'operations') return searchMatch && (item.clinicalObservations || item.remarks);
-        return searchMatch; // Default 'op' folder shows all
+        if (activeFolder === 'payment') {
+          return searchMatch && (Boolean(item.paymentStatus === 'Paid' || item.fee > 0 || item.razorpayPaymentId || item.transactionId));
+        }
+        if (activeFolder === 'operations') {
+          return searchMatch && (Boolean(item.clinicalObservations || item.remarks || item.consultationType === 'Procedure'));
+        }
+        if (activeFolder === 'op') {
+          return searchMatch && (!item.clinicalObservations && !item.remarks);
+        }
+        return searchMatch;
       });
 
   return (
@@ -395,7 +404,9 @@ const PatientHistory = () => {
                       >
                         {activeFolder === 'diagnosis' ? 'Print Record' : 'Download Records'} <Download size={14} className="group-hover:translate-y-0.5 transition-transform" />
                       </button>
-                      <button className={`w-full py-4 border rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
+                      <button
+                        onClick={() => setSelectedFullReport(item)}
+                        className={`w-full py-4 border rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-2 ${
                         theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-400 hover:text-white' : 'bg-white border-slate-200 text-slate-500 hover:bg-slate-50'
                       }`}>
                         Full Report <ChevronRight size={14} />
@@ -469,6 +480,69 @@ const PatientHistory = () => {
                  >
                     {submittingReview ? <Loader2 size={18} className="animate-spin" /> : <TrendingUp size={18} />}
                     Establish Review Record
+                 </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* FULL REPORT MODAL */}
+      {selectedFullReport && (
+        <div className="fixed inset-0 z-[3000] bg-black/80 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
+           <div className={`w-full max-w-2xl rounded-[48px] border shadow-2xl overflow-hidden transition-all duration-500 ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+              <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'bg-white/5' : 'bg-slate-50'}`}>
+                 <div className="text-left">
+                    <h2 className={`text-xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Authorized Technical Summary</h2>
+                    <p className="text-[10px] font-black text-blue-500 uppercase tracking-widest mt-1">Clinical Assessment Archive Record</p>
+                 </div>
+                 <button onClick={() => setSelectedFullReport(null)} className={`p-3 rounded-xl transition-all border ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-zinc-500 hover:text-white' : 'bg-white border-slate-100 text-slate-400'}`}><X size={20}/></button>
+              </div>
+
+              <div className="p-10 space-y-6 text-left max-h-[70vh] overflow-y-auto custom-scrollbar">
+                 <div className="grid grid-cols-2 gap-6 p-6 bg-white/5 rounded-3xl border border-white/5">
+                    <div>
+                       <p className="text-[8px] font-black text-zinc-500 uppercase tracking-widest">Chief Complaint</p>
+                       <p className="text-xs font-bold text-zinc-200 mt-1">{selectedFullReport.chiefComplaint || selectedFullReport.problemDescription || 'N/A'}</p>
+                    </div>
+                    <div>
+                       <p className="text-[8px] font-black text-emerald-500 uppercase tracking-widest">Primary Diagnosis</p>
+                       <p className="text-sm font-black text-white mt-1 uppercase">{selectedFullReport.diagnosis || selectedFullReport.category || 'Clinical Diagnosis'}</p>
+                    </div>
+                 </div>
+
+                 <div className="space-y-2">
+                    <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest">Report Objects Summary</p>
+                    <p className="text-xs font-medium text-zinc-300 leading-relaxed bg-white/5 p-5 rounded-2xl border border-white/5">{selectedFullReport.reportSummary || selectedFullReport.clinicalObservations || selectedFullReport.summary || 'Standard clinical protocols applied.'}</p>
+                 </div>
+
+                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-1">
+                       <p className="text-[9px] font-black text-purple-400 uppercase tracking-widest">Treatment Path</p>
+                       <p className="text-xs font-bold text-zinc-300">{selectedFullReport.treatmentPlan || selectedFullReport.remarks || 'Routine Monitoring'}</p>
+                    </div>
+                    <div className="p-5 bg-white/5 rounded-2xl border border-white/5 space-y-1">
+                       <p className="text-[9px] font-black text-cyan-400 uppercase tracking-widest">Prescribed Medications</p>
+                       <p className="text-xs font-bold text-zinc-300">{selectedFullReport.medicationsText || selectedFullReport.notes || 'Standard Care'}</p>
+                    </div>
+                 </div>
+
+                 {selectedFullReport.attachments?.length > 0 && (
+                   <div className="space-y-3 pt-4 border-t border-white/5">
+                      <p className="text-[9px] font-black text-zinc-400 uppercase tracking-widest">Attached Clinical Files</p>
+                      <div className="flex flex-wrap gap-2">
+                         {selectedFullReport.attachments.map((file, i) => (
+                            <a key={i} href={`${BACKEND_URL}${file.url}`} target="_blank" rel="noreferrer" className="px-4 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-xl text-[10px] font-black uppercase text-blue-400 hover:bg-blue-600 hover:text-white transition-all flex items-center gap-2">
+                               <Paperclip size={14} /> {file.name}
+                            </a>
+                         ))}
+                      </div>
+                   </div>
+                 )}
+              </div>
+
+              <div className={`p-6 border-t flex justify-end gap-3 ${theme === 'dark' ? 'bg-white/5 border-white/5' : 'bg-slate-50 border-slate-100'}`}>
+                 <button onClick={() => printRecord(selectedFullReport)} className="px-8 py-3.5 bg-blue-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl hover:bg-blue-700 transition-all flex items-center gap-2">
+                    <Download size={16} /> Print Report
                  </button>
               </div>
            </div>

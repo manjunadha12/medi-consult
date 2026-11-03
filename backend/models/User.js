@@ -28,6 +28,18 @@ const userSchema = new mongoose.Schema({
     browser: { type: String },
     authProvider: { type: String, default: 'Local' }
   }],
+  activeSessions: [{
+    sessionId: { type: String, required: true },
+    deviceType: { type: String, default: 'Desktop' },
+    deviceName: { type: String, default: 'Web Browser' },
+    browser: { type: String, default: 'Browser' },
+    os: { type: String, default: 'Unknown OS' },
+    ip: { type: String, default: '127.0.0.1' },
+    location: { type: String },
+    userAgent: { type: String },
+    createdAt: { type: Date, default: Date.now },
+    lastActive: { type: Date, default: Date.now }
+  }],
   loginOtp: { type: String },
   loginOtpExpires: { type: Date },
   resetOtp: { type: String },

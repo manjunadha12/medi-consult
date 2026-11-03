@@ -10,12 +10,19 @@ export function detectDocument(extractedDoc) {
   // Check if text is a paper laboratory test report
   const isLabPaperText = fullTextLower.includes('laboratory report') ||
                          fullTextLower.includes('hospital diagnostics') ||
+                         fullTextLower.includes('complete blood count') ||
                          fullTextLower.includes('hemoglobin') ||
                          fullTextLower.includes('wbc') ||
                          fullTextLower.includes('platelet') ||
                          fullTextLower.includes('serum creatinine') ||
+                         fullTextLower.includes('creatinine') ||
                          fullTextLower.includes('blood glucose') ||
                          fullTextLower.includes('reference range') ||
+                         fullTextLower.includes('reference interval') ||
+                         fullTextLower.includes('biological reference') ||
+                         fullTextLower.includes('lipid profile') ||
+                         fullTextLower.includes('liver function') ||
+                         fullTextLower.includes('kidney function') ||
                          fullTextLower.includes('test name');
 
   // Direct Plain Radiograph has top priority if isRadiographFilm is set and NOT a lab paper report
@@ -70,8 +77,19 @@ export function detectDocument(extractedDoc) {
     fullTextLower.includes('echocardiogram') ||
     fullTextLower.includes('echocardiography') ||
     fullTextLower.includes('2d echo') ||
+    fullTextLower.includes('adult echo') ||
+    fullTextLower.includes('transthoracic echocardiogram') ||
+    fullTextLower.includes('mm-teich') ||
+    fullTextLower.includes('teich') ||
     fullTextLower.includes('lvidd') ||
-    fullTextLower.includes('lvef')
+    fullTextLower.includes('lvid') ||
+    fullTextLower.includes('lvef') ||
+    fullTextLower.includes('ivsd') ||
+    fullTextLower.includes('lvpwd') ||
+    fullTextLower.includes('a4c') ||
+    fullTextLower.includes('mmode') ||
+    fullTextLower.includes('m-mode') ||
+    (fullTextLower.includes('edv') && fullTextLower.includes('esv'))
   );
 
   const isEcg = !isDirectXRayFilm && (
@@ -199,6 +217,14 @@ export function detectDocument(extractedDoc) {
   if ((isDirectXRayFilm || isXRayReport) && !classifiedCategories.some(c => c.name?.includes('Radiograph'))) {
     classifiedCategories.unshift({ id: 'radiology', name: 'Diagnostic Radiograph', icon: '🩻', itemsCount: 1, items: [] });
     detectedTests.unshift({ code: 'ORTHO_XRAY', canonicalName: 'Diagnostic Radiograph (Plain X-Ray)', category: 'Radiology', categoryIcon: '🩻' });
+  }
+  if (isEcho && !classifiedCategories.some(c => c.name?.includes('Echocardiogram') || c.id === 'cardiology')) {
+    classifiedCategories.unshift({ id: 'cardiology', name: 'Cardiology (Echocardiogram)', icon: '🫀', itemsCount: 1, items: [] });
+    detectedTests.unshift({ code: 'CARD_ECHO', canonicalName: 'Echocardiogram (2D Echo / Doppler)', category: 'Cardiology', categoryIcon: '🫀' });
+  }
+  if (isEcg && !classifiedCategories.some(c => c.name?.includes('ECG') || c.name?.includes('Electrocardiogram') || c.id === 'cardiology')) {
+    classifiedCategories.unshift({ id: 'cardiology', name: 'Cardiology (Electrocardiogram)', icon: '🫀', itemsCount: 1, items: [] });
+    detectedTests.unshift({ code: 'CARD_ECG', canonicalName: '12-Lead Electrocardiogram (ECG)', category: 'Cardiology', categoryIcon: '🫀' });
   }
   if (isDental && !classifiedCategories.some(c => c.name?.includes('Dental'))) {
     classifiedCategories.unshift({ id: 'pathology', name: 'Dental Examination & Assessment', icon: '🦷', itemsCount: 1, items: [] });

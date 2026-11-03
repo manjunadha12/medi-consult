@@ -43,8 +43,8 @@ export async function detectRadiographModality(filePath, extractedDoc = {}) {
       const meanG = channels[1].mean;
       const meanB = channels[2].mean;
       const maxDiff = Math.max(Math.abs(meanR - meanG), Math.abs(meanG - meanB), Math.abs(meanR - meanB));
-      // X-rays typically have channel mean difference < 18
-      isMonochrome = maxDiff < 18;
+      // X-rays typically have low color saturation, but photographs of films can have ambient room tint (maxDiff < 35)
+      isMonochrome = maxDiff < 35;
     } else if (channels.length === 1) {
       isMonochrome = true;
     }
@@ -54,8 +54,8 @@ export async function detectRadiographModality(filePath, extractedDoc = {}) {
     const fullTextLower = (extractedDoc.fullText || '').toLowerCase();
     const hasTextOrthoKeywords = ['x-ray', 'xray', 'radiograph', 'radiography', 'roentgen', 'cortical disruption', 'bone cortex', 'trabecular', 'fracture', 'orthopaedic', 'orthopedic', 'radiology'].some(k => fullTextLower.includes(k));
 
-    // A direct image is a Radiograph ONLY IF it is monochrome AND (has radiograph/ortho filename OR explicit OCR radiograph terms OR extractedDoc.isRadiographFilm)
-    const isRadiograph = isMonochrome && (isNamedOrtho || hasTextOrthoKeywords || (extractedDoc.isRadiographFilm === true));
+    // A direct image is a Radiograph if explicitly flagged, or if grayscale/monochrome with ortho keywords/filename
+    const isRadiograph = (extractedDoc.isRadiographFilm === true) || (isMonochrome && (isNamedOrtho || hasTextOrthoKeywords));
 
     return {
       isRadiograph,

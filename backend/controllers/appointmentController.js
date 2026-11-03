@@ -186,14 +186,25 @@ export const generateManualToken = async (req, res) => {
 
 export const getDoctorQueue = async (req, res) => {
   try {
-    const doctorId = req.user.doctorId || req.user._id || req.user.id;
-    // Find all appointments for this doctor so both active nodes and past buffer history are returned
+    const docId = req.user.doctorId;
+    const docMongoId = req.user._id ? req.user._id.toString() : null;
+
+    const matchConditions = [];
+    if (docId) {
+      matchConditions.push({ doctorId: docId });
+      matchConditions.push({ doctorId: docId.toUpperCase() });
+      matchConditions.push({ doctorId: docId.toLowerCase() });
+    }
+    if (docMongoId) {
+      matchConditions.push({ doctorId: docMongoId });
+    }
+
+    if (matchConditions.length === 0) {
+      return res.json([]);
+    }
+
     const queue = await Appointment.find({
-      $or: [
-        { doctorId },
-        { doctorId: req.user.doctorId },
-        { doctorId: req.user._id }
-      ].filter(Boolean)
+      $or: matchConditions
     }).sort({ createdAt: -1 });
 
     // Enrich with patient names

@@ -55,7 +55,7 @@ const PatientDetails = () => {
     e.preventDefault();
     if (!reportFile) return toast.error("Please select a medical report file (PDF or image).");
 
-    const targetPatientId = user?.patientId || patientId;
+    const targetPatientId = data?.user?.patientId || patientId;
     const formData = new FormData();
     formData.append('report', reportFile);
     formData.append('patientId', targetPatientId);

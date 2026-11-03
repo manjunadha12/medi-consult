@@ -3,7 +3,7 @@ import Navbar from '../common/Navbar';
 import {
   Send, Brain, User as UserIcon, Sparkles, Shield,
   MessageSquare, History as HistoryIcon, Trash2, Plus,
-  ChevronRight, Search as SearchIcon, Zap, Loader2, Bot, Info, Maximize2, Edit3
+  ChevronRight, Search as SearchIcon, Zap, Loader2, Bot, Info, Maximize2, Edit3, X
 } from 'lucide-react';
 import useStore from '../../store/useStore';
 import api from '../../utils/api';

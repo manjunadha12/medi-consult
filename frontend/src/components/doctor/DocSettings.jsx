@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
 import {
@@ -8,6 +9,8 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import useStore from '../../store/useStore';
+import api from '../../utils/api';
+import DeviceSessionsManager from '../common/DeviceSessionsManager';
 
 const Toggle = ({ enabled, onToggle }) => (
   <button
@@ -20,6 +23,7 @@ const Toggle = ({ enabled, onToggle }) => (
 
 const DocSettings = () => {
   const { navigationType, setNavigationType } = useStore();
+  const navigate = useNavigate();
   const [activeSec, setActiveSec] = useState('general');
   const [showOldPw, setShowOldPw] = useState(false);
   const [showNewPw, setShowNewPw] = useState(false);
@@ -31,6 +35,45 @@ const DocSettings = () => {
   const [reportAlert, setReportAlert] = useState(true);
   const [darkMode, setDarkMode] = useState(true);
   const [compactView, setCompactView] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPw, setUpdatingPw] = useState(false);
+
+  const handleUpdatePassword = async () => {
+    if (!oldPassword || !newPassword) {
+      return toast.error('Please enter current and new passwords');
+    }
+    if (newPassword.length < 6) {
+      return toast.error('New password must be at least 6 characters');
+    }
+    setUpdatingPw(true);
+    try {
+      const { data } = await api.put('/auth/change-password', {
+        currentPassword: oldPassword,
+        newPassword: newPassword
+      });
+      toast.success(data.message || 'Password updated successfully');
+      setOldPassword('');
+      setNewPassword('');
+    } catch (err) {
+      const resData = err.response?.data;
+      if (resData?.requiresRecovery) {
+        if (window.confirm(`${resData.message}\n\nClick OK to send Password Reset OTP to ${resData.email}.`)) {
+          try {
+            await api.post('/auth/forgot-password/request-otp', { identifier: resData.email });
+            toast.success("Password reset OTP sent to your email!");
+            navigate('/forgot-password');
+          } catch (otpErr) {
+            toast.error(otpErr.response?.data?.message || 'Failed to send reset OTP');
+          }
+        }
+      } else {
+        toast.error(resData?.message || 'Password update failed');
+      }
+    } finally {
+      setUpdatingPw(false);
+    }
+  };
 
   const sections = [
     { id: 'general', label: 'General', icon: Settings },
@@ -189,9 +232,11 @@ const DocSettings = () => {
                         <input
                           type={showOldPw ? 'text' : 'password'}
                           placeholder="Current Password"
+                          value={oldPassword}
+                          onChange={(e) => setOldPassword(e.target.value)}
                           className="w-full pl-5 pr-12 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500 font-semibold text-sm text-zinc-200 placeholder:text-zinc-600 transition-all"
                         />
-                        <button className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowOldPw(!showOldPw)}>
+                        <button type="button" className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowOldPw(!showOldPw)}>
                           {showOldPw ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
@@ -199,18 +244,25 @@ const DocSettings = () => {
                         <input
                           type={showNewPw ? 'text' : 'password'}
                           placeholder="New Password"
+                          value={newPassword}
+                          onChange={(e) => setNewPassword(e.target.value)}
                           className="w-full pl-5 pr-12 py-4 bg-white/5 border border-white/10 rounded-2xl outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500 font-semibold text-sm text-zinc-200 placeholder:text-zinc-600 transition-all"
                         />
-                        <button className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowNewPw(!showNewPw)}>
+                        <button type="button" className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowNewPw(!showNewPw)}>
                           {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
                         </button>
                       </div>
                       <button
-                        onClick={() => toast.success('Password updated successfully')}
-                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.01] transition-all"
+                        onClick={handleUpdatePassword}
+                        disabled={updatingPw}
+                        className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.01] transition-all disabled:opacity-50"
                       >
-                        <Key size={16} /> Update Password
+                        <Key size={16} /> {updatingPw ? 'Updating...' : 'Update Password'}
                       </button>
+                    </div>
+
+                    <div className="pt-6 border-t border-white/5">
+                      <DeviceSessionsManager isDarkMode={true} />
                     </div>
                   </div>
                 )}

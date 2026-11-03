@@ -1,16 +1,59 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useStore from '../../store/useStore';
 import Navbar from '../common/Navbar';
 import api, { BACKEND_URL } from '../../utils/api';
-import { User, Mail, Phone as PhoneIcon, MapPin, Droplet, AlertCircle, Edit2, Save, X, Loader2, ShieldCheck as ShieldCheckIcon, Shield, Camera } from 'lucide-react';
+import { User, Mail, Phone as PhoneIcon, MapPin, Droplet, AlertCircle, Edit2, Save, X, Loader2, ShieldCheck as ShieldCheckIcon, Shield, Camera, Lock, Eye, EyeOff, Key } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
 const PatientProfile = () => {
   const { user, setUser, theme } = useStore();
+  const navigate = useNavigate();
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [updatingPw, setUpdatingPw] = useState(false);
+  const [showOldPw, setShowOldPw] = useState(false);
+  const [showNewPw, setShowNewPw] = useState(false);
+
+  const handleUpdatePassword = async () => {
+    if (!oldPassword || !newPassword) {
+      return toast.error('Please enter current and new passwords');
+    }
+    if (newPassword.length < 6) {
+      return toast.error('New password must be at least 6 characters');
+    }
+    setUpdatingPw(true);
+    try {
+      const { data } = await api.put('/auth/change-password', {
+        currentPassword: oldPassword,
+        newPassword: newPassword
+      });
+      toast.success(data.message || 'Password updated successfully');
+      setOldPassword('');
+      setNewPassword('');
+    } catch (err) {
+      const resData = err.response?.data;
+      if (resData?.requiresRecovery) {
+        if (window.confirm(`${resData.message}\n\nClick OK to send Password Reset OTP to ${resData.email}.`)) {
+          try {
+            await api.post('/auth/forgot-password/request-otp', { identifier: resData.email });
+            toast.success("Password reset OTP sent to your email!");
+            navigate('/forgot-password');
+          } catch (otpErr) {
+            toast.error(otpErr.response?.data?.message || 'Failed to send reset OTP');
+          }
+        }
+      } else {
+        toast.error(resData?.message || 'Password update failed');
+      }
+    } finally {
+      setUpdatingPw(false);
+    }
+  };
   const [profile, setProfile] = useState({
     name: '',
     email: '',
@@ -339,6 +382,45 @@ const PatientProfile = () => {
                     <p className="text-lg sm:text-xl font-black uppercase tracking-tight truncate">Satish Node (Brother)</p>
                     <p className="text-xs sm:text-sm font-black text-blue-100 mt-1">+91 9988776655</p>
                  </div>
+              </div>
+
+              {/* ACCESS SECURITY & CHANGE PASSWORD */}
+              <div className={`p-6 sm:p-10 rounded-[32px] sm:rounded-[48px] border shadow-xl transition-all duration-500 text-left ${theme === 'dark' ? 'bg-[#0A0A0F] border-white/5 shadow-black/60' : 'bg-white border-slate-100'}`}>
+                <h3 className="font-black uppercase tracking-[0.2em] text-[8px] sm:text-[10px] mb-8 sm:mb-10 flex items-center gap-3 text-blue-500 leading-none"><Lock size={18} className="sm:w-5 sm:h-5" /> Access Security & Password</h3>
+                <div className="space-y-4">
+                  <p className="text-[10px] font-black text-zinc-400 uppercase tracking-widest">Change Password</p>
+                  <div className="relative">
+                    <input
+                      type={showOldPw ? 'text' : 'password'}
+                      placeholder="Current Password"
+                      value={oldPassword}
+                      onChange={(e) => setOldPassword(e.target.value)}
+                      className={`w-full pl-5 pr-12 py-4 border rounded-2xl outline-none font-semibold text-sm transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    />
+                    <button type="button" className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowOldPw(!showOldPw)}>
+                      {showOldPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type={showNewPw ? 'text' : 'password'}
+                      placeholder="New Password"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      className={`w-full pl-5 pr-12 py-4 border rounded-2xl outline-none font-semibold text-sm transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10 text-zinc-200 placeholder:text-zinc-600 focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
+                    />
+                    <button type="button" className="absolute right-4 top-4 text-zinc-500 hover:text-zinc-300 transition-all" onClick={() => setShowNewPw(!showNewPw)}>
+                      {showNewPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                    </button>
+                  </div>
+                  <button
+                    onClick={handleUpdatePassword}
+                    disabled={updatingPw}
+                    className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 flex items-center justify-center gap-2 hover:scale-[1.01] transition-all disabled:opacity-50"
+                  >
+                    <Key size={16} /> {updatingPw ? 'Updating...' : 'Update Password'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>
