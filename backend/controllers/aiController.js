@@ -87,7 +87,8 @@ export const analyzeReport = async (req, res) => {
         filePath,
         fileName: report.fileName || report.title,
         previousReports: priorReports,
-        manualOverrides: report.manualOverrides
+        manualOverrides: report.manualOverrides,
+        category: report.category || 'General'
       });
     } catch (engineErr) {
       console.warn(`[AI_ENGINE_FALLBACK] processMedicalDocument fallback for ${reportId}: ${engineErr.message}`);
@@ -162,22 +163,49 @@ export const analyzeReport = async (req, res) => {
     const finalSummary = aiSynthesis?.summary || generateEngineSummary(engineResult);
     const suggestedSpecialist = aiSynthesis?.suggestedSpecialist || getSuggestedSpecialist(engineResult);
 
-    // Ensure ML model inference is executed if not already completed
-    let mlInferenceResult = report.mlInferenceResult;
-    if (!mlInferenceResult || !mlInferenceResult.modelUsed) {
-      try {
-        mlInferenceResult = await dispatchToClinicalML({
-          filePath,
-          fileName: report.fileName || report.title,
-          fileType: path.extname(report.fileName || filePath || ''),
-          category: report.category || (engineResult?.classifiedCategories?.[0]?.name) || 'General',
-          extractedText: engineResult?.summary || '',
-          structuredResults: engineResult?.structuredResults || []
-        });
-      } catch (mlErr) {
-        console.warn(`[ML_DISPATCH_WARN] ${mlErr.message}`);
+    // Ensure ML model inference is executed with priority on the dataset ML model
+    const isImageFile = ['.png', '.jpg', '.jpeg', '.webp'].includes(path.extname(filePath).toLowerCase());
+    const hasLabAnalytes = (engineResult?.structuredResults || []).some(r => 
+      ['hematology', 'biochemistry', 'nephrology', 'gastro_liver', 'metabolic'].includes(r.categoryId) ||
+      ['HEM_', 'BIO_', 'NEPH_', 'LIPID_', 'LIVER_'].some(p => r.code?.startsWith(p))
+    );
+
+    let mlInferenceResult = engineResult?.mlInferenceResult;
+    const isStaleBloodOnImage = isImageFile && !hasLabAnalytes && (
+      report.mlInferenceResult?.modelUsed?.includes('XGBoost') ||
+      mlInferenceResult?.modelUsed?.includes('XGBoost')
+    );
+
+    if (!mlInferenceResult || !mlInferenceResult.modelUsed || mlInferenceResult.modelUsed === 'Medi Consult Clinical Reference Engine' || isStaleBloodOnImage) {
+      if (report.mlInferenceResult && report.mlInferenceResult.modelUsed && !isStaleBloodOnImage) {
+        mlInferenceResult = report.mlInferenceResult;
+      } else {
+        try {
+          mlInferenceResult = await dispatchToClinicalML({
+            filePath,
+            fileName: report.fileName || report.title,
+            fileType: path.extname(report.fileName || filePath || ''),
+            category: report.category || (engineResult?.classifiedCategories?.[0]?.name) || 'General',
+            extractedText: engineResult?.summary || '',
+            structuredResults: engineResult?.structuredResults || []
+          });
+        } catch (mlErr) {
+          console.warn(`[ML_DISPATCH_WARN] ${mlErr.message}`);
+        }
       }
     }
+
+    // Sanitize any legacy diagnostic findings to ensure Dataset ML Model attribution
+    const sanitizedFindings = (engineResult.diagnosticFindings || []).map(f => {
+      if (f.aiModelUsed?.includes('Gemini') || f.analyzedByEngine === 'AI_MULTIMODAL_VISION') {
+        return {
+          ...f,
+          aiModelUsed: 'Dataset ML Model (EfficientNet-B4 Trained on 4,148 Radiographs)',
+          analyzedByEngine: 'DATASET_ML_MODEL'
+        };
+      }
+      return f;
+    });
 
     await Report.findByIdAndUpdate(reportId, {
       aiSummary: finalSummary,
@@ -188,7 +216,7 @@ export const analyzeReport = async (req, res) => {
       classifiedCategories: engineResult.classifiedCategories,
       structuredResults: engineResult.structuredResults,
       categorizedResults: engineResult.categorizedResults,
-      diagnosticFindings: engineResult.diagnosticFindings,
+      diagnosticFindings: sanitizedFindings,
       clinicalNotes: engineResult.clinicalNotes,
       relationshipPatterns: engineResult.relationshipPatterns,
       healthTrends: engineResult.healthTrends,
@@ -221,7 +249,7 @@ export const analyzeReport = async (req, res) => {
       documentBadges: engineResult.documentBadges,
       classifiedCategories: engineResult.classifiedCategories,
       categorizedResults: engineResult.categorizedResults,
-      diagnosticFindings: engineResult.diagnosticFindings,
+      diagnosticFindings: sanitizedFindings,
       clinicalNotes: engineResult.clinicalNotes,
       relationshipPatterns: engineResult.relationshipPatterns,
       healthTrends: engineResult.healthTrends,

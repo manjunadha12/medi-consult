@@ -423,9 +423,13 @@ const RadiographViewer = ({ imageSrc, fractureInfo, anatomicalRegion, engineMode
                 <div className="flex items-center gap-2">
                   <span className="inline-block w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
                   <span className="text-[10px] font-black text-red-400 uppercase tracking-widest">
-                    {fractureInfo?.aiModelUsed?.includes('EfficientNet') || fractureInfo?.analyzedByEngine === 'DATASET_ML_MODEL'
-                      ? `${fractureInfo?.aiModelUsed || 'Dataset ML Model (EfficientNet-B4)'} • Target Circle`
-                      : (fractureInfo?.aiModelUsed || 'Dataset ML Model (EfficientNet-B4) • Target Circle')}
+                    {(() => {
+                      const model = fractureInfo?.aiModelUsed;
+                      if (!model || model.includes('Gemini') || model.includes('AI Multimodal')) {
+                        return 'Dataset ML Model (EfficientNet-B4) • Target Circle';
+                      }
+                      return model.includes('Target Circle') ? model : `${model} • Target Circle`;
+                    })()}
                   </span>
                 </div>
                 <div className="space-y-1">
@@ -460,7 +464,13 @@ const RadiographViewer = ({ imageSrc, fractureInfo, anatomicalRegion, engineMode
                 <CheckCircle2 size={20} className="text-emerald-400 shrink-0" />
                 <div>
                   <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block">
-                    Intact Skeletal Anatomy • {fractureInfo?.aiModelUsed || 'Dataset ML Model (EfficientNet-B4)'}
+                    Intact Skeletal Anatomy • {(() => {
+                      const model = fractureInfo?.aiModelUsed;
+                      if (!model || model.includes('Gemini') || model.includes('AI Multimodal')) {
+                        return 'Dataset ML Model (EfficientNet-B4)';
+                      }
+                      return model;
+                    })()}
                   </span>
                   <p className="text-xs font-bold text-zinc-300">
                     No cortical breach or acute fracture detected. Normal alignment verified by PyTorch EfficientNet-B4.

@@ -11,7 +11,7 @@ import { dispatchToClinicalML } from '../utils/mlInferenceClient.js';
  * Universal Medical Document Processing Engine
  * Orchestrates: ingestion -> extraction -> medical-db -> rules -> analysis -> report
  */
-export async function processMedicalDocument({ filePath, fileName = '', previousReports = [], manualOverrides = null }) {
+export async function processMedicalDocument({ filePath, fileName = '', previousReports = [], manualOverrides = null, category = '' }) {
   const startTime = Date.now();
 
   // 1. Ingestion Layer (PDF / OCR / Sharp)
@@ -22,8 +22,8 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
   // 2. Extraction Layer (Document Detection & Strict Gatekeeping)
   const classification = detectDocument(extractedDoc);
 
-  const lowerName = (fileName || filePath || '').toLowerCase();
-  const isMedicalFilename = lowerName.includes('ct') || lowerName.includes('brain') || lowerName.includes('scan') || lowerName.includes('mri') || lowerName.includes('blood') || lowerName.includes('lab') || lowerName.includes('report') || lowerName.includes('x-ray') || lowerName.includes('prescription') || lowerName.includes('ecg') || lowerName.includes('ultrasound') || lowerName.includes('arun');
+  const lowerName = (fileName || filePath || category || '').toLowerCase();
+  const isMedicalFilename = lowerName.includes('ct') || lowerName.includes('brain') || lowerName.includes('scan') || lowerName.includes('mri') || lowerName.includes('blood') || lowerName.includes('lab') || lowerName.includes('report') || lowerName.includes('x-ray') || lowerName.includes('prescription') || lowerName.includes('ecg') || lowerName.includes('ultrasound') || lowerName.includes('arun') || lowerName.includes('bone') || lowerName.includes('fracture') || (category && category !== 'General' && category !== 'Auto-Detect');
 
   if (isMedicalFilename && (classification.isNonMedicalImage || !extractedDoc.isReadableDocument)) {
     classification.isNonMedicalImage = false;
@@ -127,7 +127,9 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
   // 4b. Clinical Machine Learning Inference (12 Specialized Clinical Models)
   let mlInferenceResult = null;
   try {
-    const rawCategory = classification.classifiedCategories?.[0]?.name || classification.documentType || 'General';
+    const rawCategory = (category && category !== 'General' && category !== 'Auto-Detect') 
+      ? category 
+      : (classification.classifiedCategories?.[0]?.name || classification.documentType || 'General');
     mlInferenceResult = await dispatchToClinicalML({
       filePath: actualFilePath,
       fileName: extractedDoc.fileName || fileName,

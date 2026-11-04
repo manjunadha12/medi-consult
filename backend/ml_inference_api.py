@@ -1549,9 +1549,22 @@ async def dispatch_report(req: DispatchRequest):
         if ext in [".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"]:
             has_image_file = True
 
+    has_rad_results = has_image_file and any(
+        str(r.get("code", "")).startswith("RAD_") or
+        str(r.get("code", "")).startswith("ORTHO_") or
+        any(w in str(r.get("testName", "")).lower() for w in ["fracture", "cortex", "cortical", "bone", "joint"])
+        for r in (req.structuredResults or [])
+    )
+    has_cxr_results = has_image_file and any(
+        str(r.get("code", "")).startswith("CXR_") or
+        any(w in str(r.get("testName", "")).lower() for w in ["chest", "cardiothoracic", "pulmonary parenchyma"])
+        for r in (req.structuredResults or [])
+    )
+
     # Route 1: Bone Fracture (Orthopedics & Traumatology)
-    if any(k in cat for k in ["bone", "fracture", "orthopedic", "trauma", "skeletal", "wrist", "elbow", "forearm", "humerus", "shoulder", "finger", "hand", "clavicle", "extremity"]) or \
-       any(k in fname for k in ["fracture", "bone", "ortho", "wrist", "elbow", "arm", "hand", "shoulder", "clavicle"]):
+    if any(k in cat for k in ["bone", "fracture", "orthopedic", "trauma", "skeletal", "wrist", "elbow", "forearm", "humerus", "shoulder", "finger", "hand", "clavicle", "extremity", "knee", "tibia", "leg", "pelvis", "ankle", "foot"]) or \
+       any(k in fname for k in ["fracture", "bone", "ortho", "wrist", "elbow", "arm", "hand", "shoulder", "clavicle", "knee", "tibia", "leg", "ankle", "foot"]) or \
+       has_rad_results:
         if has_image_file:
             res = await analyze_bone_fracture(imagePath=req.filePath)
             res["modelType"] = "EfficientNet-B4"
@@ -1575,7 +1588,10 @@ async def dispatch_report(req: DispatchRequest):
         }
 
     # Route 2: Chest X-ray
-    elif any(k in cat for k in ["x-ray", "xray", "radiograph", "chest"]) or any(k in fname for k in ["xray", "x-ray", "chest"]):
+    elif any(k in cat for k in ["chest", "thorax", "pulmonary", "pulmonology", "lung"]) or \
+         any(k in fname for k in ["chest", "thorax", "cxr", "pulmonary", "lung"]) or \
+         has_cxr_results or \
+         (any(k in cat for k in ["x-ray", "xray", "radiograph"]) and any(k in text for k in ["lung", "pulmonary", "cardiothoracic", "infiltrate", "consolidation"])):
         if has_image_file:
             res = await analyze_chest_xray(imagePath=req.filePath)
             res["modelType"] = "DenseNet121"
@@ -1755,23 +1771,63 @@ async def dispatch_report(req: DispatchRequest):
 
         return analyze_urine(UrineAnalysisRequest(analytes=analytes))
 
-    # Route 12: Default -> Blood / Laboratory Tests (XGBoost)
+    # Route 12: Default -> Medical Image or Blood / Laboratory Tests (XGBoost)
     else:
+        # Check if actual numerical blood test analytes exist in structuredResults
+        blood_keywords = [
+            "glucose", "creatinine", "hemoglobin", "wbc", "platelet", "bun",
+            "potassium", "sodium", "alt", "ast", "cholesterol", "bilirubin",
+            "hematocrit", "rbc", "calcium", "albumin", "protein", "triglyceride",
+            "urea", "alkaline", "hba1c", "crp", "esr", "neutrophil", "lymphocyte"
+        ]
+        has_real_blood_analytes = False
         analytes = {}
         if req.structuredResults:
             for item in req.structuredResults:
                 name = item.get("testName") or item.get("canonicalName") or item.get("testId") or item.get("name") or item.get("label") or item.get("code") or ""
-                name = str(name).strip()
-                if not name:
-                    continue
+                name_str = str(name).strip().lower()
                 val = item.get("value")
-                if val is None or val == "":
-                    continue
-                try:
-                    analytes[name] = float(val)
-                except (ValueError, TypeError):
-                    pass
+                if val is not None and val != "":
+                    try:
+                        flt = float(val)
+                        analytes[str(name).strip()] = flt
+                        if any(bk in name_str for bk in blood_keywords):
+                            has_real_blood_analytes = True
+                    except (ValueError, TypeError):
+                        pass
 
+        # If an image file was uploaded AND it does NOT contain authentic blood test laboratory panels:
+        if has_image_file and not has_real_blood_analytes:
+            # Check text or filename clues
+            if any(k in text or k in fname for k in ["chest", "lung", "pulmonary", "thorax", "cxr", "pleural", "infiltrate"]):
+                res = await analyze_chest_xray(imagePath=req.filePath)
+                res["modelType"] = "DenseNet121"
+                return res
+            elif any(k in text or k in fname for k in ["brain", "mri", "neuro", "head", "cranial"]):
+                return analyze_brain_mri()
+            elif any(k in text or k in fname for k in ["breast", "usg", "ultrasound", "busi", "mammog"]):
+                res = await analyze_breast_ultrasound(imagePath=req.filePath)
+                res["modelType"] = "ResNet-18"
+                return res
+            elif any(k in text or k in fname for k in ["skin", "lesion", "dermoscopy", "melanoma", "nevus", "mole"]):
+                res = await analyze_skin_lesion(imagePath=req.filePath)
+                res["modelType"] = "ResNet-18"
+                return res
+            elif any(k in text or k in fname for k in ["oct", "retin", "macula", "fundus", "optic"]):
+                res = await analyze_retinal_oct(imagePath=req.filePath)
+                res["modelType"] = "ResNet-18"
+                return res
+            elif any(k in text or k in fname for k in ["histol", "colon", "biopsy", "pathol", "carcinoma"]):
+                res = await analyze_colon_histology(imagePath=req.filePath)
+                res["modelType"] = "ResNet-18"
+                return res
+            else:
+                # Default for any medical radiograph or diagnostic image: Bone Fracture EfficientNet-B4
+                res = await analyze_bone_fracture(imagePath=req.filePath)
+                res["modelType"] = "EfficientNet-B4"
+                return res
+
+        # Laboratory Blood / Chemistry panel
         return analyze_blood(BloodAnalysisRequest(analytes=analytes))
 
 
