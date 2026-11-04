@@ -42,9 +42,50 @@ const reportSchema = new mongoose.Schema({
   verifiedByUser: { type: Boolean, default: false },
   manualOverrides: [mongoose.Schema.Types.Mixed],
   auditTrail: mongoose.Schema.Types.Mixed,
+
+  // Dedicated Machine Learning Inference Result (Supports all 12 Clinical ML Models)
+  mlInferenceResult: {
+    type: new mongoose.Schema({
+      modelType: { type: String },
+      modelUsed: { type: String },
+      clinicalCategory: { type: String },
+      riskScore: { type: Number },
+      riskLevel: { type: String, default: 'Low' },
+      confidenceScore: { type: Number },
+      isAbnormal: { type: Boolean, default: false },
+      findings: [String],
+      abnormalValues: [mongoose.Schema.Types.Mixed],
+      differentialDiagnosis: { type: mongoose.Schema.Types.Mixed },
+      probabilities: { type: mongoose.Schema.Types.Mixed },
+      anatomicalRegionsCovered: [String],
+      retinopathyGrade: { type: Number },
+      gradeLabel: { type: String },
+      urgency: { type: String },
+      isFractured: { type: Boolean },
+      fractureProbability: { type: Number },
+      normalProbability: { type: Number },
+      predictedLesion: { type: String },
+      malignancyRisk: { type: String },
+      isSuspicious: { type: Boolean },
+      classification: { type: String },
+      biRadsCategory: { type: String },
+      malignancyProbability: { type: Number },
+      detectedCondition: { type: String },
+      clinicalRisk: { type: String },
+      predominantTissueType: { type: String },
+      isInvasiveAdenocarcinoma: { type: Boolean },
+      tissueDistribution: { type: mongoose.Schema.Types.Mixed },
+      analysisLimitations: { type: String },
+      doctorReviewStatus: { type: String, default: 'PENDING_VERIFICATION' },
+      doctorReviewNotes: { type: String, default: '' },
+      reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      reviewedAt: { type: Date },
+      processedAt: { type: Date, default: Date.now }
+    }, { _id: false, strict: false })
+  },
+
   createdAt: { type: Date, default: Date.now }
 });
 
 const Report = mongoose.models.Report || mongoose.model('Report', reportSchema);
 export default Report;
-

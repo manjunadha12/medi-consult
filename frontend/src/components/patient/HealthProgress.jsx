@@ -6,11 +6,18 @@ import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 import {
   Activity, Thermometer, Droplets, Heart, Plus, Brain,
   Loader2, Calendar, TrendingUp, X, Download, Shield,
-  Zap, AlertCircle, Trash2, CheckCircle, Scale, Wind, FileText, RefreshCw, Sparkles
+  Zap, AlertCircle, Trash2, CheckCircle, Scale, Wind, FileText, Sparkles
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
 import useStore from '../../store/useStore';
+
+const getCurrentTime = () => {
+  const now = new Date();
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${hours}:${minutes}`;
+};
 
 const HealthProgress = () => {
   const { user, theme } = useStore();
@@ -21,20 +28,25 @@ const HealthProgress = () => {
   const [analyzing, setAnalyzing] = useState(false);
   const [aiResult, setAiResult] = useState(null);
   const [showAddLog, setShowAddLog] = useState(false);
-  const [showCleanModal, setShowCleanModal] = useState(false);
-  const [cleaning, setCleaning] = useState(false);
-  const [cleanSummary, setCleanSummary] = useState(null);
+  const [showPurgeModal, setShowPurgeModal] = useState(false);
+  const [purgeRange, setPurgeRange] = useState('today');
+  const [clearing, setClearing] = useState(false);
 
-  const [newLog, setNewLog] = useState({
+  const getInitialLogState = () => ({
     date: new Date().toISOString().split('T')[0],
-    bp_systolic: 120,
-    bp_diastolic: 80,
-    temperature: 98.6,
-    heartbeat: 72,
-    sugar: 100,
-    oxygen: 98,
-    weight: 70
+    time: getCurrentTime(),
+    sessionTag: 'Morning',
+    bp_systolic: '',
+    bp_diastolic: '',
+    temperature: '',
+    heartbeat: '',
+    sugar: '',
+    oxygen: '',
+    weight: '',
+    notes: ''
   });
+
+  const [newLog, setNewLog] = useState(getInitialLogState());
 
   useEffect(() => {
     if (user?.userId) {
@@ -48,10 +60,22 @@ const HealthProgress = () => {
     try {
       const { data } = await api.get(`/health/logs/${user.userId}?range=${range}`);
       const logsArray = data.logs || [];
-      const formatted = Array.isArray(logsArray) ? logsArray.map(l => ({
-        ...l,
-        day: new Date(l.date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric' })
-      })) : [];
+      const formatted = Array.isArray(logsArray) ? logsArray.map(l => {
+        const d = new Date(l.date);
+        const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        
+        let timeStr = l.time;
+        if (!timeStr || timeStr === '12' || timeStr === '12:00 am') {
+          timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        }
+        
+        return {
+          ...l,
+          formattedDate: d.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' }),
+          formattedTime: timeStr,
+          day: `${dateStr} • ${timeStr}`
+        };
+      }) : [];
       setLogs(formatted);
     } catch (error) {
       toast.error("Failed to load health data");
@@ -64,13 +88,33 @@ const HealthProgress = () => {
     e.preventDefault();
     if (!user?.userId) return toast.error("Please login again");
 
+    // Verify at least one vital metric was actually entered
+    const hasMetric = [
+      newLog.bp_systolic,
+      newLog.bp_diastolic,
+      newLog.temperature,
+      newLog.heartbeat,
+      newLog.sugar,
+      newLog.oxygen,
+      newLog.weight
+    ].some(v => v !== '' && v !== null && v !== undefined);
+
+    if (!hasMetric) {
+      return toast.error("Please enter your reading for at least one metric");
+    }
+
+    if ((newLog.bp_systolic && !newLog.bp_diastolic) || (!newLog.bp_systolic && newLog.bp_diastolic)) {
+      return toast.error("Please enter both Systolic and Diastolic BP");
+    }
+
     try {
       await api.post('/health/logs', { ...newLog, patientId: user.userId });
       toast.success("Health data synchronized!");
       setShowAddLog(false);
+      setNewLog(getInitialLogState());
       fetchLogs();
     } catch (error) {
-      toast.error("Failed to save data");
+      toast.error(error.response?.data?.message || "Failed to save data");
     }
   };
 
@@ -93,51 +137,40 @@ const HealthProgress = () => {
     }
   };
 
-  const handleCleanData = async () => {
-    setCleaning(true);
+  const handleExecutePurge = async () => {
+    if (!user?.userId) return toast.error("User node not found");
+    setClearing(true);
     try {
-      const { data } = await api.post(`/health/clean/${user.userId}`);
-      setCleanSummary(data.summary);
-      toast.success("Data Optimized");
+      const { data } = await api.delete(`/health/logs/${user.userId}?range=${purgeRange}`);
+      toast.success(data?.message || "Records cleared successfully");
+      setShowPurgeModal(false);
       fetchLogs();
     } catch (error) {
-      toast.error("Cleanup failed");
+      toast.error(error.response?.data?.message || "Purge failed");
     } finally {
-      setCleaning(false);
-    }
-  };
-
-  const handleClearAll = async () => {
-    if (!user?.userId) return toast.error("User node not found");
-    if (!window.confirm("CRITICAL ACTION: Purge all health records from node memory? This cannot be undone.")) return;
-    setCleaning(true);
-    try {
-      await api.delete(`/health/logs/${user.userId}`);
-      toast.success("Node Memory Purged");
-      setLogs([]);
-      setAiResult(null);
-    } catch (error) {
-      toast.error("Purge failed");
-    } finally {
-      setCleaning(false);
-      setShowCleanModal(false);
+      setClearing(false);
     }
   };
 
   const handleExportCSV = () => {
     if (logs.length === 0) return toast.error("No data to export");
 
-    const headers = ["Date", "Systolic BP", "Diastolic BP", "Oxygen %", "Heart Rate (BPM)", "Weight (kg)", "Sugar (mg/dL)", "BMI"];
-    const rows = logs.map(l => [
-      new Date(l.date).toLocaleDateString(),
-      l.bp_systolic,
-      l.bp_diastolic,
-      l.oxygen,
-      l.heartbeat,
-      l.weight,
-      l.sugar,
-      calculateBMI(l.weight)
-    ]);
+    const headers = ["Date", "Time", "Systolic BP", "Diastolic BP", "Oxygen %", "Heart Rate (BPM)", "Weight (kg)", "Sugar (mg/dL)", "BMI", "Notes"];
+    const rows = logs.map(l => {
+      const d = new Date(l.date);
+      return [
+        d.toLocaleDateString(),
+        d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        l.bp_systolic,
+        l.bp_diastolic,
+        l.oxygen,
+        l.heartbeat,
+        l.weight,
+        l.sugar,
+        calculateBMI(l.weight),
+        l.notes || ""
+      ];
+    });
 
     let csvContent = "data:text/csv;charset=utf-8,"
       + `Patient Name: ${user?.name}, Patient ID: ${user?.userId}\n`
@@ -164,14 +197,17 @@ const HealthProgress = () => {
 
   const getAverage = (key) => {
     if (!logs || logs.length === 0) return 0;
-    const sum = logs.reduce((acc, curr) => acc + (Number(curr[key]) || 0), 0);
-    const avg = sum / logs.length;
+    const valid = logs.filter(l => l[key] !== null && l[key] !== undefined && l[key] !== '' && !isNaN(Number(l[key])));
+    if (valid.length === 0) return 0;
+    const sum = valid.reduce((acc, curr) => acc + Number(curr[key]), 0);
+    const avg = sum / valid.length;
     return isNaN(avg) ? 0 : Math.round(avg);
   };
 
   const calculateBMI = (weight) => {
-      const heightInMeters = 1.75;
-      return (weight / (heightInMeters * heightInMeters)).toFixed(1);
+    if (!weight || isNaN(Number(weight))) return '—';
+    const heightInMeters = 1.75;
+    return (Number(weight) / (heightInMeters * heightInMeters)).toFixed(1);
   };
 
   return (
@@ -208,11 +244,8 @@ const HealthProgress = () => {
                 <button onClick={() => setRange('month')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'month' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Month</button>
                 <button onClick={() => setRange('all')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>All</button>
               </div>
-              <button onClick={() => setShowCleanModal(true)} className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${theme === 'dark' ? 'border-white/10 text-zinc-500 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
-                <RefreshCw size={16} className="inline mr-2" /> Optimize
-              </button>
-              <button onClick={handleClearAll} className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white`}>
-                <Trash2 size={16} className="inline mr-2" /> Clear All
+              <button onClick={() => setShowPurgeModal(true)} className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center gap-2`}>
+                <Trash2 size={16} /> Clean Records
               </button>
               <button onClick={handleExportCSV} className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border ${theme === 'dark' ? 'border-white/10 text-zinc-500 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-50'}`}>
                 <FileText size={16} className="inline mr-2" /> CSV
@@ -275,7 +308,7 @@ const HealthProgress = () => {
                     <table className="w-full text-left">
                        <thead className="border-b border-slate-100 dark:border-white/5">
                           <tr className="text-[10px] font-black uppercase text-slate-400">
-                             <th className="pb-4">Date</th>
+                             <th className="pb-4">Date & Time</th>
                              <th className="pb-4">BP</th>
                              <th className="pb-4">O2</th>
                              <th className="pb-4">Temp</th>
@@ -287,7 +320,10 @@ const HealthProgress = () => {
                        <tbody className="divide-y divide-slate-50 dark:divide-white/5">
                           {logs.length > 0 ? logs.map((l, i) => (
                              <tr key={i} className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                                <td className="py-4">{new Date(l.date).toLocaleDateString()}</td>
+                                <td className="py-4">
+                                   <div className="font-bold">{l.formattedDate || new Date(l.date).toLocaleDateString()}</div>
+                                   <div className="text-[10px] text-blue-400 font-mono font-bold mt-0.5">{l.formattedTime || new Date(l.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                </td>
                                 <td className="py-4 text-blue-500">{l.bp_systolic}/{l.bp_diastolic}</td>
                                 <td className="py-4">{l.oxygen}%</td>
                                 <td className="py-4">{l.temperature}°F</td>
@@ -416,104 +452,85 @@ const HealthProgress = () => {
         </main>
       </div>
 
-      {showAddLog && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className={`w-full max-w-lg rounded-[48px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
-            <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-50 bg-slate-50/50'}`}>
-               <h2 className={`text-xl font-black text-slate-800 tracking-tighter uppercase ${theme === 'dark' ? 'text-white' : ''}`}>Manual Synchronization</h2>
-               <button onClick={() => setShowAddLog(false)} className={`p-3 rounded-2xl transition-all border ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-zinc-500 hover:text-white' : 'bg-white border-slate-200 text-slate-400 hover:bg-slate-100'}`}>
-                  <X size={20} strokeWidth={3} />
-               </button>
-            </div>
-            <form onSubmit={handleAddLog} className="p-8 space-y-6">
-               <div className="space-y-2 text-left">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Archive Date</label>
-                  <input required type="date" max={new Date().toISOString().split('T')[0]} className={`w-full p-4 border rounded-2xl font-black text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white focus:border-blue-600' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-600'}`}
-                    value={newLog.date} onChange={(e) => setNewLog({...newLog, date: e.target.value})} />
-               </div>
-               <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">BP Systolic</label>
-                    <input required type="number" className={`w-full p-4 border rounded-2xl font-black text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-inner'}`}
-                      value={newLog.bp_systolic} onChange={(e) => setNewLog({...newLog, bp_systolic: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">BP Diastolic</label>
-                    <input required type="number" className={`w-full p-4 border rounded-2xl font-black text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800 shadow-inner'}`}
-                      value={newLog.bp_diastolic} onChange={(e) => setNewLog({...newLog, bp_diastolic: e.target.value})} />
-                  </div>
-               </div>
-               <div className="grid grid-cols-3 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">O2 Level</label>
-                    <input required type="number" className={`w-full p-4 border rounded-2xl font-bold text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      value={newLog.oxygen} onChange={(e) => setNewLog({...newLog, oxygen: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Pulse</label>
-                    <input required type="number" className={`w-full p-4 border rounded-2xl font-bold text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      value={newLog.heartbeat} onChange={(e) => setNewLog({...newLog, heartbeat: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Weight kg</label>
-                    <input required type="number" step="0.1" className={`w-full p-4 border rounded-2xl font-bold text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      value={newLog.weight} onChange={(e) => setNewLog({...newLog, weight: e.target.value})} />
-                  </div>
-               </div>
-               <div className="grid grid-cols-2 gap-4 text-left">
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Temp °F</label>
-                    <input required type="number" step="0.1" className={`w-full p-4 border rounded-2xl font-bold text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      value={newLog.temperature} onChange={(e) => setNewLog({...newLog, temperature: e.target.value})} />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Sugar mg/dL</label>
-                    <input type="number" className={`w-full p-4 border rounded-2xl font-bold text-sm outline-none transition-all ${theme === 'dark' ? 'bg-zinc-900 border-white/5 text-white' : 'bg-slate-50 border-slate-200 text-slate-800'}`}
-                      value={newLog.sugar} onChange={(e) => setNewLog({...newLog, sugar: e.target.value})} />
-                  </div>
-               </div>
-               <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 rounded-[32px] font-black uppercase tracking-[0.3em] text-xs shadow-xl shadow-blue-500/20 transition-all active:scale-95">
-                  Save Entry
-               </button>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {showCleanModal && (
+      {showPurgeModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
           <div className={`w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
-            <div className="p-10 text-center space-y-8">
-               <div className="w-20 h-20 bg-red-500/10 text-red-500 rounded-[32px] flex items-center justify-center mx-auto border border-red-500/20">
-                  <AlertCircle size={32} />
+            <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-50 bg-slate-50/50'}`}>
+               <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
+                     <Trash2 size={20} />
+                  </div>
+                  <div className="text-left">
+                     <h2 className={`text-lg font-black tracking-tight uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Clean Records</h2>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Select range to delete</p>
+                  </div>
                </div>
-               <div className="space-y-2">
-                  <h2 className={`text-xl font-black uppercase tracking-tighter ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Optimize Archive?</h2>
-                  <p className="text-xs font-bold text-slate-500 uppercase tracking-tight leading-relaxed px-4">
-                     Optimize health records while preserving medical history.
-                  </p>
+               <button onClick={() => setShowPurgeModal(false)} className={`p-2.5 rounded-xl border ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+                  <X size={18} />
+               </button>
+            </div>
+
+            <div className="p-8 space-y-6 text-left">
+               <div className="space-y-3">
+                  {[
+                     { id: 'today', title: 'This Day (Today)', desc: 'Delete vitals recorded today only', badge: 'Single Day' },
+                     { id: 'week', title: 'Last Week', desc: 'Delete vitals recorded in the past 7 days', badge: 'Past 7 Days' },
+                     { id: 'month', title: 'Last Month', desc: 'Delete vitals recorded in the past 30 days', badge: 'Past 30 Days' },
+                     { id: 'all', title: 'All Records', desc: 'Permanently wipe all health records from history', badge: 'Permanent' }
+                  ].map((opt) => (
+                     <div
+                        key={opt.id}
+                        onClick={() => setPurgeRange(opt.id)}
+                        className={`p-4 rounded-2xl border cursor-pointer transition-all flex items-center justify-between text-left ${
+                           purgeRange === opt.id
+                              ? 'bg-red-500/10 border-red-500 text-white shadow-lg shadow-red-500/10'
+                              : theme === 'dark'
+                                 ? 'bg-zinc-900 border-white/5 text-zinc-400 hover:border-white/20'
+                                 : 'bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300'
+                        }`}
+                     >
+                        <div className="space-y-1">
+                           <div className="flex items-center gap-2">
+                              <span className="text-xs font-black uppercase tracking-wider">{opt.title}</span>
+                              <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-md ${
+                                 opt.id === 'all'
+                                    ? 'bg-red-500/20 text-red-400'
+                                    : 'bg-blue-500/20 text-blue-400'
+                              }`}>
+                                 {opt.badge}
+                              </span>
+                           </div>
+                           <p className="text-[10px] text-zinc-500 font-bold">{opt.desc}</p>
+                        </div>
+                        <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ml-3 ${
+                           purgeRange === opt.id ? 'border-red-500 bg-red-500' : 'border-zinc-600'
+                        }`}>
+                           {purgeRange === opt.id && <div className="w-2 h-2 rounded-full bg-white" />}
+                        </div>
+                     </div>
+                  ))}
                </div>
 
-               {cleanSummary ? (
-                 <div className="bg-slate-50 dark:bg-white/5 p-6 rounded-3xl text-left space-y-3 border border-slate-100 dark:border-white/5">
-                    <div className="flex items-center gap-3 text-[10px] font-black text-emerald-500 uppercase">
-                       <CheckCircle size={14} /> {cleanSummary.duplicatesRemoved} Duplicates Removed
-                    </div>
-                    <div className="flex items-center gap-3 text-[10px] font-black text-blue-500 uppercase">
-                       <CheckCircle size={14} /> {cleanSummary.formattingFixed} Values Adjusted
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/10 text-center">
-                       <button onClick={() => {setShowCleanModal(false); setCleanSummary(null);}} className="text-[10px] font-black text-blue-500 uppercase tracking-widest hover:underline">Dismiss</button>
-                    </div>
-                 </div>
-               ) : (
-                 <div className="flex gap-4">
-                    <button onClick={() => setShowCleanModal(false)} className="flex-1 py-5 rounded-3xl font-black uppercase text-[10px] tracking-widest border border-slate-200 text-slate-500">Abort</button>
-                    <button onClick={handleCleanData} disabled={cleaning} className="flex-1 py-5 bg-red-600 text-white rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-500/30">
-                       {cleaning ? <Loader2 className="animate-spin mx-auto" size={16} /> : "Cleanup"}
-                    </button>
-                 </div>
-               )}
+               <div className="flex gap-3">
+                  <button
+                     type="button"
+                     onClick={() => setShowPurgeModal(false)}
+                     className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all ${
+                        theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                     }`}
+                  >
+                     Cancel
+                  </button>
+                  <button
+                     type="button"
+                     onClick={handleExecutePurge}
+                     disabled={clearing}
+                     className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                  >
+                     {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                     {purgeRange === 'all' ? 'Purge All' : 'Delete Range'}
+                  </button>
+               </div>
             </div>
           </div>
         </div>

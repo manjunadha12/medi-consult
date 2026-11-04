@@ -2,6 +2,7 @@ import Report from '../models/Report.js';
 import path from 'path';
 import fs from 'fs';
 import { processMedicalDocument, resolveUploadedFilePath } from '../medical-engine/index.js';
+import { dispatchToClinicalML } from '../utils/mlInferenceClient.js';
 
 export const uploadReport = async (req, res) => {
   try {
@@ -34,6 +35,21 @@ export const uploadReport = async (req, res) => {
       console.warn(`[LOCAL_ENGINE_WARN] Extraction encountered error: ${procErr.message}`);
     }
 
+    // Run ML Model Inference (XGBoost, DenseNet121, 3D U-Net, 1D CNN)
+    let mlInferenceResult = null;
+    try {
+      mlInferenceResult = await dispatchToClinicalML({
+        filePath,
+        fileName: req.file.originalname,
+        fileType: path.extname(req.file.originalname),
+        category: category || (engineResult?.classifiedCategories?.[0]?.name) || 'General',
+        extractedText: engineResult?.summary || '',
+        structuredResults: engineResult?.structuredResults || []
+      });
+    } catch (mlErr) {
+      console.warn(`[ML_DISPATCH_WARN] ${mlErr.message}`);
+    }
+
     const report = await Report.create({
       patientId: targetPatientId,
       uploadedBy: req.user._id,
@@ -56,7 +72,8 @@ export const uploadReport = async (req, res) => {
       riskLevel: engineResult?.riskLevel || 'Low',
       abnormalValues: (engineResult?.structuredResults || []).filter(r => r.severity === 'abnormal' || r.severity === 'critical'),
       auditTrail: engineResult?.auditTrail || { processedAt: new Date().toISOString() },
-      aiSummary: engineResult ? generateClinicalSummary(engineResult) : "Document uploaded and awaiting clinical review."
+      aiSummary: engineResult ? generateClinicalSummary(engineResult) : "Document uploaded and awaiting clinical review.",
+      mlInferenceResult: mlInferenceResult || undefined
     });
 
     res.status(201).json({
@@ -148,6 +165,23 @@ export const processReportLocally = async (req, res) => {
     const abnormalList = structuredResults.filter(r => r && (r.severity === 'abnormal' || r.severity === 'critical'));
     const summaryText = engineResult.summary || generateClinicalSummary(engineResult);
 
+    // Ensure ML model inference is executed if not already completed
+    let mlInferenceResult = report.mlInferenceResult;
+    if (!mlInferenceResult || !mlInferenceResult.modelUsed) {
+      try {
+        mlInferenceResult = await dispatchToClinicalML({
+          filePath,
+          fileName: report.fileName || report.title,
+          fileType: path.extname(report.fileName || report.fileUrl || ''),
+          category: report.category || (engineResult?.classifiedCategories?.[0]?.name) || 'General',
+          extractedText: engineResult?.summary || '',
+          structuredResults: engineResult?.structuredResults || []
+        });
+      } catch (mlErr) {
+        console.warn(`[ML_DISPATCH_WARN] ${mlErr.message}`);
+      }
+    }
+
     const updated = await Report.findByIdAndUpdate(reportId, {
       status: 'Analyzed',
       engineVersion: engineResult.engineVersion || 'v4.0',
@@ -164,12 +198,14 @@ export const processReportLocally = async (req, res) => {
       riskLevel: engineResult.riskLevel || 'Low',
       abnormalValues: abnormalList,
       aiSummary: summaryText,
-      auditTrail: engineResult.auditTrail
+      auditTrail: engineResult.auditTrail,
+      mlInferenceResult: mlInferenceResult || report.mlInferenceResult
     }, { new: true });
 
     res.json({
       success: true,
       report: updated,
+      mlInferenceResult: updated.mlInferenceResult || mlInferenceResult || report.mlInferenceResult,
       ...engineResult,
       name: engineResult.demographics?.patientName || report.patientName || 'Patient',
       age: engineResult.demographics?.age || 'N/A',
@@ -327,3 +363,26 @@ function generateClinicalSummary(engineResult) {
 
   return text;
 }
+
+export const updateDoctorReviewStatus = async (req, res) => {
+  try {
+    const { reportId, status, notes } = req.body;
+    const report = await Report.findById(reportId);
+    if (!report) return res.status(404).json({ message: "Report not found" });
+
+    const updated = await Report.findByIdAndUpdate(reportId, {
+      'mlInferenceResult.doctorReviewStatus': status || 'VERIFIED',
+      'mlInferenceResult.doctorReviewNotes': notes || '',
+      'mlInferenceResult.reviewedBy': req.user?._id,
+      'mlInferenceResult.reviewedAt': new Date()
+    }, { new: true });
+
+    res.json({
+      success: true,
+      message: "Doctor review status updated successfully",
+      report: updated
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

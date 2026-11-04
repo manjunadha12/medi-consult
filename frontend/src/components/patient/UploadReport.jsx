@@ -13,6 +13,7 @@ const UploadReport = () => {
   const { user, theme } = useStore();
   const navigate = useNavigate();
   const [file, setFile] = useState(null);
+  const [selectedCategory, setSelectedCategory] = useState('Auto-Detect');
   const [uploading, setUploading] = useState(false);
   const [reports, setReports] = useState([]);
   const [loadingReports, setLoadingReports] = useState(true);
@@ -63,7 +64,8 @@ const UploadReport = () => {
     const formData = new FormData();
     formData.append('report', file);
     formData.append('patientId', user?.userId);
-    formData.append('category', 'General');
+    const categoryToSend = selectedCategory === 'Auto-Detect' ? 'General' : selectedCategory;
+    formData.append('category', categoryToSend);
 
     try {
       const { data } = await api.post('/reports/upload', formData, {
@@ -155,6 +157,36 @@ const UploadReport = () => {
                   </label>
                 )}
 
+                {/* Clinical Diagnostic Category Selector */}
+                <div className="w-full text-left mb-6">
+                  <label className="text-[10px] font-black uppercase tracking-widest text-zinc-400 block mb-2">
+                    Diagnostic Modality / Clinical Model:
+                  </label>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className={`w-full p-4 rounded-2xl text-xs font-bold outline-none border transition-all ${
+                      theme === 'dark'
+                        ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500'
+                        : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                    }`}
+                  >
+                    <option value="Auto-Detect">Auto-Detect (AI Classification Router)</option>
+                    <option value="Blood Tests">Blood Tests (XGBoost / MIMIC-IV)</option>
+                    <option value="Chest X-ray">Chest X-ray (DenseNet121 / NIH-14)</option>
+                    <option value="Lung CT">Lung CT (3D U-Net / LIDC-IDRI)</option>
+                    <option value="Brain MRI">Brain MRI (Multimodal 3D U-Net / BraTS)</option>
+                    <option value="ECG">ECG (1D CNN / PTB-XL 12-lead)</option>
+                    <option value="Urine Routine & Microscopy">Urine Routine & Microscopy (XGBoost / Mendeley)</option>
+                    <option value="Bone Fracture">Bone Fracture (EfficientNet-B4 Radiography)</option>
+                    <option value="Diabetic Retinopathy">Diabetic Retinopathy (ResNet-18 APTOS 2019)</option>
+                    <option value="Skin Lesions">Skin Lesions (ResNet-18 HAM10000 / DermaMNIST)</option>
+                    <option value="Breast Ultrasound">Breast Ultrasound (ResNet-18 BUSI)</option>
+                    <option value="Retinal OCT">Retinal OCT (ResNet-18 OCTMNIST 109k Scans)</option>
+                    <option value="Colon Histopathology">Colon Histopathology (ResNet-18 PathMNIST 107k Tiles)</option>
+                  </select>
+                </div>
+
                 <button
                   onClick={handleUpload}
                   disabled={!file || uploading}
@@ -220,6 +252,31 @@ const UploadReport = () => {
                                     +{report.documentBadges.length - 3} more
                                   </span>
                                 )}
+                              </div>
+                            )}
+
+                            {/* Clinical ML Model Inference & Doctor Review Status */}
+                            {report.mlInferenceResult && (
+                              <div className="flex flex-wrap gap-1.5 mt-2">
+                                <span className="px-2 py-0.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-[8px] font-black uppercase flex items-center gap-1">
+                                  <Sparkles size={10} /> {report.mlInferenceResult.modelUsed || 'Clinical ML'}
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border ${
+                                  (report.mlInferenceResult.riskLevel || '').toUpperCase() === 'HIGH'
+                                    ? 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                                    : (report.mlInferenceResult.riskLevel || '').toUpperCase() === 'MEDIUM'
+                                    ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                                    : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                                }`}>
+                                  {report.mlInferenceResult.riskLevel || 'Low'} Risk
+                                </span>
+                                <span className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase border ${
+                                  report.mlInferenceResult.doctorReviewStatus === 'VERIFIED'
+                                    ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                                    : 'bg-zinc-800/80 text-zinc-400 border-white/5'
+                                }`}>
+                                  {report.mlInferenceResult.doctorReviewStatus === 'VERIFIED' ? '✓ Verified by Doctor' : '⏳ Pending Doctor Review'}
+                                </span>
                               </div>
                             )}
                           </div>

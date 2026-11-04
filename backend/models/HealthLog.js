@@ -14,6 +14,16 @@ const healthLogSchema = new mongoose.Schema(
       default: Date.now
     },
 
+    time: {
+      type: String,
+      default: ""
+    },
+
+    sessionTag: {
+      type: String,
+      default: ""
+    },
+
     bp_systolic: {
       type: Number,
       default: null

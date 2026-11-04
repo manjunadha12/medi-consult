@@ -48,7 +48,54 @@ const PatientRegister = () => {
   }, [countdown]);
 
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, value } = e.target;
+
+    // Full Name & Guardian Name: only letters and spaces
+    if (name === 'name' || name === 'guardianName') {
+      const lettersOnly = value.replace(/[^a-zA-Z\s]/g, '');
+      setFormData(prev => ({ ...prev, [name]: lettersOnly }));
+      return;
+    }
+
+    // Profession / Occupation: letters, spaces, and hyphens only
+    if (name === 'profession') {
+      const lettersOnly = value.replace(/[^a-zA-Z\s\-]/g, '');
+      setFormData(prev => ({ ...prev, [name]: lettersOnly }));
+      return;
+    }
+
+    // Mobile Number: digits only, max 10
+    if (name === 'phone') {
+      let digits = value.replace(/\D/g, '');
+      if (digits.length === 12 && digits.startsWith('91')) {
+        digits = digits.slice(2);
+      } else if (digits.length === 11 && digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+      setFormData(prev => ({ ...prev, phone: digits.slice(0, 10) }));
+      return;
+    }
+
+    // Guardian Phone: digits only, max 10
+    if (name === 'guardianPhone') {
+      let digits = value.replace(/\D/g, '');
+      if (digits.length === 12 && digits.startsWith('91')) {
+        digits = digits.slice(2);
+      } else if (digits.length === 11 && digits.startsWith('0')) {
+        digits = digits.slice(1);
+      }
+      setFormData(prev => ({ ...prev, guardianPhone: digits.slice(0, 10) }));
+      return;
+    }
+
+    // Aadhaar Card Number: digits only, max 12
+    if (name === 'aadhaarNumber') {
+      const digits = value.replace(/\D/g, '').slice(0, 12);
+      setFormData(prev => ({ ...prev, aadhaarNumber: digits }));
+      return;
+    }
+
+    setFormData(prev => ({ ...prev, [name]: value }));
   };
 
   const handleDobChange = (e) => {
@@ -57,6 +104,14 @@ const PatientRegister = () => {
     if (dobValue) {
       const dobDate = new Date(dobValue);
       const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      if (dobDate > today) {
+        toast.error('Date of Birth cannot be in the future');
+        setFormData(prev => ({ ...prev, dob: '', age: '' }));
+        return;
+      }
+
       let ageYears = today.getFullYear() - dobDate.getFullYear();
       const m = today.getMonth() - dobDate.getMonth();
       if (m < 0 || (m === 0 && today.getDate() < dobDate.getDate())) {
@@ -64,11 +119,82 @@ const PatientRegister = () => {
       }
       if (ageYears >= 0) calculatedAge = ageYears.toString();
     }
-    setFormData({ ...formData, dob: dobValue, age: calculatedAge });
+    setFormData(prev => ({ ...prev, dob: dobValue, age: calculatedAge }));
   };
 
   const handleRequestOtp = async (e) => {
     e.preventDefault();
+
+    // 1. Full Name: letters and spaces only, min 2 chars
+    const trimmedName = formData.name.trim();
+    if (!trimmedName) {
+      return toast.error('Full Name is required');
+    }
+    if (!/^[A-Za-z\s]+$/.test(trimmedName)) {
+      return toast.error('Full Name must contain letters and spaces only');
+    }
+    if (trimmedName.length < 2) {
+      return toast.error('Full Name must be at least 2 characters');
+    }
+
+    // 2. Date of Birth & Age
+    if (!formData.dob) {
+      return toast.error('Date of Birth is required');
+    }
+    const dobDate = new Date(formData.dob);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    if (dobDate > today) {
+      return toast.error('Date of Birth cannot be in the future');
+    }
+
+    // 3. Gender & Blood Group
+    if (!formData.gender) {
+      return toast.error('Please select Gender');
+    }
+    if (!formData.bloodGroup) {
+      return toast.error('Please select Blood Group');
+    }
+
+    // 4. Residential Address
+    if (!formData.address.trim()) {
+      return toast.error('Residential Address is required');
+    }
+
+    // 5. Guardian Name (optional)
+    if (formData.guardianName.trim() && !/^[A-Za-z\s]+$/.test(formData.guardianName.trim())) {
+      return toast.error('Guardian Name must contain letters and spaces only');
+    }
+
+    // 6. Guardian Phone (optional, but if provided must be 10 digits)
+    if (formData.guardianPhone && formData.guardianPhone.length !== 10) {
+      return toast.error('Guardian Phone number must be exactly 10 digits');
+    }
+
+    // 7. Aadhaar Number (if provided, must be exactly 12 digits)
+    if (formData.aadhaarNumber && formData.aadhaarNumber.length !== 12) {
+      return toast.error('Aadhaar Card Number must be exactly 12 digits');
+    }
+
+    // 8. Mobile Number (required, exactly 10 digits)
+    const phoneClean = formData.phone.trim();
+    if (!phoneClean) {
+      return toast.error('Mobile Number is required');
+    }
+    if (!/^\d{10}$/.test(phoneClean)) {
+      return toast.error('Mobile Number must be exactly 10 digits');
+    }
+
+    // 9. Email Address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!formData.email.trim() || !emailRegex.test(formData.email.trim())) {
+      return toast.error('Please enter a valid email address');
+    }
+
+    // 10. Password
+    if (!formData.password || formData.password.length < 6) {
+      return toast.error('Password must be at least 6 characters');
+    }
     if (formData.password !== formData.confirmPassword) {
       return toast.error('Passwords do not match');
     }
@@ -76,7 +202,13 @@ const PatientRegister = () => {
     setLoading(true);
     try {
       const { data } = await api.post('/auth/register/patient-otp', {
-        ...formData
+        ...formData,
+        name: trimmedName,
+        phone: phoneClean,
+        email: formData.email.trim().toLowerCase(),
+        aadhaarNumber: formData.aadhaarNumber.trim(),
+        guardianPhone: formData.guardianPhone.trim(),
+        guardianName: formData.guardianName.trim()
       });
 
       toast.success(data.message);
@@ -240,7 +372,15 @@ const PatientRegister = () => {
                    <form onSubmit={handleRequestOtp} className="space-y-4 text-left">
                       <div className="relative group text-left">
                          <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="name" type="text" placeholder="Full Name *" value={formData.name} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-sm text-white placeholder:text-zinc-600" required />
+                         <input
+                            name="name"
+                            type="text"
+                            placeholder="Full Name (Letters only) *"
+                            value={formData.name}
+                            onChange={handleChange}
+                            className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 transition-all font-bold text-sm text-white placeholder:text-zinc-600"
+                            required
+                         />
                       </div>
 
                       <div className="grid grid-cols-2 gap-4 text-left">
@@ -248,14 +388,30 @@ const PatientRegister = () => {
                             <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Date of Birth *</label>
                             <div className="relative group text-left">
                                <Calendar className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                               <input name="dob" type="date" value={formData.dob} onChange={handleDobChange} className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                               <input
+                                  name="dob"
+                                  type="date"
+                                  max={new Date().toISOString().split('T')[0]}
+                                  value={formData.dob}
+                                  onChange={handleDobChange}
+                                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm"
+                                  required
+                               />
                             </div>
                          </div>
                          <div className="space-y-1">
                             <label className="text-[8px] font-black text-zinc-400 uppercase tracking-widest ml-1">Age (Auto)</label>
                             <div className="relative group text-left">
                                <UserIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4" />
-                               <input name="age" type="number" placeholder="Age" value={formData.age} onChange={handleChange} className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                               <input
+                                  name="age"
+                                  type="text"
+                                  placeholder="Auto Age"
+                                  value={formData.age ? `${formData.age} yrs` : ''}
+                                  readOnly
+                                  className="w-full pl-11 pr-4 py-3 bg-white/5 border border-white/10 rounded-[20px] outline-none text-blue-400 font-bold text-sm cursor-not-allowed select-none"
+                                  required
+                               />
                             </div>
                          </div>
                       </div>
@@ -295,11 +451,32 @@ const PatientRegister = () => {
                       <div className="grid grid-cols-2 gap-4 text-left">
                          <div className="relative group text-left">
                             <Users className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                            <input name="guardianName" type="text" placeholder="Guardian Name" value={formData.guardianName} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
+                            <input
+                               name="guardianName"
+                               type="text"
+                               placeholder="Guardian Name"
+                               value={formData.guardianName}
+                               onChange={handleChange}
+                               className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600"
+                            />
                          </div>
                          <div className="relative group text-left">
                             <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                            <input name="guardianPhone" type="tel" placeholder="Guardian Phone" value={formData.guardianPhone} onChange={handleChange} className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
+                            <input
+                               name="guardianPhone"
+                               type="tel"
+                               inputMode="numeric"
+                               maxLength={10}
+                               placeholder="Guardian Phone"
+                               value={formData.guardianPhone}
+                               onChange={handleChange}
+                               className="w-full pl-11 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600 font-mono"
+                            />
+                            {formData.guardianPhone && (
+                               <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-mono font-bold text-zinc-500">
+                                  {formData.guardianPhone.length}/10
+                               </span>
+                            )}
                          </div>
                       </div>
 
@@ -310,12 +487,41 @@ const PatientRegister = () => {
 
                       <div className="relative group text-left">
                          <ShieldCheckIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="aadhaarNumber" type="text" maxLength={12} placeholder="Aadhaar Card Number (12 Digits)" value={formData.aadhaarNumber} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600" />
+                         <input
+                            name="aadhaarNumber"
+                            type="tel"
+                            inputMode="numeric"
+                            maxLength={12}
+                            placeholder="Aadhaar Card Number (12 Digits)"
+                            value={formData.aadhaarNumber}
+                            onChange={handleChange}
+                            className="w-full pl-11 pr-16 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm placeholder:text-zinc-600 font-mono tracking-wider"
+                         />
+                         {formData.aadhaarNumber && (
+                            <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono font-black ${formData.aadhaarNumber.length === 12 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                               {formData.aadhaarNumber.length}/12
+                            </span>
+                         )}
                       </div>
 
                       <div className="relative group text-left">
                          <PhoneIcon className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500 transition-colors" />
-                         <input name="phone" type="tel" placeholder="Mobile Number *" value={formData.phone} onChange={handleChange} className="w-full pl-11 pr-6 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm" required />
+                         <input
+                            name="phone"
+                            type="tel"
+                            inputMode="numeric"
+                            maxLength={10}
+                            placeholder="Mobile Number (10 Digits) *"
+                            value={formData.phone}
+                            onChange={handleChange}
+                            className="w-full pl-11 pr-16 py-3.5 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 text-white font-bold text-sm font-mono tracking-wider"
+                            required
+                         />
+                         {formData.phone && (
+                            <span className={`absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-mono font-black ${formData.phone.length === 10 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                               {formData.phone.length}/10
+                            </span>
+                         )}
                       </div>
 
                       <div className="relative group text-left">
@@ -348,7 +554,16 @@ const PatientRegister = () => {
                    <div className="space-y-4 text-left">
                       <div className="relative group text-left">
                          <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 w-4 h-4 group-focus-within:text-blue-500" />
-                         <input type="text" maxLength={6} placeholder="Email Verification Code" value={emailOtp} onChange={(e) => setEmailOtp(e.target.value)} className="w-full pl-11 pr-6 py-4 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 text-center font-black tracking-[0.5em] text-sm text-white" required />
+                         <input
+                            type="text"
+                            inputMode="numeric"
+                            maxLength={6}
+                            placeholder="Email Verification Code"
+                            value={emailOtp}
+                            onChange={(e) => setEmailOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                            className="w-full pl-11 pr-6 py-4 bg-white/5 border border-white/10 rounded-[20px] outline-none focus:border-blue-500 focus:bg-white/10 text-center font-black tracking-[0.5em] text-sm text-white font-mono"
+                            required
+                         />
                       </div>
                    </div>
                    <button type="submit" disabled={loading} className="w-full py-4 bg-blue-600 text-white rounded-[20px] font-black text-xs uppercase tracking-[0.2em] shadow-xl active:scale-95 transition-all">Verify & Sync</button>

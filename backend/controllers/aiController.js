@@ -1,3 +1,4 @@
+import { dispatchToClinicalML } from '../utils/mlInferenceClient.js';
 import fs from 'fs';
 import path from 'path';
 import Report from '../models/Report.js';
@@ -161,6 +162,23 @@ export const analyzeReport = async (req, res) => {
     const finalSummary = aiSynthesis?.summary || generateEngineSummary(engineResult);
     const suggestedSpecialist = aiSynthesis?.suggestedSpecialist || getSuggestedSpecialist(engineResult);
 
+    // Ensure ML model inference is executed if not already completed
+    let mlInferenceResult = report.mlInferenceResult;
+    if (!mlInferenceResult || !mlInferenceResult.modelUsed) {
+      try {
+        mlInferenceResult = await dispatchToClinicalML({
+          filePath,
+          fileName: report.fileName || report.title,
+          fileType: path.extname(report.fileName || filePath || ''),
+          category: report.category || (engineResult?.classifiedCategories?.[0]?.name) || 'General',
+          extractedText: engineResult?.summary || '',
+          structuredResults: engineResult?.structuredResults || []
+        });
+      } catch (mlErr) {
+        console.warn(`[ML_DISPATCH_WARN] ${mlErr.message}`);
+      }
+    }
+
     await Report.findByIdAndUpdate(reportId, {
       aiSummary: finalSummary,
       status: 'Analyzed',
@@ -177,6 +195,7 @@ export const analyzeReport = async (req, res) => {
       metricsSummary: engineResult.metricsSummary,
       riskLevel: engineResult.riskLevel,
       abnormalValues: engineResult.structuredResults.filter(r => r.severity === 'abnormal' || r.severity === 'critical'),
+      mlInferenceResult: mlInferenceResult || report.mlInferenceResult,
       auditTrail: {
         ...engineResult.auditTrail,
         aiEngine: "Google Gemini 3.6 Flash / Multi-Agent Swarm",
@@ -185,6 +204,7 @@ export const analyzeReport = async (req, res) => {
     });
 
     const responsePayload = {
+      mlInferenceResult: mlInferenceResult || report.mlInferenceResult,
       name: engineResult.demographics?.patientName || "Patient",
       age: engineResult.demographics?.age ? `${engineResult.demographics.age} Yrs` : "N/A",
       gender: engineResult.demographics?.sex || "N/A",

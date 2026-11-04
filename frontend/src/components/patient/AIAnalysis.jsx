@@ -4,6 +4,7 @@ import api from '../../utils/api';
 import Navbar from '../common/Navbar';
 import useStore from '../../store/useStore';
 import RadiographViewer from './RadiographViewer';
+import ClinicalMLDiagnostics from './ClinicalMLDiagnostics';
 import {
   Search, AlertTriangle, CheckCircle, Info,
   FileText, ChevronRight, Loader2,
@@ -87,12 +88,20 @@ const AIAnalysis = () => {
       if (activeMode === 'local') {
         const { data } = await api.post('/reports/process-local', { reportId: report._id });
         data._executedEngine = 'local';
+        if (!data.mlInferenceResult && (data.report?.mlInferenceResult || report.mlInferenceResult)) {
+          data.mlInferenceResult = data.report?.mlInferenceResult || report.mlInferenceResult;
+        }
         setResult(data);
+        if (data.report) setSelectedReport(data.report);
         toast.success("⚡ Local Base Engine: Analysis complete");
       } else {
         const { data } = await api.post('/ai/analyze-report', { reportId: report._id });
         data._executedEngine = 'ai';
+        if (!data.mlInferenceResult && (data.report?.mlInferenceResult || report.mlInferenceResult)) {
+          data.mlInferenceResult = data.report?.mlInferenceResult || report.mlInferenceResult;
+        }
         setResult(data);
+        if (data.report) setSelectedReport(data.report);
         toast.success("🤖 Neural AI Cloud Engine: Analysis complete");
       }
     } catch (error) {
@@ -422,6 +431,17 @@ const AIAnalysis = () => {
                   </div>
                 )}
               </div>
+
+              {/* 1.3 DEDICATED CLINICAL MACHINE LEARNING MODEL DIAGNOSTICS */}
+              {(result.mlInferenceResult || result.report?.mlInferenceResult || selectedReport?.mlInferenceResult) && (
+                <ClinicalMLDiagnostics
+                  mlResult={result.mlInferenceResult || result.report?.mlInferenceResult || selectedReport?.mlInferenceResult}
+                  reportId={selectedReport?._id || result.report?._id || result._id}
+                  onStatusUpdated={() => {
+                    fetchReports();
+                  }}
+                />
+              )}
 
               {/* 1.5 EXECUTIVE SUMMARY & NEURAL AI CLINICAL SYNTHESIS */}
               {result.summary && (

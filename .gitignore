@@ -20,6 +20,31 @@ tools/
 *.exe
 *.traineddata
 
-# Test temp outputs
+# Test temp outputs & Uploads
 tests/fixtures/
 backend/uploads/doctor/
+backend/uploads/patient/
+uploads/
+
+# Datasets & Large Models
+backend/datasets/
+datasets/
+backend/bone/
+bone/
+backend/trained_models/
+trained_models/
+
+# Python caches
+__pycache__/
+*.pyc
+
+# Logs
+*.log
+security_audit.log
+backend/security_audit.log
+
+# Eclipse / IDE settings in node_modules
+**/.settings/
+
+
+

@@ -4,4 +4,14 @@
 serviceAccountKey.json
 *.pem
 node_modules
-node_modules
+datasets/
+bone/
+trained_models/
+__pycache__/
+*.pyc
+uploads/patient/
+uploads/doctor/
+*.log
+
+
+

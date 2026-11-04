@@ -76,7 +76,7 @@ export async function extractDocumentText(filePath) {
       }
 
       const rawPages = rawText.split(/\f|\n--- Page \d+ ---\n|\n-- \d+ of \d+ --\n/);
-      
+
       if (rawPages.length > 1) {
         rawPages.forEach((pageText, idx) => {
           const pageNum = idx + 1;
@@ -123,7 +123,7 @@ export async function extractDocumentText(filePath) {
       const sharpInstance = sharp(filePath);
       const stats = await sharpInstance.stats();
       const ch = stats.channels;
-      
+
       // Radiological Film Density Gatekeeper:
       // X-Rays / CTs are high-contrast monochrome with deep dark film base (dominant rgb < 50) and high std dev.
       if (ch && ch.length >= 3) {
@@ -155,7 +155,7 @@ export async function extractDocumentText(filePath) {
 
     try {
       const worker = await createWorker('eng');
-      
+
       // Pass 1: PSM 6 (Uniform text block / table grid structure)
       await worker.setParameters({
         tessedit_pageseg_mode: '6',
@@ -179,15 +179,15 @@ export async function extractDocumentText(filePath) {
       // Strict Check: If OCR extracted paper lab report text, force isRadiographFilm to false
       const lowerText = combinedText.toLowerCase();
       const isLabPaperText = lowerText.includes('laboratory report') ||
-                             lowerText.includes('hospital diagnostics') ||
-                             lowerText.includes('patient name') ||
-                             lowerText.includes('hemoglobin') ||
-                             lowerText.includes('wbc') ||
-                             lowerText.includes('platelet') ||
-                             lowerText.includes('creatinine') ||
-                             lowerText.includes('blood glucose') ||
-                             lowerText.includes('reference range') ||
-                             lowerText.includes('test name');
+        lowerText.includes('hospital diagnostics') ||
+        lowerText.includes('patient name') ||
+        lowerText.includes('hemoglobin') ||
+        lowerText.includes('wbc') ||
+        lowerText.includes('platelet') ||
+        lowerText.includes('creatinine') ||
+        lowerText.includes('blood glucose') ||
+        lowerText.includes('reference range') ||
+        lowerText.includes('test name');
 
       if (isLabPaperText) {
         isRadiographFilm = false;
@@ -270,6 +270,7 @@ function processPageLines(pageText, pageNumber) {
 function isValidDocumentText(text) {
   if (!text || text.trim().length < 15) return false;
   // Match standard medical or clinical words
-  const words = text.match(/[A-Za-z0-9]{2,}/g) || [];
+  const words = text.match(
+    /[A-Za-z0-9]{2,}/g) || [];
   return words.length >= 4;
 }

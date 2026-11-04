@@ -5,6 +5,7 @@ import { evaluateAbnormalities, correlateFindings, calculateTrends, calculateRis
 import { generateClinicalReport } from './report/index.js';
 import { analyzeRadiographFilm } from './vision/radiographAnalyzer.js';
 import searchMedicalTextbooks from './books/bookSearchEngine.js';
+import { dispatchToClinicalML } from '../utils/mlInferenceClient.js';
 
 /**
  * Universal Medical Document Processing Engine
@@ -122,9 +123,47 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
   // 4. Analysis Layer: Rules, Abnormalities, Safety, Correlation, Trends, Risk
   const evaluatedResults = evaluateAbnormalities(workingResults, parsedData.demographics);
   const validatedResults = validateSafety(evaluatedResults);
+
+  // 4b. Clinical Machine Learning Inference (12 Specialized Clinical Models)
+  let mlInferenceResult = null;
+  try {
+    const rawCategory = classification.classifiedCategories?.[0]?.name || classification.documentType || 'General';
+    mlInferenceResult = await dispatchToClinicalML({
+      filePath: actualFilePath,
+      fileName: extractedDoc.fileName || fileName,
+      fileType: extractedDoc.fileType,
+      category: rawCategory,
+      extractedText: parsedData.clinicalNotes?.findingsText || extractedDoc.fullText || '',
+      structuredResults: validatedResults
+    });
+  } catch (mlErr) {
+    console.warn(`[SCANNER_ML_WARN] Machine Learning dispatch skipped: ${mlErr.message}`);
+  }
+
+  if (mlInferenceResult && mlInferenceResult.modelUsed) {
+    parsedData.diagnosticFindings.push({
+      type: 'clinical_ml_model',
+      procedure: `Clinical Machine Learning Model (${mlInferenceResult.modelUsed})`,
+      category: mlInferenceResult.clinicalCategory || 'Machine Learning Diagnostics',
+      icon: '🧠',
+      findingsSummary: Array.isArray(mlInferenceResult.findings)
+        ? mlInferenceResult.findings.join(' ')
+        : (mlInferenceResult.findings || 'Automated clinical model analysis completed.'),
+      riskLevel: mlInferenceResult.riskLevel || 'Low',
+      confidenceScore: mlInferenceResult.confidenceScore || mlInferenceResult.confidence || 0.90,
+      modelType: mlInferenceResult.modelType || 'Clinical-ML',
+      modelUsed: mlInferenceResult.modelUsed,
+      recommendation: (mlInferenceResult.findings && mlInferenceResult.findings[1]) || 'Correlate with clinical findings.',
+      doctorReviewStatus: mlInferenceResult.doctorReviewStatus || 'PENDING_VERIFICATION'
+    });
+  }
+
   const relationshipPatterns = correlateFindings(validatedResults, parsedData.diagnosticFindings, parsedData.clinicalNotes);
   const healthTrends = calculateTrends(validatedResults, previousReports);
-  const riskLevel = calculateRiskLevel(validatedResults, relationshipPatterns);
+  let riskLevel = calculateRiskLevel(validatedResults, relationshipPatterns);
+  if (mlInferenceResult?.riskLevel === 'High' && riskLevel !== 'Critical') {
+    riskLevel = 'High';
+  }
 
   const normalCount = validatedResults.filter(r => r.severity === 'normal').length;
   const abnormalCount = validatedResults.filter(r => r.severity === 'abnormal').length;
@@ -160,6 +199,7 @@ export async function processMedicalDocument({ filePath, fileName = '', previous
     clinicalNotes: parsedData.clinicalNotes,
     relationshipPatterns,
     healthTrends,
+    mlInferenceResult,
     auditTrail: {
       processedAt: new Date().toISOString(),
       sourceLinesCount: extractedDoc.lines.length,

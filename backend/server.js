@@ -33,13 +33,13 @@ import { standardLimiter } from './middleware/rateLimit.js';
 import { ssrfShield } from './middleware/ssrfShield.js';
 import { institutionalLogger } from './middleware/institutionalLogger.js';
 
-// MediConsult Node Initialization
-
-dotenv.config();
-connectDB();
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// MediConsult Node Initialization
+dotenv.config({ path: path.join(__dirname, '.env') });
+dotenv.config();
+connectDB();
 
 const app = express();
 app.disable('x-powered-by'); // Security hardening
@@ -85,6 +85,10 @@ const allowedOrigins = [
   'https://localhost:5173',
   'http://127.0.0.1:5173',
   'https://127.0.0.1:5173',
+  'http://172.20.10.7:5173',
+  'https://172.20.10.7:5173',
+  'http://172.20.10.7:5001',
+  'http://172.20.10.7:5000',
   'http://10.100.47.15:5173',
   'https://10.100.47.15:5173',
   'http://10.100.47.15:5001',

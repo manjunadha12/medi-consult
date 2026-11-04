@@ -30,7 +30,7 @@ if (typeof window.BACKEND_URL === 'undefined') {
     if (typeof window !== 'undefined' && window.localStorage?.getItem('DEV_PC_IP')) {
       return window.localStorage.getItem('DEV_PC_IP');
     }
-    return '10.100.47.15';
+    return '172.20.10.7';
   };
   const DEV_PC_IP = getDevPcIp();
   const BACKEND_PORT = '5001';

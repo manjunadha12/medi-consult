@@ -7,7 +7,8 @@ import {
   getReportById,
   processReportLocally,
   verifyReportValues,
-  clearAllPatientReports
+  clearAllPatientReports,
+  updateDoctorReviewStatus
 } from '../controllers/reportController.js';
 import { protect } from '../middleware/auth.js';
 import upload from '../middleware/upload.js';
@@ -18,6 +19,7 @@ router.delete('/patient/:patientId/clear-all', protect, clearAllPatientReports);
 router.get('/:id', protect, getReportById);
 router.post('/process-local', protect, processReportLocally);
 router.post('/verify-values', protect, verifyReportValues);
+router.post('/review-status', protect, updateDoctorReviewStatus);
 router.delete('/:id', protect, deleteReport);
 
 export default router;

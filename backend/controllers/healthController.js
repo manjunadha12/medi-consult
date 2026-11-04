@@ -248,6 +248,8 @@ export const addHealthLog = async (
     const {
       patientId,
       date,
+      time,
+      sessionTag,
       bp_systolic,
       bp_diastolic,
       temperature,
@@ -267,72 +269,77 @@ export const addHealthLog = async (
     }
 
 
-    const selectedDate =
-      date
-        ? new Date(date)
-        : new Date();
-
-    selectedDate.setHours(
-      0,
-      0,
-      0,
-      0
-    );
-
-
-    const nextDay =
-      new Date(selectedDate);
-
-    nextDay.setDate(
-      nextDay.getDate() + 1
-    );
-
-
-    const existingLog =
-      await HealthLog.findOne({
-        patientId,
-
-        date: {
-          $gte: selectedDate,
-          $lt: nextDay
+    // Determine the exact timestamp for this log (supports multiple logs per day)
+    let entryDate = new Date();
+    if (date) {
+      if (typeof date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(date)) {
+        const [year, month, day] = date.split("-").map(Number);
+        entryDate = new Date(year, month - 1, day);
+      } else {
+        const parsed = new Date(date);
+        if (!isNaN(parsed.getTime())) {
+          entryDate = parsed;
         }
-      });
+      }
+    }
+
+    // Format a friendly 12-hour time string (e.g. "5:41 PM")
+    let timeString = "";
+    if (time && typeof time === "string" && time.includes(":")) {
+      const [hours, minutes] = time.split(":").map(Number);
+      if (!isNaN(hours) && !isNaN(minutes)) {
+        entryDate.setHours(hours, minutes, 0, 0);
+        const period = hours >= 12 ? "PM" : "AM";
+        const hour12 = hours % 12 || 12;
+        timeString = `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
+      }
+    } else if (date && typeof date === "string" && date.length === 10) {
+      const now = new Date();
+      entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      const period = now.getHours() >= 12 ? "PM" : "AM";
+      const hour12 = now.getHours() % 12 || 12;
+      timeString = `${hour12}:${String(now.getMinutes()).padStart(2, "0")} ${period}`;
+    }
 
 
     const healthData = {
-      bp_systolic,
-      bp_diastolic,
-      temperature,
-      heartbeat,
-      sugar,
-      oxygen,
-      weight,
-      notes
+      bp_systolic: bp_systolic !== undefined && bp_systolic !== null && bp_systolic !== "" ? Number(bp_systolic) : null,
+      bp_diastolic: bp_diastolic !== undefined && bp_diastolic !== null && bp_diastolic !== "" ? Number(bp_diastolic) : null,
+      temperature: temperature !== undefined && temperature !== null && temperature !== "" ? Number(temperature) : null,
+      heartbeat: heartbeat !== undefined && heartbeat !== null && heartbeat !== "" ? Number(heartbeat) : null,
+      sugar: sugar !== undefined && sugar !== null && sugar !== "" ? Number(sugar) : null,
+      oxygen: oxygen !== undefined && oxygen !== null && oxygen !== "" ? Number(oxygen) : null,
+      weight: weight !== undefined && weight !== null && weight !== "" ? Number(weight) : null,
+      notes: notes || ""
     };
 
+    // Verify at least one vital metric is provided
+    const hasMetric = [
+      healthData.bp_systolic,
+      healthData.bp_diastolic,
+      healthData.temperature,
+      healthData.heartbeat,
+      healthData.sugar,
+      healthData.oxygen,
+      healthData.weight
+    ].some(v => v !== null);
 
-    let log;
-
-    if (existingLog) {
-
-      Object.assign(
-        existingLog,
-        healthData
-      );
-
-      log =
-        await existingLog.save();
-
-    } else {
-
-      log =
-        await HealthLog.create({
-          patientId,
-          date: selectedDate,
-          ...healthData
-        });
-
+    if (!hasMetric) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide at least one vital metric to record"
+      });
     }
+
+
+    // Always create a new record so patients can log multiple times daily
+    const log = await HealthLog.create({
+      patientId,
+      date: entryDate,
+      time: timeString,
+      sessionTag: sessionTag || "",
+      ...healthData
+    });
 
 
     return res.status(201).json({
@@ -1420,11 +1427,7 @@ export const cleanHealthData =
       ) {
 
         const dateKey =
-          new Date(
-            log.date
-          )
-            .toISOString()
-            .split("T")[0];
+          `${new Date(log.date).toISOString()}_${log.bp_systolic}_${log.bp_diastolic}_${log.heartbeat}_${log.sugar}_${log.oxygen}_${log.temperature}_${log.weight}`;
 
 
         if (
@@ -1561,23 +1564,39 @@ export const deleteAllHealthLogs =
         patientId
       } = req.params;
 
+      const range = req.query.range || req.body?.range || "all";
+
+      let query = { patientId };
+      const now = new Date();
+
+      if (range === "today" || range === "day") {
+        const startOfToday = new Date();
+        startOfToday.setHours(0, 0, 0, 0);
+        query.date = { $gte: startOfToday };
+      } else if (range === "week") {
+        const startOfWeek = new Date();
+        startOfWeek.setDate(now.getDate() - 7);
+        query.date = { $gte: startOfWeek };
+      } else if (range === "month") {
+        const startOfMonth = new Date();
+        startOfMonth.setDate(now.getDate() - 30);
+        query.date = { $gte: startOfMonth };
+      }
 
       const result =
-        await HealthLog.deleteMany({
-          patientId
-        });
+        await HealthLog.deleteMany(query);
 
+      let scopeLabel = "All health records";
+      if (range === "today" || range === "day") scopeLabel = "Today's health records";
+      if (range === "week") scopeLabel = "Last week's records";
+      if (range === "month") scopeLabel = "Last month's records";
 
       return res.json({
-
         success: true,
-
         deletedCount:
           result.deletedCount,
-
         message:
-          "All health records deleted"
-
+          `${scopeLabel} cleared (${result.deletedCount} removed)`
       });
 
 

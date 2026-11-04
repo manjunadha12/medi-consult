@@ -84,7 +84,22 @@ export const registerPatient = async (req, res) => {
   try {
     const { name, email, password, phone, age, gender, applicationNumber } = req.body;
 
-    const userExists = await User.findOne({ email });
+    if (!name || !email || !password || !phone) {
+      return res.status(400).json({ message: 'Missing required credentials' });
+    }
+
+    const cleanName = name.trim();
+    if (!/^[A-Za-z\s]{2,50}$/.test(cleanName)) {
+      return res.status(400).json({ message: 'Full Name must contain letters and spaces only (min 2 characters)' });
+    }
+
+    const cleanPhone = phone.toString().trim();
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      return res.status(400).json({ message: 'Mobile Number must be exactly 10 digits' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    const userExists = await User.findOne({ email: cleanEmail });
     if (userExists) {
       return res.status(400).json({ message: 'User already exists' });
     }
@@ -93,10 +108,10 @@ export const registerPatient = async (req, res) => {
     const patientId = `PAT${1001 + patientCount}`;
 
     const user = await User.create({
-      name,
-      email,
+      name: cleanName,
+      email: cleanEmail,
       password,
-      phone,
+      phone: cleanPhone,
       role: 'patient',
       patientId,
       applicationNumber: applicationNumber || undefined
@@ -369,12 +384,43 @@ export const registerPatientOtp = async (req, res) => {
     const { name, email, phone, age, gender, password, dob, bloodGroup, address, guardianName, guardianPhone, profession, aadhaarNumber } = req.body;
 
     // Basic Validation
-    if (!name || !email || !phone || !age || !gender || !password) {
+    if (!name || !email || !phone || !gender || !password) {
       return res.status(400).json({ message: 'All required fields must be filled' });
     }
 
+    // Name Validation: Letters and spaces only, min 2 characters
+    const cleanName = (name || '').trim();
+    if (!/^[A-Za-z\s]{2,50}$/.test(cleanName)) {
+      return res.status(400).json({ message: 'Full Name must contain letters and spaces only (min 2 characters)' });
+    }
+
+    // Phone Validation: Exactly 10 digits
+    const cleanPhone = (phone || '').toString().trim();
+    if (!/^\d{10}$/.test(cleanPhone)) {
+      return res.status(400).json({ message: 'Mobile Number must be exactly 10 digits' });
+    }
+
+    // Guardian Phone Validation: if provided, must be exactly 10 digits
+    const cleanGuardianPhone = guardianPhone ? guardianPhone.toString().trim() : '';
+    if (cleanGuardianPhone && !/^\d{10}$/.test(cleanGuardianPhone)) {
+      return res.status(400).json({ message: 'Guardian Phone number must be exactly 10 digits' });
+    }
+
+    // Guardian Name Validation: if provided, letters and spaces only
+    const cleanGuardianName = guardianName ? guardianName.trim() : '';
+    if (cleanGuardianName && !/^[A-Za-z\s]+$/.test(cleanGuardianName)) {
+      return res.status(400).json({ message: 'Guardian Name must contain letters and spaces only' });
+    }
+
+    // Aadhaar Validation: if provided, must be exactly 12 digits
+    const cleanAadhaar = aadhaarNumber ? aadhaarNumber.toString().trim() : '';
+    if (cleanAadhaar && !/^\d{12}$/.test(cleanAadhaar)) {
+      return res.status(400).json({ message: 'Aadhaar Card Number must be exactly 12 digits' });
+    }
+
+    const cleanEmail = (email || '').toLowerCase().trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(cleanEmail)) {
       return res.status(400).json({ message: 'Invalid email format' });
     }
 
@@ -382,9 +428,9 @@ export const registerPatientOtp = async (req, res) => {
       return res.status(400).json({ message: 'Password must be at least 6 characters' });
     }
 
-    let queryConditions = [{ email }, { phone }];
-    if (aadhaarNumber && aadhaarNumber.trim() !== '') {
-      queryConditions.push({ aadhaarNumber: aadhaarNumber.trim() });
+    let queryConditions = [{ email: cleanEmail }, { phone: cleanPhone }];
+    if (cleanAadhaar) {
+      queryConditions.push({ aadhaarNumber: cleanAadhaar });
     }
 
     const userExists = await User.findOne({ $or: queryConditions });
@@ -392,9 +438,9 @@ export const registerPatientOtp = async (req, res) => {
       return res.status(400).json({ message: 'User with this Email, Phone Number, or Aadhaar Number already exists. Only a single account per Aadhaar is permitted.' });
     }
 
-    let tempConditions = [{ email }, { phone }];
-    if (aadhaarNumber && aadhaarNumber.trim() !== '') {
-      tempConditions.push({ aadhaarNumber: aadhaarNumber.trim() });
+    let tempConditions = [{ email: cleanEmail }, { phone: cleanPhone }];
+    if (cleanAadhaar) {
+      tempConditions.push({ aadhaarNumber: cleanAadhaar });
     }
     await TempUser.deleteMany({ $or: tempConditions });
 
@@ -402,19 +448,19 @@ export const registerPatientOtp = async (req, res) => {
     const otpExpires = new Date(Date.now() + 5 * 60 * 1000); // 5 mins expiry
 
     const tempUser = await TempUser.create({
-      name,
-      email,
-      phone,
-      age: parseInt(age),
+      name: cleanName,
+      email: cleanEmail,
+      phone: cleanPhone,
+      age: parseInt(age) || 0,
       gender,
       password,
       dob,
       bloodGroup,
       address,
-      guardianName,
-      guardianPhone,
-      profession,
-      aadhaarNumber,
+      guardianName: cleanGuardianName,
+      guardianPhone: cleanGuardianPhone,
+      profession: profession ? profession.trim() : '',
+      aadhaarNumber: cleanAadhaar,
       emailOtp,
       emailOtpExpires: otpExpires,
       lastOtpSentAt: new Date()
