@@ -60,53 +60,88 @@ export async function detectFracturesWithAI(filePath) {
         };
       }
 
-      // If dataset ML model detected a fracture, compute precision cortical anomaly coordinates
-      const { data } = await sharp(filePath).grayscale().raw().toBuffer({ resolveWithObject: true });
-      let maxGrad = 0;
-      let anomalyX = Math.round(origW * 0.5);
-      let anomalyY = Math.round(origH * 0.5);
+      // If dataset ML model detected a fracture, extract candidates from YOLO if present, else precision cortical gradient
+      let fractures = [];
 
-      for (let y = Math.floor(origH * 0.15); y < Math.floor(origH * 0.70); y += 2) {
-        for (let x = Math.floor(origW * 0.15); x < Math.floor(origW * 0.85); x += 2) {
-          const gx = data[y * origW + (x + 1)] - data[y * origW + (x - 1)];
-          const gy = data[(y + 1) * origW + x] - data[(y - 1) * origW + x];
-          const g = Math.sqrt(gx * gx + gy * gy);
-          if (g > maxGrad) {
-            maxGrad = g;
-            anomalyX = x;
-            anomalyY = y;
+      if (Array.isArray(datasetMlResult.fractureCandidates) && datasetMlResult.fractureCandidates.length > 0) {
+        fractures = datasetMlResult.fractureCandidates.map((c, idx) => {
+          const [ymin, xmin, ymax, xmax] = c.box_2d || [0, 0, 0, 0];
+          const x = Math.round(xmin);
+          const y = Math.round(ymin);
+          const width = Math.max(20, Math.round(xmax - xmin));
+          const height = Math.max(20, Math.round(ymax - ymin));
+          const centerX = Math.round((xmin + xmax) / 2);
+          const centerY = Math.round((ymin + ymax) / 2);
+          return {
+            label: c.label || `Fracture Candidate ${idx + 1}`,
+            anatomicalSite: 'Suspected Fracture Site (YOLO Candidate Region)',
+            confidence: c.confidence || Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
+            displacementType: 'Cortical discontinuity candidate flagged for clinical review',
+            clinicalRecommendation: 'Orthopedic immobilization and specialist over-read recommended.',
+            coordinates: {
+              x,
+              y,
+              width,
+              height,
+              centerX,
+              centerY,
+              xPct: centerX / origW,
+              yPct: centerY / origH,
+              xPercent: c.xPercent || parseFloat(((centerX / origW) * 100).toFixed(1)),
+              yPercent: c.yPercent || parseFloat(((centerY / origH) * 100).toFixed(1)),
+              widthPercent: c.widthPercent || 20.0,
+              heightPercent: c.heightPercent || 20.0
+            }
+          };
+        });
+      } else {
+        const { data } = await sharp(filePath).grayscale().raw().toBuffer({ resolveWithObject: true });
+        let maxGrad = 0;
+        let anomalyX = Math.round(origW * 0.5);
+        let anomalyY = Math.round(origH * 0.5);
+
+        for (let y = Math.floor(origH * 0.15); y < Math.floor(origH * 0.70); y += 2) {
+          for (let x = Math.floor(origW * 0.15); x < Math.floor(origW * 0.85); x += 2) {
+            const gx = data[y * origW + (x + 1)] - data[y * origW + (x - 1)];
+            const gy = data[(y + 1) * origW + x] - data[(y - 1) * origW + x];
+            const g = Math.sqrt(gx * gx + gy * gy);
+            if (g > maxGrad) {
+              maxGrad = g;
+              anomalyX = x;
+              anomalyY = y;
+            }
           }
         }
+
+        const xPercent = parseFloat(((anomalyX / origW) * 100).toFixed(1));
+        const yPercent = parseFloat(((anomalyY / origH) * 100).toFixed(1));
+        const bw = Math.round(origW * 0.2);
+        const bh = Math.round(origH * 0.2);
+
+        fractures = [
+          {
+            label: 'Fracture 1',
+            anatomicalSite: 'Cortical Disruption Site',
+            confidence: Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
+            displacementType: 'Cortical fracture line with trabecular discontinuity',
+            clinicalRecommendation: 'Orthopedic immobilization and specialist over-read recommended.',
+            coordinates: {
+              x: Math.round(anomalyX - bw / 2),
+              y: Math.round(anomalyY - bh / 2),
+              width: bw,
+              height: bh,
+              centerX: anomalyX,
+              centerY: anomalyY,
+              xPct: anomalyX / origW,
+              yPct: anomalyY / origH,
+              xPercent,
+              yPercent,
+              widthPercent: 20.0,
+              heightPercent: 20.0
+            }
+          }
+        ];
       }
-
-      const xPercent = parseFloat(((anomalyX / origW) * 100).toFixed(1));
-      const yPercent = parseFloat(((anomalyY / origH) * 100).toFixed(1));
-      const bw = Math.round(origW * 0.2);
-      const bh = Math.round(origH * 0.2);
-
-      const fractures = [
-        {
-          label: 'Fracture 1',
-          anatomicalSite: 'Cortical Disruption Site',
-          confidence: Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
-          displacementType: 'Cortical fracture line with trabecular discontinuity',
-          clinicalRecommendation: 'Orthopedic immobilization and specialist over-read recommended.',
-          coordinates: {
-            x: Math.round(anomalyX - bw / 2),
-            y: Math.round(anomalyY - bh / 2),
-            width: bw,
-            height: bh,
-            centerX: anomalyX,
-            centerY: anomalyY,
-            xPct: anomalyX / origW,
-            yPct: anomalyY / origH,
-            xPercent,
-            yPercent,
-            widthPercent: 20.0,
-            heightPercent: 20.0
-          }
-        }
-      ];
 
       return {
         isFracturePresent: true,

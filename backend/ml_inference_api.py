@@ -63,6 +63,7 @@ MODELS = {
     "urine_meta": None,
     "bone_fracture": None,
     "bone_fracture_meta": None,
+    "bone_yolo": None,
     "diabetic_retinopathy": None,
     "diabetic_retinopathy_meta": None,
     "skin_lesion": None,
@@ -372,6 +373,16 @@ def load_all_models():
             print("  [Loaded] Bone Fracture EfficientNet-B4 Model", flush=True)
         except Exception as e:
             print(f"  [Error] Loading Bone Fracture: {e}", flush=True)
+
+    # 7b. Bone Fracture YOLOv8 Localization Model (FracAtlas)
+    bone_yolo_file = MODELS_DIR / "bone_fracture_localization_best.pt"
+    if bone_yolo_file.exists():
+        try:
+            from ultralytics import YOLO
+            MODELS["bone_yolo"] = YOLO(str(bone_yolo_file))
+            print("  [Loaded] Bone Fracture YOLOv8 Localization Model", flush=True)
+        except Exception as e:
+            print(f"  [Notice] YOLOv8 Localization loader: {e}", flush=True)
 
     # 8. Diabetic Retinopathy ResNet-18 Model
     dr_file = MODELS_DIR / "diabetic_retinopathy_resnet.pth"
@@ -1129,6 +1140,27 @@ async def analyze_bone_fracture(
 
         risk_level = "High" if fracture_prob > 0.70 else ("Medium" if is_fractured else "Low")
 
+        # YOLOv8 candidate detection if model weights are present
+        fracture_candidates = []
+        if MODELS.get("bone_yolo") is not None and is_fractured:
+            try:
+                preds = MODELS["bone_yolo"].predict(source=img, conf=0.20, imgsz=640, verbose=False)
+                for r in preds:
+                    for idx, box in enumerate(r.boxes):
+                        xyxy = box.xyxy[0].cpu().numpy()
+                        conf = float(box.conf[0].cpu().numpy())
+                        fracture_candidates.append({
+                            "label": f"Fracture Candidate {idx + 1}",
+                            "confidence": round(conf * 100, 2),
+                            "box_2d": [float(xyxy[1]), float(xyxy[0]), float(xyxy[3]), float(xyxy[2])],
+                            "xPercent": round(((float(xyxy[0]) + float(xyxy[2])) / (2.0 * img.width)) * 100, 1),
+                            "yPercent": round(((float(xyxy[1]) + float(xyxy[3])) / (2.0 * img.height)) * 100, 1),
+                            "widthPercent": round(((float(xyxy[2]) - float(xyxy[0])) / float(img.width)) * 100, 1),
+                            "heightPercent": round(((float(xyxy[3]) - float(xyxy[1])) / float(img.height)) * 100, 1)
+                        })
+            except Exception as yolo_err:
+                print(f"[YOLO_PRED_NOTICE] {yolo_err}")
+
         return {
             "modelType": "EfficientNet-B4",
             "modelUsed": "EfficientNet-B4 (Bone Fracture Computer Vision Project)",
@@ -1138,6 +1170,7 @@ async def analyze_bone_fracture(
             "normalProbability": round(normal_prob, 4),
             "riskLevel": risk_level,
             "findings": findings,
+            "fractureCandidates": fracture_candidates,
             "anatomicalRegionsCovered": [
                 "Elbow", "Fingers & Hand Phalanx", "Forearm (Radius/Ulna)",
                 "Humerus", "Shoulder & Clavicle", "Wrist"
