@@ -4,6 +4,11 @@ import sharp from 'sharp';
 import axios from 'axios';
 import dns from 'dns';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
 dotenv.config();
 
 try {
@@ -60,11 +65,9 @@ export async function detectFracturesWithAI(filePath) {
         };
       }
 
-      // If dataset ML model detected a fracture, extract candidates from YOLO if present, else precision cortical gradient
-      let fractures = [];
-
+      // If dataset ML model detected a fracture, check if YOLO candidates are available
       if (Array.isArray(datasetMlResult.fractureCandidates) && datasetMlResult.fractureCandidates.length > 0) {
-        fractures = datasetMlResult.fractureCandidates.map((c, idx) => {
+        const yoloFractures = datasetMlResult.fractureCandidates.map((c, idx) => {
           const [ymin, xmin, ymax, xmax] = c.box_2d || [0, 0, 0, 0];
           const x = Math.round(xmin);
           const y = Math.round(ymin);
@@ -94,68 +97,22 @@ export async function detectFracturesWithAI(filePath) {
             }
           };
         });
-      } else {
-        const { data } = await sharp(filePath).grayscale().raw().toBuffer({ resolveWithObject: true });
-        let maxGrad = 0;
-        let anomalyX = Math.round(origW * 0.5);
-        let anomalyY = Math.round(origH * 0.5);
 
-        for (let y = Math.floor(origH * 0.15); y < Math.floor(origH * 0.70); y += 2) {
-          for (let x = Math.floor(origW * 0.15); x < Math.floor(origW * 0.85); x += 2) {
-            const gx = data[y * origW + (x + 1)] - data[y * origW + (x - 1)];
-            const gy = data[(y + 1) * origW + x] - data[(y - 1) * origW + x];
-            const g = Math.sqrt(gx * gx + gy * gy);
-            if (g > maxGrad) {
-              maxGrad = g;
-              anomalyX = x;
-              anomalyY = y;
-            }
-          }
-        }
-
-        const xPercent = parseFloat(((anomalyX / origW) * 100).toFixed(1));
-        const yPercent = parseFloat(((anomalyY / origH) * 100).toFixed(1));
-        const bw = Math.round(origW * 0.2);
-        const bh = Math.round(origH * 0.2);
-
-        fractures = [
-          {
-            label: 'Fracture 1',
-            anatomicalSite: 'Cortical Disruption Site',
-            confidence: Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
-            displacementType: 'Cortical fracture line with trabecular discontinuity',
-            clinicalRecommendation: 'Orthopedic immobilization and specialist over-read recommended.',
-            coordinates: {
-              x: Math.round(anomalyX - bw / 2),
-              y: Math.round(anomalyY - bh / 2),
-              width: bw,
-              height: bh,
-              centerX: anomalyX,
-              centerY: anomalyY,
-              xPct: anomalyX / origW,
-              yPct: anomalyY / origH,
-              xPercent,
-              yPercent,
-              widthPercent: 20.0,
-              heightPercent: 20.0
-            }
-          }
-        ];
+        return {
+          isFracturePresent: true,
+          modelUsed: 'Dataset ML Model (EfficientNet-B4 + YOLOv8 Detection)',
+          analyzedByEngine: 'DATASET_ML_MODEL',
+          anatomicalRegion: datasetMlResult.anatomicalRegion || 'Musculoskeletal Radiograph (Fracture Localized)',
+          overallConfidence: Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
+          totalFracturesCount: yoloFractures.length,
+          fractures: yoloFractures,
+          imageDimensions: { width: origW, height: origH }
+        };
       }
-
-      return {
-        isFracturePresent: true,
-        modelUsed: 'Dataset ML Model (EfficientNet-B4 Trained on 4,148 Radiographs)',
-        analyzedByEngine: 'DATASET_ML_MODEL',
-        anatomicalRegion: 'Musculoskeletal Radiograph (Cortical Fracture Detected)',
-        overallConfidence: Math.round((datasetMlResult.fractureProbability || 0.90) * 100),
-        totalFracturesCount: fractures.length,
-        fractures,
-        imageDimensions: { width: origW, height: origH }
-      };
+      // If YOLO returned no candidate boxes on this image, proceed to the High-Precision Multimodal Vision Localizer below!
     }
 
-    // Optimize image payload for fallback AI inference
+    // Optimize image payload for Precision Multimodal Vision AI localization
     const optimizedBuffer = await sharp(filePath)
       .resize(1024, 1024, { fit: 'inside' })
       .jpeg({ quality: 85 })

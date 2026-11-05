@@ -1144,7 +1144,7 @@ async def analyze_bone_fracture(
         fracture_candidates = []
         if MODELS.get("bone_yolo") is not None and is_fractured:
             try:
-                preds = MODELS["bone_yolo"].predict(source=img, conf=0.20, imgsz=640, verbose=False)
+                preds = MODELS["bone_yolo"].predict(source=img, conf=0.10, imgsz=640, verbose=False)
                 for r in preds:
                     for idx, box in enumerate(r.boxes):
                         xyxy = box.xyxy[0].cpu().numpy()

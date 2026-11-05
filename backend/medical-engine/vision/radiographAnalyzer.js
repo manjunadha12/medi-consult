@@ -259,6 +259,35 @@ export async function analyzeRadiographFilm(filePath, extractedDoc, fileName = '
       if (!isGenericAiRegion) {
         anatomicalRegion = aiFractureResult.anatomicalRegion;
         modality = `Plain digital radiography — ${aiFractureResult.anatomicalRegion}`;
+        const rLower = aiFractureResult.anatomicalRegion.toLowerCase();
+        if (rLower.includes('forearm') || rLower.includes('radius') || rLower.includes('ulna')) {
+          detectedAnatomy = 'forearm';
+          projection = 'Anteroposterior (AP) and Lateral forearm views';
+        } else if (rLower.includes('wrist') || rLower.includes('carpal') || rLower.includes('scaphoid')) {
+          detectedAnatomy = 'wrist';
+          projection = 'Posteroanterior (PA) and Lateral wrist views';
+        } else if (rLower.includes('elbow') || rLower.includes('olecranon')) {
+          detectedAnatomy = 'elbow';
+          projection = 'AP and Lateral elbow views';
+        } else if (rLower.includes('hand') || rLower.includes('phalanx') || rLower.includes('metacarpal') || rLower.includes('finger')) {
+          detectedAnatomy = 'hand';
+          projection = 'Posteroanterior (PA) and Oblique hand views';
+        } else if (rLower.includes('knee') || rLower.includes('patella') || rLower.includes('tibial plateau')) {
+          detectedAnatomy = 'knee';
+          projection = 'Anteroposterior (AP) and Lateral knee views';
+        } else if (rLower.includes('ankle') || rLower.includes('malleol')) {
+          detectedAnatomy = 'ankle';
+          projection = 'AP, Mortise, and Lateral ankle views';
+        } else if (rLower.includes('foot') || rLower.includes('metatarsal') || rLower.includes('calcaneus')) {
+          detectedAnatomy = 'foot';
+          projection = 'AP and Oblique foot views';
+        } else if (rLower.includes('shoulder') || rLower.includes('clavicle') || rLower.includes('humerus')) {
+          detectedAnatomy = 'shoulder';
+          projection = 'AP and Axillary shoulder views';
+        } else if (rLower.includes('hip') || rLower.includes('pelvis') || rLower.includes('femur')) {
+          detectedAnatomy = 'pelvis';
+          projection = 'AP pelvis and frog-leg lateral hip views';
+        }
       }
 
       detectedFracturesList.forEach((f, idx) => {
@@ -299,6 +328,35 @@ export async function analyzeRadiographFilm(filePath, extractedDoc, fileName = '
       if (!isGenericAiRegion) {
         anatomicalRegion = aiFractureResult.anatomicalRegion;
         modality = `Plain digital radiography — ${aiFractureResult.anatomicalRegion}`;
+        const rLower = aiFractureResult.anatomicalRegion.toLowerCase();
+        if (rLower.includes('forearm') || rLower.includes('radius') || rLower.includes('ulna')) {
+          detectedAnatomy = 'forearm';
+          projection = 'Anteroposterior (AP) and Lateral forearm views';
+        } else if (rLower.includes('wrist') || rLower.includes('carpal') || rLower.includes('scaphoid')) {
+          detectedAnatomy = 'wrist';
+          projection = 'Posteroanterior (PA) and Lateral wrist views';
+        } else if (rLower.includes('elbow') || rLower.includes('olecranon')) {
+          detectedAnatomy = 'elbow';
+          projection = 'AP and Lateral elbow views';
+        } else if (rLower.includes('hand') || rLower.includes('phalanx') || rLower.includes('metacarpal') || rLower.includes('finger')) {
+          detectedAnatomy = 'hand';
+          projection = 'Posteroanterior (PA) and Oblique hand views';
+        } else if (rLower.includes('knee') || rLower.includes('patella') || rLower.includes('tibial plateau')) {
+          detectedAnatomy = 'knee';
+          projection = 'Anteroposterior (AP) and Lateral knee views';
+        } else if (rLower.includes('ankle') || rLower.includes('malleol')) {
+          detectedAnatomy = 'ankle';
+          projection = 'AP, Mortise, and Lateral ankle views';
+        } else if (rLower.includes('foot') || rLower.includes('metatarsal') || rLower.includes('calcaneus')) {
+          detectedAnatomy = 'foot';
+          projection = 'AP and Oblique foot views';
+        } else if (rLower.includes('shoulder') || rLower.includes('clavicle') || rLower.includes('humerus')) {
+          detectedAnatomy = 'shoulder';
+          projection = 'AP and Axillary shoulder views';
+        } else if (rLower.includes('hip') || rLower.includes('pelvis') || rLower.includes('femur')) {
+          detectedAnatomy = 'pelvis';
+          projection = 'AP pelvis and frog-leg lateral hip views';
+        }
       }
     } else {
       // Fallback: Dynamic Edge Discontinuity Scanner
@@ -345,24 +403,14 @@ export async function analyzeRadiographFilm(filePath, extractedDoc, fileName = '
             localizedBoneName = `Proximal Tibia / Tibial Plateau & Fibular Head (${panelView})`;
             
             candidateRois.push({
-              xPct: xPct > 0.5 ? xPct : 0.68,
-              yPct: yPct > 0.35 ? yPct : 0.54,
+              xPct: Math.min(0.85, Math.max(0.15, xPct)),
+              yPct: Math.min(0.70, Math.max(0.35, yPct)),
               radiusPct: 0.085,
-              label: "Proximal Tibia & Fibula Fracture (Lateral View)",
-              centerX: Math.round((xPct > 0.5 ? xPct : 0.68) * width),
-              centerY: Math.round((yPct > 0.35 ? yPct : 0.54) * height),
-              xPercent: Math.round((xPct > 0.5 ? xPct : 0.68) * 100),
-              yPercent: Math.round((yPct > 0.35 ? yPct : 0.54) * 100)
-            });
-            candidateRois.push({
-              xPct: 0.28,
-              yPct: 0.42,
-              radiusPct: 0.075,
-              label: "Tibial Plateau Fracture Split (AP View)",
-              centerX: Math.round(0.28 * width),
-              centerY: Math.round(0.42 * height),
-              xPercent: 28,
-              yPercent: 42
+              label: `Proximal Tibia & Fibula Fracture (${panelView})`,
+              centerX: anomalyX,
+              centerY: anomalyY,
+              xPercent: Math.round(xPct * 100),
+              yPercent: Math.round(yPct * 100)
             });
           } else {
             localizedBoneName = "Tibial / Fibular Shaft";
@@ -701,9 +749,18 @@ export async function analyzeRadiographFilm(filePath, extractedDoc, fileName = '
       fractures: detectedFracturesList,
       annotatedImageUrl: annotationResult?.annotatedImageUrl || null,
       annotatedFileName: annotationResult?.annotatedFileName || null,
-      identifiedStructures: detectedAnatomy === 'hand' 
-        ? "Phalanges (Digits I–V), Metacarpal Bones (I–V), MCP & IP Joints, Carpus"
-        : (detectedAnatomy === 'knee' ? "Femoral Condyles, Tibial Plateau, Fibular Head, Patella" : "Skeletal Structure"),
+      identifiedStructures: {
+        forearm: "Radius Shaft, Ulna Shaft, Radioulnar Interosseous Space, Proximal/Distal Radioulnar Joints",
+        wrist: "Distal Radius, Distal Ulna, Scaphoid, Lunate, Triquetrum, Carpal Arch",
+        elbow: "Distal Humerus, Olecranon, Radial Head, Coronoid Process",
+        hand: "Phalanges (Digits I–V), Metacarpal Bones (I–V), MCP & IP Joints, Carpus",
+        knee: "Femoral Condyles, Tibial Plateau, Fibular Head, Patella",
+        ankle: "Distal Tibia (Medial Malleolus), Distal Fibula (Lateral Malleolus), Talus Dome",
+        foot: "Metatarsals (I–V), Tarsals, Phalanges, Calcaneus",
+        shoulder: "Humeral Head, Glenoid, Clavicle, Acromion Process",
+        pelvis: "Ilium, Ischium, Pubis, Femoral Head & Neck",
+        chest: "Lungs, Heart Silhouette, Mediastinum, Rib Cage, Clavicles"
+      }[detectedAnatomy] || "Visualized Skeletal Structures & Cortical Margins",
       filmStatus: "Direct High-Contrast Radiological Film Validated",
       imagePreserved: true,
       findingsSummary: impression,
