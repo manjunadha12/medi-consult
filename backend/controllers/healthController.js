@@ -933,7 +933,7 @@ export const analyzeHealthTrends = async (
     ============================ */
 
     let overallStatus =
-      "Excellent";
+      "Biological Sync Stabilized";
 
     let overallSeverity =
       "normal";
@@ -970,7 +970,7 @@ export const analyzeHealthTrends = async (
     ) {
 
       overallStatus =
-        "Critical Attention";
+        "Physiological Vitals Alert";
 
     }
 
@@ -990,7 +990,7 @@ export const analyzeHealthTrends = async (
     ) {
 
       overallStatus =
-        "Needs Monitoring";
+        "Vitals Telemetry Under Observation";
 
     }
 
@@ -1001,6 +1001,13 @@ export const analyzeHealthTrends = async (
 
       overallStatus =
         "Minor Changes Detected";
+
+    }
+
+    else {
+
+      overallStatus =
+        "Biological Sync Stabilized";
 
     }
 
@@ -1271,6 +1278,16 @@ export const analyzeHealthTrends = async (
 
         status:
           overallStatus,
+
+        statusTitle:
+          overallStatus,
+
+        statusDescription:
+          overallSeverity === "normal"
+            ? "Telemetry confirms optimal biomarker homeostasis and vitals stability."
+            : (overallSeverity === "low" || overallSeverity === "medium")
+              ? "Slight physiological variance recorded in recent biometric health logs."
+              : "Biometric telemetry indicates abnormal vital signs. Prompt clinical review advised.",
 
         severity:
           overallSeverity,

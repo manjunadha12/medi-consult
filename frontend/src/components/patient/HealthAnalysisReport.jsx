@@ -89,18 +89,32 @@ const HealthAnalysisReport = () => {
           <div className={`p-6 rounded-[32px] border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-white border-slate-200'} flex items-center gap-6 shadow-xl`}>
              <div className="text-center">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Safety Rating</p>
-                <p className={`text-4xl font-black tracking-tighter ${overall.healthScore > 80 ? 'text-emerald-500' : overall.healthScore > 50 ? 'text-amber-500' : 'text-rose-500'}`}>{overall.healthScore}/100</p>
+                <p className={`text-4xl font-black tracking-tighter ${overall.healthScore >= 80 ? 'text-emerald-500' : overall.healthScore >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>{overall.healthScore}/100</p>
              </div>
              <div className="h-12 w-px bg-white/10"></div>
              <div className="text-left">
                 <p className="text-[9px] font-black text-slate-500 uppercase tracking-widest mb-1">Overall Status</p>
                 <div className="flex items-center gap-2">
-                   <span className="text-xl">{overall.icon}</span>
-                   <p className="text-sm font-black text-white uppercase">{overall.status}</p>
+                   <span className="text-xl">{overall.icon || '🟢'}</span>
+                   <p className={`text-sm font-black uppercase flex items-center gap-2 ${
+                     overall.status === 'Biological Sync Stabilized' ? 'text-emerald-400' : 'text-white'
+                   }`}>
+                     {overall.status === 'Biological Sync Stabilized' && (
+                       <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse shrink-0 inline-block" />
+                     )}
+                     {overall.status}
+                   </p>
                 </div>
              </div>
           </div>
         </header>
+
+        {overall.status === 'Biological Sync Stabilized' && (
+          <div className="mb-8 p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-emerald-400 text-xs font-black uppercase tracking-wider">
+            <CheckCircle size={18} className="shrink-0 text-emerald-400" />
+            <span>Biological Sync Stabilized: Telemetry confirms optimal biomarker homeostasis and vitals stability.</span>
+          </div>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
 

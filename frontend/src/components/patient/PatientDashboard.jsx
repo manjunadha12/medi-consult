@@ -386,7 +386,14 @@ const PatientDashboard = () => {
                     <div className="flex flex-col md:flex-row items-center gap-8 lg:gap-16">
                        <CircularProgress value={metrics.score} />
                        <div className="flex-1 text-center md:text-left">
-                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-white uppercase tracking-tight mb-2 sm:mb-3 leading-tight">{metrics.statusTitle || "Biological Sync Stabilized"}</h2>
+                          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black uppercase tracking-tight mb-2 sm:mb-3 leading-tight flex items-center justify-center md:justify-start gap-3">
+                            {metrics.statusTitle === "Biological Sync Stabilized" && (
+                              <span className="w-3.5 h-3.5 rounded-full bg-emerald-400 animate-pulse shrink-0 inline-block" />
+                            )}
+                            <span className={metrics.statusTitle === "Biological Sync Stabilized" ? "text-white" : metrics.risk === "High" ? "text-rose-400" : "text-amber-400"}>
+                              {metrics.statusTitle || "Biological Sync Stabilized"}
+                            </span>
+                          </h2>
                           <p className="text-zinc-400 font-bold uppercase text-[8px] sm:text-[10px] tracking-[0.2em] mb-8 lg:mb-10 leading-relaxed">{metrics.statusDescription || `Telemetry indicates ${metrics.efficiency || '+2.1%'} efficiency improvement.`}</p>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
                              {[
