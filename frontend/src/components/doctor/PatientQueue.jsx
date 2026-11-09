@@ -33,38 +33,13 @@ const PatientQueue = () => {
   const fetchQueue = async () => {
     try {
       setLoading(true);
-      const [onlineRes, offlineRes] = await Promise.allSettled([
-        api.get('/appointments/doctor-queue'),
-        api.get('/offline-appointments/doctor-queue')
-      ]);
-
-      let onlineList = [];
-      if (onlineRes.status === 'fulfilled') {
-        onlineList = (onlineRes.value.data || []).map(item => ({
-          ...item,
-          consultationType: item.consultationType || (item.type === 'offline' ? 'OFFLINE' : 'VIDEO_CALL'),
-          isOffline: item.type === 'offline' || item.consultationType === 'OFFLINE'
-        }));
-      }
-
-      let offlineList = [];
-      if (offlineRes.status === 'fulfilled' && offlineRes.value.data?.appointments) {
-        offlineList = (offlineRes.value.data.appointments || []).map(item => ({
-          ...item,
-          _id: item.appointmentId || item._id,
-          tokenNumber: item.tokenNumber,
-          patientName: item.patientName,
-          patientId: item.patientId,
-          problemDescription: item.symptoms || item.department || 'Hospital OP Consultation',
-          time: item.timeSlot || item.appointmentDate || 'Today',
-          status: item.status || 'Booked',
-          consultationType: 'OFFLINE',
-          isOffline: true,
-          hospitalName: item.hospitalName
-        }));
-      }
-
-      setQueue([...onlineList, ...offlineList]);
+      const res = await api.get('/appointments/doctor-queue');
+      const onlineList = (res.data || []).map(item => ({
+        ...item,
+        consultationType: item.consultationType || 'VIDEO_CALL',
+        isOffline: false
+      }));
+      setQueue(onlineList);
     } catch (err) {
       console.error('[FETCH_QUEUE_ERR]', err);
       toast.error("Failed to load clinical queue");
@@ -74,10 +49,6 @@ const PatientQueue = () => {
   };
 
   const filteredQueue = queue.filter(p => {
-    if (typeFilter === 'OFFLINE') return p.isOffline || p.consultationType === 'OFFLINE';
-    if (typeFilter === 'ONLINE') return !p.isOffline && p.consultationType !== 'OFFLINE';
-    return true;
-  }).filter(p => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase();
     return (p.patientName || '').toLowerCase().includes(q) ||
@@ -157,32 +128,20 @@ const PatientQueue = () => {
           <header className="mb-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
             <div>
               <h1 className="text-3xl font-black text-white uppercase tracking-tight">Clinical OP Queue</h1>
-              <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1">Live Diagnostic Loop Monitor • Offline & Online Integrated</p>
+              <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1">Live Diagnostic Loop Monitor • Online Video Consultations</p>
             </div>
 
             {/* Filter Tabs */}
             <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/5 gap-1.5 flex-wrap">
               <button
-                onClick={() => { setView('active'); setTypeFilter('ALL'); }}
-                className={`px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${view === 'active' && typeFilter === 'ALL' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                onClick={() => setView('active')}
+                className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${view === 'active' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
-                All Active
-              </button>
-              <button
-                onClick={() => { setView('active'); setTypeFilter('OFFLINE'); }}
-                className={`px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${view === 'active' && typeFilter === 'OFFLINE' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                <Building size={12} /> Offline OP
-              </button>
-              <button
-                onClick={() => { setView('active'); setTypeFilter('ONLINE'); }}
-                className={`px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all flex items-center gap-1.5 ${view === 'active' && typeFilter === 'ONLINE' ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
-              >
-                <Video size={12} /> Online Video
+                Active Online OP
               </button>
               <button
                 onClick={() => setView('history')}
-                className={`px-5 py-2 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${view === 'history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
+                className={`px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${view === 'history' ? 'bg-blue-600 text-white shadow-lg shadow-blue-500/20' : 'text-zinc-500 hover:text-zinc-300'}`}
               >
                 Past Buffer
               </button>
@@ -201,11 +160,6 @@ const PatientQueue = () => {
                   className="w-full pl-14 pr-6 py-4 bg-white/5 border border-white/5 rounded-2xl outline-none text-xs font-black uppercase tracking-widest text-white focus:border-blue-500/30 transition-all shadow-inner placeholder:text-zinc-650"
                 />
               </div>
-              <div className="flex gap-3 w-full md:w-auto">
-                <button onClick={() => navigate('/doctor/offline-queue')} className="px-5 py-4 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 shadow-sm">
-                  <Building size={16} /> Open Hospital OP Desk
-                </button>
-              </div>
             </div>
 
             <div className="overflow-x-auto">
@@ -222,12 +176,11 @@ const PatientQueue = () => {
                 </thead>
                 <tbody className="divide-y divide-white/5">
                   {displayData.length > 0 ? displayData.map((p, i) => {
-                    const isOffline = p.isOffline || p.consultationType === 'OFFLINE';
                     return (
                       <tr key={i} className={`hover:bg-white/5 transition-all ${p.isEmergency ? 'bg-red-500/5' : ''}`}>
                         <td className="px-10 py-8">
                           <div className={`w-16 h-16 rounded-[24px] flex flex-col items-center justify-center border-2 ${
-                            p.isEmergency ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : (isOffline ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-blue-500/10 border-blue-500/20 text-blue-400')
+                            p.isEmergency ? 'bg-red-500/10 border-red-500/20 text-red-400 animate-pulse' : 'bg-blue-500/10 border-blue-500/20 text-blue-400'
                           }`}>
                             <span className="text-[8px] font-black uppercase opacity-60">Token</span>
                             <span className="text-2xl font-black">#{p.tokenNumber}</span>
@@ -245,15 +198,9 @@ const PatientQueue = () => {
                           </div>
                         </td>
                         <td className="px-10 py-8">
-                          {isOffline ? (
-                            <span className="px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-emerald-500/10 text-emerald-400 border-emerald-500/20 inline-flex items-center gap-1.5">
-                              <Building size={12} /> Offline Hospital OP
-                            </span>
-                          ) : (
-                            <span className="px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-blue-500/10 text-blue-400 border-blue-500/20 inline-flex items-center gap-1.5">
-                              <Video size={12} /> Online Video Call
-                            </span>
-                          )}
+                          <span className="px-3.5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border bg-blue-500/10 text-blue-400 border-blue-500/20 inline-flex items-center gap-1.5">
+                            <Video size={12} /> Online Video OP
+                          </span>
                         </td>
                         <td className="px-10 py-8">
                           <p className="text-xs font-bold text-zinc-400 uppercase tracking-tight truncate max-w-[180px]">{p.problemDescription}</p>
@@ -267,14 +214,7 @@ const PatientQueue = () => {
                         </td>
                         <td className="px-10 py-8 text-right">
                           <div className="flex justify-end gap-3">
-                            {isOffline ? (
-                              <button
-                                onClick={() => navigate('/doctor/offline-queue')}
-                                className="px-6 py-3.5 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-500 transition-all active:scale-95 border border-emerald-400/20 flex items-center gap-2"
-                              >
-                                <Building size={14} /> Hospital OP Desk
-                              </button>
-                            ) : p.status === 'Pending' ? (
+                            {p.status === 'Pending' ? (
                               <button
                                 onClick={() => handleAccept(p._id)}
                                 className="px-8 py-4 bg-emerald-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-500 transition-all active:scale-95 border border-emerald-400/20"

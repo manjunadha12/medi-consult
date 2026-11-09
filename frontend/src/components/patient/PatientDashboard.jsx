@@ -308,7 +308,7 @@ const PatientDashboard = () => {
                   { label: 'NEURAL VITALS', value: metrics.vitals, icon: Activity, color: 'blue', path: '/patient/health' },
                   { label: 'REPORT NODES', value: reports?.length || 0, icon: FileUp, color: 'purple', path: '/patient/reports/upload' },
                   { label: 'ACTIVE MEDS', value: `${medicines?.length || 0} Nodes`, icon: Pill, color: 'emerald', path: '/patient/medicine' },
-                  { label: 'OP QUEUE', value: 'Ready', icon: Clock, color: 'amber', path: '/patient/book-op' }
+                  { label: 'ONLINE OP', value: 'Ready', icon: Video, color: 'blue', path: '/patient/book-op' }
                 ].map((stat, i) => (
                   <div key={i} onClick={() => navigate(stat.path)} className={`bg-[#0A0A0A] p-6 sm:p-8 rounded-[32px] border border-white/5 flex flex-col justify-between min-h-[160px] relative overflow-hidden group cursor-pointer transition-all duration-500 hover:border-white/10`}>
                     <div className="flex justify-between items-start relative z-10">

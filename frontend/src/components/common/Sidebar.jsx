@@ -32,7 +32,6 @@ const Sidebar = () => {
     doctor: [
       { label: 'Dashboard', icon: Layout, path: '/doc-dashboard', color: 'text-blue-500' },
       { label: 'Patient Queue', icon: Clock, path: '/doctor/queue', color: 'text-orange-500' },
-      { label: 'Offline OP Queue', icon: Building, path: '/doctor/offline-queue', color: 'text-emerald-400' },
       { label: 'Consultation Details', icon: Stethoscope, path: '/doctor/consultation-details', color: 'text-violet-500' },
       { label: 'AI Swarm', icon: Brain, path: '/doctor/ai-report', color: 'text-purple-500' },
       { label: 'AI Chat', icon: MessageSquare, path: '/doctor/ai-chat', color: 'text-indigo-500' },

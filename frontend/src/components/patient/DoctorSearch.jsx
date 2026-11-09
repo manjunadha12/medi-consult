@@ -142,10 +142,10 @@ const DoctorSearch = () => {
 
                     <div className="shrink-0 flex flex-wrap items-center justify-end w-full lg:w-auto gap-4">
                       <button
-                        onClick={() => navigate('/patient/book-op', { state: { doctor: { name: doc.name, id: doc.id, hospitalName: doc.hospital, specialization: doc.specialization, city: doc.city }, bookingType: 'offline' } })}
-                        className="px-8 py-5 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500 hover:text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 whitespace-nowrap"
+                        onClick={() => navigate('/patient/book-op', { state: { doctor: { name: doc.name, id: doc.id, hospitalName: doc.hospital, specialization: doc.specialization, city: doc.city }, bookingType: 'online' } })}
+                        className="px-8 py-5 bg-blue-600/10 border border-blue-500/30 text-blue-400 hover:bg-blue-600 hover:text-white rounded-[24px] font-black text-[12px] uppercase tracking-[0.2em] transition-all flex items-center justify-center gap-3 shadow-xl active:scale-95 whitespace-nowrap"
                       >
-                        <Calendar size={18} /> Offline OP Booking
+                        <Video size={18} /> Book Online OP
                       </button>
                       <button
                         onClick={() => handleDocClick(doc.id)}
@@ -217,8 +217,8 @@ const DoctorSearch = () => {
                           <p className="text-[12px] font-black text-zinc-600 uppercase tracking-[0.4em] mb-2">Protocol Fee</p>
                           <p className="text-6xl font-black text-white tracking-tighter">₹{docDetails.profile?.consultationFee || 2500}</p>
                        </div>
-                       <button onClick={() => navigate('/patient/book-op', { state: { doctor: { ...docDetails.profile, name: docDetails.user.name, id: selectedDoc } } })} className="px-24 py-9 bg-emerald-500 hover:bg-emerald-600 text-white rounded-[40px] font-black text-base uppercase tracking-[0.6em] shadow-[0_0_80px_rgba(16,185,129,0.5)] transition-all flex items-center gap-8 active:scale-95 group">
-                          <Calendar size={36} /> Book Appointment
+                       <button onClick={() => navigate('/patient/book-op', { state: { doctor: { ...docDetails.profile, name: docDetails.user.name, id: selectedDoc }, bookingType: 'online' } })} className="px-24 py-9 bg-blue-600 hover:bg-blue-700 text-white rounded-[40px] font-black text-base uppercase tracking-[0.6em] shadow-[0_0_80px_rgba(37,99,235,0.5)] transition-all flex items-center gap-8 active:scale-95 group">
+                          <Video size={36} /> Book Online OP
                        </button>
                     </div>
                   </div>

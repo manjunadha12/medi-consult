@@ -33,7 +33,7 @@ const BookOP = () => {
   const tomorrowStr = getNextDayDate(1);
 
   const [appointment, setAppointment] = useState({
-    consultationType: location.state?.bookingType === 'offline' ? 'OFFLINE' : (location.state?.bookingType === 'online' ? 'VIDEO_CALL' : 'OFFLINE'),
+    consultationType: 'VIDEO_CALL',
     date: tomorrowStr,
     timeSlot: '09:00 AM',
     paymentMethod: 'UPI',
@@ -109,9 +109,9 @@ const BookOP = () => {
       formData.append('fee', consultationFee);
       formData.append('paymentMethod', 'UPI');
       formData.append('transactionId', appointment.transactionId);
-      formData.append('consultationType', appointment.consultationType);
-      formData.append('type', appointment.consultationType === 'OFFLINE' ? 'offline' : 'online');
-      formData.append('problemDescription', `Clinical Consultation (${appointment.consultationType === 'OFFLINE' ? 'Offline Hospital Visit' : 'Online Video Call'})`);
+      formData.append('consultationType', 'VIDEO_CALL');
+      formData.append('type', 'online');
+      formData.append('problemDescription', `Clinical Consultation (Online Video Call)`);
 
       if (screenshot) {
         formData.append('paymentScreenshot', screenshot);
@@ -122,8 +122,7 @@ const BookOP = () => {
       });
 
       if (data.success) {
-        const modeLabel = appointment.consultationType === 'OFFLINE' ? 'Offline Hospital Visit' : 'Online Video Call';
-        toast.success(`Booking Initiated (${modeLabel}) for ${new Date(appointment.date).toLocaleDateString()} at ${appointment.timeSlot}`);
+        toast.success(`Online OP Booking Confirmed for ${new Date(appointment.date).toLocaleDateString()} at ${appointment.timeSlot}`);
         navigate('/patient/dashboard');
       }
     } catch (error) {
@@ -178,10 +177,10 @@ const BookOP = () => {
                   <ArrowLeft size={14} /> Back to Doctor Directory
                 </button>
                 <h1 className={`text-3xl sm:text-4xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>
-                  Slot Synchronization
+                  Online OP Consultation
                 </h1>
                 <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest">
-                  Reserve Next Available Neural Time Window
+                  Reserve Next Available Online Video OP Window
                 </p>
               </div>
 
@@ -273,91 +272,51 @@ const BookOP = () => {
                 }`}>
                   <div className="space-y-8">
 
-                    {/* Consultation Mode Selector (Offline Hospital Visit vs Online Video Call) */}
+                    {/* Consultation Mode: Online Video Consultation Node */}
                     <div className="space-y-4 text-left">
                       <div className="flex items-center justify-between">
                         <h3 className="text-xs font-black uppercase tracking-[0.3em] text-blue-500 flex items-center gap-3">
-                          <Stethoscope size={18} className="text-blue-500" /> Select Consultation Mode
+                          <Stethoscope size={18} className="text-blue-500" /> Consultation Mode
                         </h3>
-                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full">
-                          Selected: {appointment.consultationType === 'OFFLINE' ? 'Offline Hospital OP' : 'Online Video Call'}
+                        <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest bg-blue-500/10 border border-blue-500/20 px-3 py-1 rounded-full flex items-center gap-1.5">
+                          <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse"></span>
+                          Online Video OP
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        {/* Mode 1: Offline In-Person Visit */}
-                        <button
-                          type="button"
-                          onClick={() => setAppointment({ ...appointment, consultationType: 'OFFLINE' })}
-                          className={`p-5 rounded-3xl border text-left transition-all relative overflow-hidden flex items-start gap-4 ${
-                            appointment.consultationType === 'OFFLINE'
-                              ? 'bg-emerald-500/10 border-emerald-500/50 shadow-lg shadow-emerald-500/10 scale-[1.02]'
-                              : (theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-slate-100')
-                          }`}
-                        >
-                          <div className={`p-3.5 rounded-2xl shrink-0 ${appointment.consultationType === 'OFFLINE' ? 'bg-emerald-500 text-white shadow-lg' : 'bg-white/10 text-zinc-400'}`}>
-                            <Building size={22} />
+                      <div className="p-5 rounded-3xl border text-left transition-all relative overflow-hidden flex items-start gap-4 bg-blue-500/10 border-blue-500/40 shadow-xl shadow-blue-500/10">
+                        <div className="p-3.5 rounded-2xl shrink-0 bg-blue-600 text-white shadow-lg shadow-blue-600/30">
+                          <Video size={24} />
+                        </div>
+                        <div className="space-y-1 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="text-base font-black uppercase tracking-tight text-white">Online Video OP Consultation</span>
+                            <CheckCircle size={16} className="text-blue-400" />
                           </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-black uppercase tracking-tight text-white">Offline OP Visit</span>
-                              {appointment.consultationType === 'OFFLINE' && <CheckCircle size={16} className="text-emerald-400" />}
-                            </div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mt-1">In-person hospital OP check-in at facility counter.</p>
-                            <span className="inline-block text-[8px] font-black uppercase tracking-widest text-emerald-400 mt-2 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-500/30">
-                              Physical Token Issued
+                          <p className="text-[11px] font-bold uppercase tracking-wider text-zinc-300">
+                            Face-to-face encrypted video consultation in your private clinical room.
+                          </p>
+                          <div className="pt-2 flex flex-wrap gap-2">
+                            <span className="inline-block text-[8px] font-black uppercase tracking-widest text-blue-300 bg-blue-500/20 px-2.5 py-0.5 rounded-full border border-blue-400/30">
+                              Instant Neural Room Link
+                            </span>
+                            <span className="inline-block text-[8px] font-black uppercase tracking-widest text-emerald-300 bg-emerald-500/20 px-2.5 py-0.5 rounded-full border border-emerald-400/30">
+                              No Hospital Travel Required
                             </span>
                           </div>
-                        </button>
-
-                        {/* Mode 2: Online Video Call */}
-                        <button
-                          type="button"
-                          onClick={() => setAppointment({ ...appointment, consultationType: 'VIDEO_CALL' })}
-                          className={`p-5 rounded-3xl border text-left transition-all relative overflow-hidden flex items-start gap-4 ${
-                            appointment.consultationType === 'VIDEO_CALL'
-                              ? 'bg-blue-500/10 border-blue-500/50 shadow-lg shadow-blue-500/10 scale-[1.02]'
-                              : (theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-50 border-slate-200 hover:bg-slate-100')
-                          }`}
-                        >
-                          <div className={`p-3.5 rounded-2xl shrink-0 ${appointment.consultationType === 'VIDEO_CALL' ? 'bg-blue-500 text-white shadow-lg' : 'bg-white/10 text-zinc-400'}`}>
-                            <Video size={22} />
-                          </div>
-                          <div>
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-black uppercase tracking-tight text-white">Online Video Call</span>
-                              {appointment.consultationType === 'VIDEO_CALL' && <CheckCircle size={16} className="text-blue-400" />}
-                            </div>
-                            <p className="text-[10px] font-bold uppercase tracking-wider text-zinc-400 mt-1">Remote face-to-face video consultation in neural room.</p>
-                            <span className="inline-block text-[8px] font-black uppercase tracking-widest text-blue-400 mt-2 bg-blue-500/20 px-2.5 py-0.5 rounded-full border border-blue-500/30">
-                              Virtual Room Link
-                            </span>
-                          </div>
-                        </button>
+                        </div>
                       </div>
 
-                      {/* Dynamic Mode Instructions Card */}
-                      {appointment.consultationType === 'OFFLINE' ? (
-                        <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-start gap-3 text-emerald-400">
-                          <MapPin size={20} className="shrink-0 mt-0.5" />
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Offline Hospital OP Protocol:</p>
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">
-                              Report to <span className="text-white font-black">{selectedDoctor.hospital || selectedDoctor.hospitalName || 'Central Hospital'}</span> OP Desk 15 minutes prior to your time slot. Physical token will be verified at check-in counter.
-                            </p>
-                          </div>
+                      {/* Online Protocol Card */}
+                      <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 text-blue-400">
+                        <Video size={20} className="shrink-0 mt-0.5" />
+                        <div className="space-y-0.5">
+                          <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Online Video Call Protocol:</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">
+                            Join the virtual room on your dashboard 5 minutes before your scheduled slot. Ensure camera and microphone permissions are enabled.
+                          </p>
                         </div>
-                      ) : (
-                        <div className="p-4 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-start gap-3 text-blue-400">
-                          <Video size={20} className="shrink-0 mt-0.5" />
-                          <div className="space-y-0.5">
-                            <p className="text-[10px] font-black uppercase tracking-widest text-blue-400">Online Video Call Protocol:</p>
-                            <p className="text-[9px] font-bold uppercase tracking-wider text-zinc-300">
-                              Join the virtual room on your dashboard 5 minutes before your scheduled slot. Ensure camera and microphone permissions are enabled.
-                            </p>
-                          </div>
-                        </div>
-                      )}
+                      </div>
                     </div>
 
                     {/* Date Selector Section */}

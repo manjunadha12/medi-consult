@@ -72,9 +72,10 @@ export const bookOP = async (req, res) => {
     const meetingId = `MC-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
     const meetingPassword = Math.random().toString(36).substring(2, 8).toUpperCase();
 
-    let normalizedConsultType = consultationType || 'Video';
-    if (normalizedConsultType === 'VIDEO_CALL') normalizedConsultType = 'Video';
-    if (normalizedConsultType === 'VOICE_CALL' || normalizedConsultType === 'Audio') normalizedConsultType = 'Voice';
+    let normalizedConsultType = 'Video';
+    if (consultationType === 'VOICE_CALL' || consultationType === 'Audio' || consultationType === 'Voice') {
+      normalizedConsultType = 'Voice';
+    }
 
     const newAppointment = new Appointment({
       patientId,

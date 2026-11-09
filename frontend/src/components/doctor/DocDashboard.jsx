@@ -106,7 +106,7 @@ const DocDashboard = () => {
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-8">
                 {[
-                  { label: 'TOTAL OP TODAY', value: safeNum(summary?.totalOpToday), icon: Users, color: 'blue' },
+                  { label: 'ONLINE OP TODAY', value: safeNum(summary?.totalOpToday), icon: Video, color: 'blue' },
                   { label: 'PATIENTS WAITING', value: safeNum(summary?.patientsWaiting), icon: Clock, color: 'amber' },
                   { label: 'COMPLETED TODAY', value: safeNum(summary?.completedToday), icon: CheckCircle, color: 'emerald' },
                   { label: 'EMERGENCY CASES', value: safeNum(summary?.emergencyCases), icon: AlertCircle, color: 'red' },
