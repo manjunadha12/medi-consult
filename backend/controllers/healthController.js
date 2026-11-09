@@ -8,6 +8,52 @@ import HealthCombinationRule from "../models/HealthCombinationRule.js";
    HELPERS
 ===================================================== */
 
+export const buildDateRangeQuery = (range, now = new Date()) => {
+  if (range === "week" || range === "this_week") {
+    // Current calendar week: Monday 00:00:00.000 to Sunday 23:59:59.999
+    const day = now.getDay(); // 0 = Sun, 1 = Mon...
+    const diffToMonday = day === 0 ? 6 : day - 1;
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - diffToMonday);
+    startOfWeek.setHours(0, 0, 0, 0);
+
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 6);
+    endOfWeek.setHours(23, 59, 59, 999);
+
+    return { $gte: startOfWeek, $lte: endOfWeek };
+  }
+
+  if (range === "last_7_days") {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 7);
+    return { $gte: start };
+  }
+
+  if (range === "month" || range === "this_month") {
+    // Current calendar month: 1st 00:00:00.000 to last day 23:59:59.999
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    return { $gte: startOfMonth, $lte: endOfMonth };
+  }
+
+  if (range === "last_30_days") {
+    const start = new Date(now);
+    start.setDate(now.getDate() - 30);
+    return { $gte: start };
+  }
+
+  if (range === "today" || range === "day") {
+    const startOfToday = new Date(now);
+    startOfToday.setHours(0, 0, 0, 0);
+    const endOfToday = new Date(now);
+    endOfToday.setHours(23, 59, 59, 999);
+    return { $gte: startOfToday, $lte: endOfToday };
+  }
+
+  return null; // "all" or unrecognized has no date bounds
+};
+
 const round = (value, decimals = 1) => {
   if (!Number.isFinite(Number(value))) return 0;
 
@@ -283,19 +329,30 @@ export const addHealthLog = async (
       }
     }
 
-    // Format a friendly 12-hour time string (e.g. "5:41 PM")
+    // Format a friendly 12-hour time string (e.g. "5:41 PM" or "10:30 AM")
     let timeString = "";
-    if (time && typeof time === "string" && time.includes(":")) {
-      const [hours, minutes] = time.split(":").map(Number);
-      if (!isNaN(hours) && !isNaN(minutes)) {
-        entryDate.setHours(hours, minutes, 0, 0);
-        const period = hours >= 12 ? "PM" : "AM";
-        const hour12 = hours % 12 || 12;
-        timeString = `${hour12}:${String(minutes).padStart(2, "0")} ${period}`;
+    if (time && typeof time === "string" && time.trim()) {
+      const match = time.trim().match(/^(\d{1,2}):(\d{2})(?:\s*([AaPp][Mm]))?$/);
+      if (match) {
+        let hrs = parseInt(match[1], 10);
+        const mins = parseInt(match[2], 10);
+        const modifier = match[3] ? match[3].toUpperCase() : null;
+
+        if (modifier === "PM" && hrs < 12) hrs += 12;
+        if (modifier === "AM" && hrs === 12) hrs = 0;
+
+        entryDate.setHours(hrs, mins, 0, 0);
+
+        const period = hrs >= 12 ? "PM" : "AM";
+        const hour12 = hrs % 12 || 12;
+        timeString = `${hour12}:${String(mins).padStart(2, "0")} ${period}`;
       }
-    } else if (date && typeof date === "string" && date.length === 10) {
+    }
+
+    if (!timeString) {
+      // Use current local time for the record so it doesn't default to midnight 12:00 am
       const now = new Date();
-      entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), now.getMilliseconds());
+      entryDate.setHours(now.getHours(), now.getMinutes(), now.getSeconds(), 0);
       const period = now.getHours() >= 12 ? "PM" : "AM";
       const hour12 = now.getHours() % 12 || 12;
       timeString = `${hour12}:${String(now.getMinutes()).padStart(2, "0")} ${period}`;
@@ -389,40 +446,9 @@ export const getHealthLogs = async (
       patientId
     };
 
-
-    const now =
-      new Date();
-
-
-    if (range === "week") {
-
-      const start =
-        new Date();
-
-      start.setDate(
-        now.getDate() - 7
-      );
-
-      query.date = {
-        $gte: start
-      };
-
-    }
-
-
-    if (range === "month") {
-
-      const start =
-        new Date();
-
-      start.setDate(
-        now.getDate() - 30
-      );
-
-      query.date = {
-        $gte: start
-      };
-
+    const dateQuery = buildDateRangeQuery(range);
+    if (dateQuery) {
+      query.date = dateQuery;
     }
 
 
@@ -485,44 +511,12 @@ export const analyzeHealthTrends = async (
       patientId
     };
 
-
-    const now =
-      new Date();
-
-
-    if (range === "week") {
-
-      const start =
-        new Date();
-
-      start.setDate(
-        now.getDate() - 7
-      );
-
-      query.date = {
-        $gte: start
-      };
-
+    const dateQuery = buildDateRangeQuery(range);
+    if (dateQuery) {
+      query.date = dateQuery;
     }
 
-
-    if (range === "month") {
-
-      const start =
-        new Date();
-
-      start.setDate(
-        now.getDate() - 30
-      );
-
-      query.date = {
-        $gte: start
-      };
-
-    }
-
-
-    const logs =
+    let logs =
       await HealthLog
         .find(query)
         .sort({
@@ -532,18 +526,39 @@ export const analyzeHealthTrends = async (
 
 
     if (!logs.length) {
-      const sampleLog = await HealthLog.create({
-        patientId,
-        date: new Date(),
-        bp_systolic: 120,
-        bp_diastolic: 80,
-        oxygen: 98,
-        heartbeat: 72,
-        sugar: 95,
-        weight: 70,
-        temperature: 98.6
-      });
-      logs.push(sampleLog.toObject());
+      // Check if patient has any overall logs across all time
+      const anyLogs = await HealthLog.find({ patientId }).sort({ date: 1 }).lean();
+      if (anyLogs.length > 0) {
+        logs = anyLogs;
+      } else {
+        return res.json({
+          success: true,
+          period: {
+            range,
+            recordsAnalyzed: 0
+          },
+          overall: {
+            healthScore: 100,
+            status: "Biological Sync Stabilized",
+            statusTitle: "Biological Sync Stabilized",
+            severity: "normal",
+            icon: "🟢",
+            statusDescription: "No telemetry anomalies recorded. Biomarker baseline sync stabilized."
+          },
+          summary: {
+            overallStatus: "Biological Sync Stabilized",
+            vitalScore: 100,
+            criticalCount: 0,
+            warningCount: 0,
+            normalCount: 0
+          },
+          vitals: {},
+          combinations: [],
+          recommendations: [
+            "Log your daily biometric vitals to maintain active telemetry synchronization."
+          ]
+        });
+      }
     }
 
 
@@ -1584,20 +1599,10 @@ export const deleteAllHealthLogs =
       const range = req.query.range || req.body?.range || "all";
 
       let query = { patientId };
-      const now = new Date();
 
-      if (range === "today" || range === "day") {
-        const startOfToday = new Date();
-        startOfToday.setHours(0, 0, 0, 0);
-        query.date = { $gte: startOfToday };
-      } else if (range === "week") {
-        const startOfWeek = new Date();
-        startOfWeek.setDate(now.getDate() - 7);
-        query.date = { $gte: startOfWeek };
-      } else if (range === "month") {
-        const startOfMonth = new Date();
-        startOfMonth.setDate(now.getDate() - 30);
-        query.date = { $gte: startOfMonth };
+      const dateQuery = buildDateRangeQuery(range);
+      if (dateQuery) {
+        query.date = dateQuery;
       }
 
       const result =
@@ -1605,8 +1610,10 @@ export const deleteAllHealthLogs =
 
       let scopeLabel = "All health records";
       if (range === "today" || range === "day") scopeLabel = "Today's health records";
-      if (range === "week") scopeLabel = "Last week's records";
-      if (range === "month") scopeLabel = "Last month's records";
+      if (range === "week" || range === "this_week") scopeLabel = "This week's records";
+      if (range === "last_7_days") scopeLabel = "Past 7 days' records";
+      if (range === "month" || range === "this_month") scopeLabel = "This month's records";
+      if (range === "last_30_days") scopeLabel = "Past 30 days' records";
 
       return res.json({
         success: true,

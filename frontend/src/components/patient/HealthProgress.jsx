@@ -130,8 +130,16 @@ const HealthProgress = () => {
         const dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         
         let timeStr = l.time;
-        if (!timeStr || timeStr === '12' || timeStr === '12:00 am') {
-          timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+        if (!timeStr || timeStr === '12' || timeStr.trim() === '') {
+          const hours = d.getHours();
+          const minutes = d.getMinutes();
+          if (hours !== 0 || minutes !== 0) {
+            timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+          } else if (l.sessionTag) {
+            timeStr = `${l.sessionTag} Reading`;
+          } else {
+            timeStr = 'Recorded Entry';
+          }
         }
         
         return {
@@ -306,13 +314,19 @@ const HealthProgress = () => {
           <header className="mb-10 flex flex-col xl:flex-row xl:items-center justify-between gap-6 relative z-30 print:hidden text-left">
             <div className="text-left">
               <h1 className={`text-3xl font-black uppercase tracking-tight ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Health Progress</h1>
-              <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1">Neural Monitoring Active</p>
+              <p className="text-zinc-500 uppercase text-[10px] font-black tracking-widest mt-1 flex flex-wrap items-center gap-2">
+                <span>Neural Monitoring Active</span>
+                <span className="text-zinc-400">•</span>
+                <span className="text-blue-500 font-mono">
+                  {range === 'week' ? 'This Week (Mon – Sun)' : range === 'month' ? 'This Month (Current Month)' : 'All Lifetime Telemetry'}
+                </span>
+              </p>
             </div>
             <div className="flex flex-wrap gap-3">
               <div className={`border p-1.5 rounded-2xl flex shadow-sm transition-all duration-500 ${theme === 'dark' ? 'bg-zinc-900 border-white/5' : 'bg-white border-slate-200'}`}>
-                <button onClick={() => setRange('week')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'week' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Week</button>
-                <button onClick={() => setRange('month')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'month' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>Month</button>
-                <button onClick={() => setRange('all')} className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>All</button>
+                <button onClick={() => setRange('week')} title="Current Calendar Week (Mon - Sun)" className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'week' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>This Week</button>
+                <button onClick={() => setRange('month')} title="Current Calendar Month" className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'month' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>This Month</button>
+                <button onClick={() => setRange('all')} title="All Lifetime Telemetry Records" className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase transition-all ${range === 'all' ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:text-slate-600'}`}>All Records</button>
               </div>
               <button onClick={() => setShowPurgeModal(true)} className={`px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white flex items-center gap-2`}>
                 <Trash2 size={16} /> Clean Records
@@ -392,7 +406,7 @@ const HealthProgress = () => {
                              <tr key={i} className="text-xs font-bold text-slate-600 dark:text-slate-300">
                                 <td className="py-4">
                                    <div className="font-bold">{l.formattedDate || new Date(l.date).toLocaleDateString()}</div>
-                                   <div className="text-[10px] text-blue-400 font-mono font-bold mt-0.5">{l.formattedTime || new Date(l.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                                   <div className="text-[10px] text-blue-400 font-mono font-bold mt-0.5">{l.formattedTime || (l.time && l.time !== '12:00 am' ? l.time : new Date(l.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }))}</div>
                                 </td>
                                 <td className="py-4 text-blue-500">{l.bp_systolic}/{l.bp_diastolic}</td>
                                 <td className="py-4">{l.oxygen}%</td>
@@ -403,7 +417,24 @@ const HealthProgress = () => {
                              </tr>
                           )) : (
                             <tr>
-                               <td colSpan="7" className="py-20 text-center text-zinc-500 italic font-black uppercase text-[10px] tracking-[0.4em]">No Health Logs Found</td>
+                               <td colSpan="7" className="py-16 text-center text-zinc-500 italic font-bold uppercase text-[10px] tracking-[0.2em]">
+                                 {range === 'week' ? (
+                                   <div className="space-y-2">
+                                     <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Logs Found For This Week</p>
+                                     <p className="text-[9px] text-zinc-500">Earlier logs (like Nov 3) are in <button onClick={() => setRange('month')} className="text-blue-500 underline font-black">This Month</button> or <button onClick={() => setRange('all')} className="text-blue-500 underline font-black">All Records</button></p>
+                                   </div>
+                                 ) : range === 'month' ? (
+                                   <div className="space-y-2">
+                                     <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Logs Found For This Month</p>
+                                     <p className="text-[9px] text-zinc-500">Click '+ Vitals' to log new readings</p>
+                                   </div>
+                                 ) : (
+                                   <div className="space-y-2">
+                                     <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Records In Archive</p>
+                                     <p className="text-[9px] text-zinc-500">Click '+ Vitals' to log your first telemetry reading</p>
+                                   </div>
+                                 )}
+                               </td>
                             </tr>
                           )}
                        </tbody>
@@ -574,6 +605,242 @@ const HealthProgress = () => {
           </div>
         </main>
       </div>
+
+      {showAddLog && (
+        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 md:p-6 overflow-y-auto animate-in fade-in duration-300">
+          <div className={`w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border my-auto ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/10' : 'bg-white border-slate-200'}`}>
+            <div className={`p-6 md:p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50/50'}`}>
+               <div className="flex items-center gap-3.5">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shadow-inner">
+                     <Activity size={22} />
+                  </div>
+                  <div className="text-left">
+                     <h2 className={`text-lg font-black tracking-tight uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Record Biometric Vitals</h2>
+                     <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Manual Telemetry Synchronization</p>
+                  </div>
+               </div>
+               <button onClick={() => setShowAddLog(false)} className={`p-2.5 rounded-xl border transition-all ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+                  <X size={18} />
+               </button>
+            </div>
+
+            <form onSubmit={handleAddLog} className="p-6 md:p-8 space-y-6 text-left">
+               {/* DATE, TIME & SESSION */}
+               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Archive Date</label>
+                    <input
+                      type="date"
+                      required
+                      max={new Date().toISOString().split('T')[0]}
+                      value={newLog.date}
+                      onChange={(e) => setNewLog({ ...newLog, date: e.target.value })}
+                      className={`w-full p-3.5 border rounded-2xl font-bold text-xs outline-none transition-all ${
+                        theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                      }`}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Log Time</label>
+                    <input
+                      type="time"
+                      value={newLog.time}
+                      onChange={(e) => setNewLog({ ...newLog, time: e.target.value })}
+                      className={`w-full p-3.5 border rounded-2xl font-bold text-xs outline-none transition-all ${
+                        theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                      }`}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Session</label>
+                    <select
+                      value={newLog.sessionTag}
+                      onChange={(e) => setNewLog({ ...newLog, sessionTag: e.target.value })}
+                      className={`w-full p-3.5 border rounded-2xl font-bold text-xs outline-none transition-all ${
+                        theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                      }`}
+                    >
+                      <option value="Morning">Morning</option>
+                      <option value="Afternoon">Afternoon</option>
+                      <option value="Evening">Evening</option>
+                      <option value="Night">Night</option>
+                    </select>
+                  </div>
+               </div>
+
+               {/* BLOOD PRESSURE */}
+               <div className="p-4 rounded-3xl bg-blue-500/5 border border-blue-500/10 space-y-3">
+                  <div className="flex items-center justify-between">
+                     <span className="text-[10px] font-black uppercase tracking-wider text-blue-500 flex items-center gap-1.5">
+                        <Activity size={14} /> Blood Pressure (mmHg)
+                     </span>
+                     <span className="text-[9px] font-bold text-zinc-400">Target: 120/80</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Systolic</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 120"
+                          min="60"
+                          max="260"
+                          value={newLog.bp_systolic}
+                          onChange={(e) => setNewLog({ ...newLog, bp_systolic: e.target.value })}
+                          className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                            theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500'
+                          }`}
+                        />
+                     </div>
+                     <div className="space-y-1.5">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Diastolic</label>
+                        <input
+                          type="number"
+                          placeholder="e.g. 80"
+                          min="40"
+                          max="160"
+                          value={newLog.bp_diastolic}
+                          onChange={(e) => setNewLog({ ...newLog, bp_diastolic: e.target.value })}
+                          className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                            theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-white border-slate-200 text-slate-800 focus:border-blue-500'
+                          }`}
+                        />
+                     </div>
+                  </div>
+               </div>
+
+               {/* OXYGEN, PULSE, TEMP */}
+               <div className="grid grid-cols-3 gap-4">
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Wind size={12} className="text-cyan-500" /> Oxygen %
+                     </label>
+                     <input
+                       type="number"
+                       placeholder="e.g. 98"
+                       min="70"
+                       max="100"
+                       value={newLog.oxygen}
+                       onChange={(e) => setNewLog({ ...newLog, oxygen: e.target.value })}
+                       className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                         theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                       }`}
+                     />
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Heart size={12} className="text-rose-500" /> Pulse BPM
+                     </label>
+                     <input
+                       type="number"
+                       placeholder="e.g. 72"
+                       min="40"
+                       max="220"
+                       value={newLog.heartbeat}
+                       onChange={(e) => setNewLog({ ...newLog, heartbeat: e.target.value })}
+                       className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                         theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                       }`}
+                     />
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Thermometer size={12} className="text-amber-500" /> Temp °F
+                     </label>
+                     <input
+                       type="number"
+                       step="0.1"
+                       placeholder="e.g. 98.6"
+                       min="90"
+                       max="108"
+                       value={newLog.temperature}
+                       onChange={(e) => setNewLog({ ...newLog, temperature: e.target.value })}
+                       className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                         theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                       }`}
+                     />
+                  </div>
+               </div>
+
+               {/* WEIGHT & SUGAR */}
+               <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                     <div className="flex justify-between items-center">
+                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                           <Scale size={12} className="text-emerald-500" /> Weight (kg)
+                        </label>
+                        {newLog.weight && (
+                           <span className="text-[8px] font-bold text-emerald-500 font-mono">
+                              BMI ~{calculateBMI(newLog.weight)}
+                           </span>
+                        )}
+                     </div>
+                     <input
+                       type="number"
+                       step="0.1"
+                       placeholder="e.g. 80"
+                       min="20"
+                       max="300"
+                       value={newLog.weight}
+                       onChange={(e) => setNewLog({ ...newLog, weight: e.target.value })}
+                       className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                         theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                       }`}
+                     />
+                  </div>
+                  <div className="space-y-1.5">
+                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
+                        <Droplets size={12} className="text-orange-500" /> Sugar (mg/dL)
+                     </label>
+                     <input
+                       type="number"
+                       placeholder="e.g. 100"
+                       min="30"
+                       max="600"
+                       value={newLog.sugar}
+                       onChange={(e) => setNewLog({ ...newLog, sugar: e.target.value })}
+                       className={`w-full p-3.5 border rounded-2xl font-bold text-sm outline-none transition-all ${
+                         theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                       }`}
+                     />
+                  </div>
+               </div>
+
+               {/* NOTES */}
+               <div className="space-y-1.5">
+                  <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Clinical / Patient Notes (Optional)</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Fasting reading, post morning walk"
+                    value={newLog.notes}
+                    onChange={(e) => setNewLog({ ...newLog, notes: e.target.value })}
+                    className={`w-full p-3.5 border rounded-2xl font-bold text-xs outline-none transition-all ${
+                      theme === 'dark' ? 'bg-zinc-900 border-white/10 text-white focus:border-blue-500' : 'bg-slate-50 border-slate-200 text-slate-800 focus:border-blue-500'
+                    }`}
+                  />
+               </div>
+
+               {/* ACTIONS */}
+               <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddLog(false)}
+                    className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all ${
+                      theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+                  >
+                    <Plus size={16} strokeWidth={3} /> Synchronize Vitals
+                  </button>
+               </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showPurgeModal && (
         <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
