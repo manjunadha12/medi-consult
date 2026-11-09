@@ -888,15 +888,35 @@ export const googleLogin = async (req, res) => {
       return res.status(400).json({ message: 'No token provided' });
     }
 
-    // Verify Firebase ID Token
-    const decodedToken = await getAuth().verifyIdToken(idToken);
+    let googleId, email, name, picture, email_verified;
 
-    // Firebase field mapping
-    const googleId = decodedToken.uid;
-    const email = decodedToken.email;
-    const name = decodedToken.name || email.split('@')[0];
-    const picture = decodedToken.picture || '';
-    const email_verified = decodedToken.email_verified || false;
+    // 1. First attempt: Verify via Firebase Admin SDK
+    try {
+      const decodedToken = await getAuth().verifyIdToken(idToken);
+      googleId = decodedToken.uid;
+      email = decodedToken.email;
+      name = decodedToken.name || email.split('@')[0];
+      picture = decodedToken.picture || '';
+      email_verified = decodedToken.email_verified || false;
+    } catch (firebaseErr) {
+      console.warn("[GOOGLE_AUTH] Firebase Admin verifyIdToken skipped/failed:", firebaseErr.message);
+      // 2. Fallback attempt: Verify standard Google OAuth ID Token via Google's tokeninfo API
+      try {
+        const googleRes = await axios.get(`https://oauth2.googleapis.com/tokeninfo?id_token=${idToken}`);
+        const tokenInfo = googleRes.data;
+        if (!tokenInfo || !tokenInfo.email) {
+          throw new Error("Invalid tokeninfo response from Google OAuth endpoint");
+        }
+        googleId = tokenInfo.sub || tokenInfo.user_id;
+        email = tokenInfo.email;
+        name = tokenInfo.name || email.split('@')[0];
+        picture = tokenInfo.picture || '';
+        email_verified = tokenInfo.email_verified === 'true' || tokenInfo.email_verified === true;
+      } catch (oauthErr) {
+        console.error("[GOOGLE_AUTH] Both Firebase and Google tokeninfo verification failed.");
+        return res.status(401).json({ message: `Authentication verification failed: ${firebaseErr.message}` });
+      }
+    }
 
     let user = await User.findOne({ email });
 
@@ -918,6 +938,7 @@ export const googleLogin = async (req, res) => {
       const ip = req.ip || req.connection?.remoteAddress || '127.0.0.1';
       const device = req.headers['user-agent'] || 'Device';
       user.lastLogin = new Date();
+      if (!Array.isArray(user.loginHistory)) user.loginHistory = [];
       user.loginHistory.push({
         loginAt: user.lastLogin,
         ip,
