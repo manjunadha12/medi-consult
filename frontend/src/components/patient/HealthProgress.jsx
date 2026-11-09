@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { createPortal } from 'react-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Sidebar from '../common/Sidebar';
 import Navbar from '../common/Navbar';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from 'recharts';
@@ -22,6 +23,7 @@ const getCurrentTime = () => {
 const HealthProgress = () => {
   const { user, theme } = useStore();
   const navigate = useNavigate();
+  const location = useLocation();
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [range, setRange] = useState('week');
@@ -31,6 +33,23 @@ const HealthProgress = () => {
   const [showPurgeModal, setShowPurgeModal] = useState(false);
   const [purgeRange, setPurgeRange] = useState('today');
   const [clearing, setClearing] = useState(false);
+
+  useEffect(() => {
+    if (location.state?.openAddModal) {
+      setShowAddLog(true);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setShowAddLog(false);
+        setShowPurgeModal(false);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const getInitialLogState = () => ({
     date: new Date().toISOString().split('T')[0],
@@ -337,7 +356,11 @@ const HealthProgress = () => {
               <button onClick={handleDownloadPDF} className="bg-slate-900 text-white px-6 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-xl flex items-center gap-2 hover:bg-black transition-all">
                 <Download size={16} /> PDF
               </button>
-              <button onClick={() => setShowAddLog(true)} className="bg-blue-600 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-blue-500/20 flex items-center gap-3 hover:bg-blue-500 transition-all active:scale-95">
+              <button
+                type="button"
+                onClick={() => setShowAddLog(true)}
+                className="bg-blue-600 hover:bg-blue-500 text-white px-8 py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-2xl shadow-blue-500/20 flex items-center gap-3 transition-all active:scale-95 cursor-pointer shrink-0"
+              >
                 <Plus size={18} strokeWidth={3} /> Vitals
               </button>
             </div>
@@ -419,19 +442,44 @@ const HealthProgress = () => {
                             <tr>
                                <td colSpan="7" className="py-16 text-center text-zinc-500 italic font-bold uppercase text-[10px] tracking-[0.2em]">
                                  {range === 'week' ? (
-                                   <div className="space-y-2">
+                                   <div className="space-y-3">
                                      <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Logs Found For This Week</p>
-                                     <p className="text-[9px] text-zinc-500">Earlier logs (like Nov 3) are in <button onClick={() => setRange('month')} className="text-blue-500 underline font-black">This Month</button> or <button onClick={() => setRange('all')} className="text-blue-500 underline font-black">All Records</button></p>
+                                     <p className="text-[9px] text-zinc-500">Earlier logs (like Nov 3) are in <button type="button" onClick={() => setRange('month')} className="text-blue-500 underline font-black cursor-pointer">This Month</button> or <button type="button" onClick={() => setRange('all')} className="text-blue-500 underline font-black cursor-pointer">All Records</button></p>
+                                     <div>
+                                       <button
+                                         type="button"
+                                         onClick={() => setShowAddLog(true)}
+                                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-blue-500/20 active:scale-95 not-italic"
+                                       >
+                                         <Plus size={12} strokeWidth={3} /> Record Vitals
+                                       </button>
+                                     </div>
                                    </div>
                                  ) : range === 'month' ? (
-                                   <div className="space-y-2">
+                                   <div className="space-y-3">
                                      <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Logs Found For This Month</p>
-                                     <p className="text-[9px] text-zinc-500">Click '+ Vitals' to log new readings</p>
+                                     <div>
+                                       <button
+                                         type="button"
+                                         onClick={() => setShowAddLog(true)}
+                                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-blue-500/20 active:scale-95 not-italic"
+                                       >
+                                         <Plus size={12} strokeWidth={3} /> Record Vitals
+                                       </button>
+                                     </div>
                                    </div>
                                  ) : (
-                                   <div className="space-y-2">
+                                   <div className="space-y-3">
                                      <p className="text-slate-400 dark:text-zinc-400 font-black">No Health Records In Archive</p>
-                                     <p className="text-[9px] text-zinc-500">Click '+ Vitals' to log your first telemetry reading</p>
+                                     <div>
+                                       <button
+                                         type="button"
+                                         onClick={() => setShowAddLog(true)}
+                                         className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-[9px] font-black uppercase tracking-widest transition-all cursor-pointer shadow-lg shadow-blue-500/20 active:scale-95 not-italic"
+                                       >
+                                         <Plus size={12} strokeWidth={3} /> Record Vitals
+                                       </button>
+                                     </div>
                                    </div>
                                  )}
                                </td>
@@ -592,8 +640,9 @@ const HealthProgress = () => {
                         No biometric vitals recorded yet. Log your readings to establish Biological Sync.
                       </p>
                       <button
+                        type="button"
                         onClick={() => setShowAddLog(true)}
-                        className={`w-full py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl ${theme === 'dark' ? 'bg-white text-slate-900 shadow-blue-500/10' : 'bg-white text-slate-900 shadow-blue-600/30'}`}
+                        className={`w-full py-5 rounded-[24px] font-black text-[10px] uppercase tracking-[0.2em] flex items-center justify-center gap-3 transition-all active:scale-95 shadow-xl cursor-pointer ${theme === 'dark' ? 'bg-white text-slate-900 shadow-blue-500/10' : 'bg-white text-slate-900 shadow-blue-600/30'}`}
                       >
                         <Plus size={16} strokeWidth={3} className="text-blue-600" /> Record Vitals
                       </button>
@@ -606,25 +655,39 @@ const HealthProgress = () => {
         </main>
       </div>
 
-      {showAddLog && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-4 md:p-6 overflow-y-auto animate-in fade-in duration-300">
-          <div className={`w-full max-w-xl rounded-[40px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border my-auto ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/10' : 'bg-white border-slate-200'}`}>
-            <div className={`p-6 md:p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50/50'}`}>
+      {showAddLog && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-3 sm:p-6 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowAddLog(false);
+          }}
+        >
+          <div
+            className={`w-full max-w-xl max-h-[90vh] flex flex-col rounded-[32px] sm:rounded-[40px] shadow-2xl overflow-hidden border my-auto transition-all ${
+              theme === 'dark' ? 'bg-[#0A0A0A] border-white/10 text-white' : 'bg-white border-slate-200 text-slate-800'
+            }`}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={`p-6 sm:p-7 border-b flex items-center justify-between shrink-0 ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-100 bg-slate-50/50'}`}>
                <div className="flex items-center gap-3.5">
-                  <div className="w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shadow-inner">
+                  <div className="w-11 h-11 rounded-2xl bg-blue-600/10 text-blue-600 flex items-center justify-center border border-blue-500/20 shadow-inner shrink-0">
                      <Activity size={22} />
                   </div>
                   <div className="text-left">
-                     <h2 className={`text-lg font-black tracking-tight uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Record Biometric Vitals</h2>
+                     <h2 className={`text-base sm:text-lg font-black tracking-tight uppercase ${theme === 'dark' ? 'text-white' : 'text-slate-800'}`}>Record Biometric Vitals</h2>
                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Manual Telemetry Synchronization</p>
                   </div>
                </div>
-               <button onClick={() => setShowAddLog(false)} className={`p-2.5 rounded-xl border transition-all ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+               <button
+                 type="button"
+                 onClick={() => setShowAddLog(false)}
+                 className={`p-2.5 rounded-xl border transition-all cursor-pointer ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}
+               >
                   <X size={18} />
                </button>
             </div>
 
-            <form onSubmit={handleAddLog} className="p-6 md:p-8 space-y-6 text-left">
+            <form onSubmit={handleAddLog} className="p-6 sm:p-8 space-y-5 text-left overflow-y-auto custom-scrollbar flex-1">
                {/* DATE, TIME & SESSION */}
                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div className="space-y-1.5">
@@ -768,11 +831,11 @@ const HealthProgress = () => {
                         <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
                            <Scale size={12} className="text-emerald-500" /> Weight (kg)
                         </label>
-                        {newLog.weight && (
+                        {newLog.weight ? (
                            <span className="text-[8px] font-bold text-emerald-500 font-mono">
                               BMI ~{calculateBMI(newLog.weight)}
                            </span>
-                        )}
+                        ) : null}
                      </div>
                      <input
                        type="number"
@@ -820,31 +883,40 @@ const HealthProgress = () => {
                </div>
 
                {/* ACTIONS */}
-               <div className="flex gap-3 pt-2">
+               <div className="flex gap-3 pt-3 border-t border-white/5">
                   <button
                     type="button"
                     onClick={() => setShowAddLog(false)}
-                    className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all ${
-                      theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all cursor-pointer ${
+                      theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white hover:bg-white/5' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                     }`}
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95"
+                    className="flex-1 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center gap-2 active:scale-95 cursor-pointer"
                   >
                     <Plus size={16} strokeWidth={3} /> Synchronize Vitals
                   </button>
                </div>
             </form>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
-      {showPurgeModal && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/60 backdrop-blur-md flex items-center justify-center p-6 animate-in fade-in duration-300">
-          <div className={`w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-500 border ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5' : 'bg-white border-slate-100'}`}>
+      {showPurgeModal && typeof document !== 'undefined' && createPortal(
+        <div
+          className="fixed inset-0 z-[99999] bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 sm:p-6 overflow-y-auto"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowPurgeModal(false);
+          }}
+        >
+          <div
+            className={`w-full max-w-md rounded-[48px] shadow-2xl overflow-hidden border transition-all ${theme === 'dark' ? 'bg-[#0A0A0A] border-white/5 text-white' : 'bg-white border-slate-100 text-slate-800'}`}
+            onClick={(e) => e.stopPropagation()}
+          >
             <div className={`p-8 border-b flex items-center justify-between ${theme === 'dark' ? 'border-white/5 bg-white/5' : 'border-slate-50 bg-slate-50/50'}`}>
                <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-2xl bg-red-500/10 text-red-500 flex items-center justify-center border border-red-500/20">
@@ -855,7 +927,7 @@ const HealthProgress = () => {
                      <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest">Select range to delete</p>
                   </div>
                </div>
-               <button onClick={() => setShowPurgeModal(false)} className={`p-2.5 rounded-xl border ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
+               <button onClick={() => setShowPurgeModal(false)} className={`p-2.5 rounded-xl border transition-all cursor-pointer ${theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-500 hover:bg-slate-100'}`}>
                   <X size={18} />
                </button>
             </div>
@@ -864,8 +936,8 @@ const HealthProgress = () => {
                <div className="space-y-3">
                   {[
                      { id: 'today', title: 'This Day (Today)', desc: 'Delete vitals recorded today only', badge: 'Single Day' },
-                     { id: 'week', title: 'Last Week', desc: 'Delete vitals recorded in the past 7 days', badge: 'Past 7 Days' },
-                     { id: 'month', title: 'Last Month', desc: 'Delete vitals recorded in the past 30 days', badge: 'Past 30 Days' },
+                     { id: 'week', title: 'This Week', desc: 'Delete vitals recorded during this calendar week', badge: 'This Week' },
+                     { id: 'month', title: 'This Month', desc: 'Delete vitals recorded during this month', badge: 'This Month' },
                      { id: 'all', title: 'All Records', desc: 'Permanently wipe all health records from history', badge: 'Permanent' }
                   ].map((opt) => (
                      <div
@@ -905,7 +977,7 @@ const HealthProgress = () => {
                   <button
                      type="button"
                      onClick={() => setShowPurgeModal(false)}
-                     className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all ${
+                     className={`flex-1 py-4 rounded-2xl font-black uppercase text-[10px] tracking-widest border transition-all cursor-pointer ${
                         theme === 'dark' ? 'border-white/10 text-zinc-400 hover:text-white' : 'border-slate-200 text-slate-600 hover:bg-slate-50'
                      }`}
                   >
@@ -915,7 +987,7 @@ const HealthProgress = () => {
                      type="button"
                      onClick={handleExecutePurge}
                      disabled={clearing}
-                     className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                     className="flex-1 py-4 bg-red-600 hover:bg-red-500 text-white rounded-2xl font-black uppercase text-[10px] tracking-widest shadow-xl shadow-red-500/30 transition-all flex items-center justify-center gap-2 disabled:opacity-50 cursor-pointer"
                   >
                      {clearing ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
                      {purgeRange === 'all' ? 'Purge All' : 'Delete Range'}
@@ -923,7 +995,8 @@ const HealthProgress = () => {
                </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
 
       <style>{`

@@ -7,7 +7,7 @@ import { safeNum } from '../../utils/mathUtils';
 import {
   Brain, TrendingUp, ChevronRight, Clock, Sparkles, CheckCircle, Pill,
   FileUp, MessageSquare, User as UserIcon, Activity, Zap, CreditCard, QrCode, ArrowRight,
-  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon, Phone as PhoneIcon, Lock, Building2
+  Shield, Info, Trash2, Video, Heart, Calendar, FileText, X, Bell, Layout, Stethoscope, AlertTriangle, MessageCircle, Search as SearchIcon, Phone as PhoneIcon, Lock, Building2, Plus
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api from '../../utils/api';
@@ -379,9 +379,22 @@ const PatientDashboard = () => {
                        <h3 className="text-[10px] sm:text-xs font-black text-white uppercase tracking-[0.3em] flex items-center gap-3 leading-none">
                           Your Recovery Score <TrendingUp size={14} className="sm:w-4 sm:h-4 text-blue-500" />
                        </h3>
-                       <button onClick={() => navigate('/patient/health')} className="w-full sm:w-auto text-[8px] sm:text-[9px] font-black text-zinc-500 uppercase tracking-widest hover:text-white flex items-center justify-center gap-2 px-4 py-2 bg-white/5 border border-white/5 rounded-xl transition-all">
-                          Diagnostic Matrix <ChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
-                       </button>
+                       <div className="flex items-center gap-2 w-full sm:w-auto">
+                          <button
+                            type="button"
+                            onClick={() => navigate('/patient/health', { state: { openAddModal: true } })}
+                            className="flex-1 sm:flex-none text-[8px] sm:text-[9px] font-black text-white uppercase tracking-widest bg-blue-600 hover:bg-blue-500 flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl transition-all shadow-lg shadow-blue-600/20 active:scale-95 cursor-pointer"
+                          >
+                            <Plus size={12} strokeWidth={3} /> Record Vitals
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigate('/patient/health')}
+                            className="flex-1 sm:flex-none text-[8px] sm:text-[9px] font-black text-zinc-400 uppercase tracking-widest hover:text-white flex items-center justify-center gap-1.5 px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/5 rounded-xl transition-all cursor-pointer"
+                          >
+                            Diagnostic Matrix <ChevronRight size={12} className="sm:w-3.5 sm:h-3.5" />
+                          </button>
+                        </div>
                     </div>
                     <div className="flex flex-col md:flex-row items-center gap-8 lg:gap-16">
                        <CircularProgress value={metrics.score} />
