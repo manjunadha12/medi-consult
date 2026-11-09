@@ -197,6 +197,8 @@ const LoginPage = () => {
 
       if (error.code === 'auth/popup-blocked' || error.code === 'auth/cancelled-popup-request') {
         toast.error("Google popup blocked or cancelled. Please use Email & Password.");
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error(`Domain "${window.location.hostname}" is not authorized. Please access via http://localhost:5173 or add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized Domains.`, { duration: 7000 });
       } else {
         toast.error(error.message);
       }

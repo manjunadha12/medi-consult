@@ -300,6 +300,8 @@ const PatientRegister = () => {
       console.error(error);
       if (error.code === 'auth/popup-closed-by-user' || error.code === 'auth/cancelled-popup-request') {
         toast.error('Google Sign-In cancelled');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        toast.error(`Domain "${window.location.hostname}" is not authorized. Please access via http://localhost:5173 or add "${window.location.hostname}" to Firebase Console -> Authentication -> Settings -> Authorized Domains.`, { duration: 7000 });
       } else {
         toast.error(error.response?.data?.message || error.message || 'Google Authentication failed');
       }
