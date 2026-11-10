@@ -1,0 +1,101 @@
+{
+  "modelName": "Urine Routine & Microscopy XGBoost Model",
+  "modelType": "XGBoost Classifier",
+  "clinicalCategory": "Nephrology & Urology / Urinalysis",
+  "datasetSource": "Mendeley Urinalysis Dataset (DOI: 10.17632/6xhr6sfsr9.1)",
+  "samplesTrained": 895,
+  "samplesEvaluated": 224,
+  "features": [
+    "Age",
+    "Sex_Female",
+    "Turbidity",
+    "Sediment_Grade",
+    "Albumin_Protein_Grade",
+    "Sugar_Glucose_Grade",
+    "Epithelial_Cells_HPF",
+    "Pus_Cells_WBC_HPF",
+    "RBC_Erythrocytes_HPF",
+    "Casts_Epithelial_Grade",
+    "Casts_Granular_Grade"
+  ],
+  "featureImportanceGain": {
+    "Turbidity": 158.45,
+    "Sediment_Grade": 80.77,
+    "Pus_Cells_WBC_HPF": 21.13,
+    "Albumin_Protein_Grade": 2.52,
+    "Epithelial_Cells_HPF": 1.25,
+    "Age": 0.39,
+    "RBC_Erythrocytes_HPF": 0.19
+  },
+  "metrics": {
+    "accuracy": 0.9955,
+    "roc_auc": 1.0,
+    "f1_score": 0.9931,
+    "precision": 0.9863,
+    "recall": 1.0
+  },
+  "subTargets": {
+    "uti": {
+      "accuracy": 0.9955,
+      "roc_auc": 1.0,
+      "prevalencePct": 32.0
+    },
+    "kidney_disease": {
+      "accuracy": 1.0,
+      "roc_auc": 1.0,
+      "prevalencePct": 29.3
+    },
+    "kidney_stones": {
+      "accuracy": 0.9955,
+      "roc_auc": 1.0,
+      "prevalencePct": 17.7
+    }
+  },
+  "referenceRanges": {
+    "Turbidity": {
+      "normal": "Clear",
+      "unit": ""
+    },
+    "Albumin_Protein_Grade": {
+      "normal": "Nil / Trace (<1+)",
+      "unit": "Grade"
+    },
+    "Sugar_Glucose_Grade": {
+      "normal": "Nil",
+      "unit": "Grade"
+    },
+    "Pus_Cells_WBC_HPF": {
+      "normal": "< 5 / HPF",
+      "unit": "/HPF"
+    },
+    "RBC_Erythrocytes_HPF": {
+      "normal": "< 3 / HPF",
+      "unit": "/HPF"
+    },
+    "Epithelial_Cells_HPF": {
+      "normal": "< 5 / HPF",
+      "unit": "/HPF"
+    },
+    "Casts_Epithelial_Grade": {
+      "normal": "Nil / Not Found",
+      "unit": "Grade"
+    },
+    "Casts_Granular_Grade": {
+      "normal": "Nil / Not Found",
+      "unit": "Grade"
+    }
+  },
+  "baselineMedians": {
+    "Age": 40.0,
+    "Sex_Female": 0.5,
+    "Turbidity": 0.0,
+    "Sediment_Grade": 0.0,
+    "Albumin_Protein_Grade": 0.0,
+    "Sugar_Glucose_Grade": 0.0,
+    "Epithelial_Cells_HPF": 3.0,
+    "Pus_Cells_WBC_HPF": 2.0,
+    "RBC_Erythrocytes_HPF": 1.0,
+    "Casts_Epithelial_Grade": 0.0,
+    "Casts_Granular_Grade": 0.0
+  }
+}

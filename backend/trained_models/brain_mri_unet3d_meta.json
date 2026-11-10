@@ -1,0 +1,25 @@
+{
+  "model_type": "Multimodal 3D U-Net",
+  "category": "Brain MRI",
+  "dataset": "BraTS Multimodal (FLAIR, T1, T1ce, T2)",
+  "input_channels": [
+    "FLAIR",
+    "T1",
+    "T1ce",
+    "T2"
+  ],
+  "output_classes": [
+    "Enhancing_Tumor",
+    "Tumor_Core",
+    "Whole_Tumor"
+  ],
+  "final_train_loss": 1.3112279574076335,
+  "final_val_loss": 1.3367977738380432,
+  "subregion_dice": {
+    "Enhancing_Tumor": 0.06665973885434345,
+    "Tumor_Core": 0.7271999628575043,
+    "Whole_Tumor": 0.9441144412217333
+  },
+  "mean_dice_score": 0.5793247143111937,
+  "version": "improved_v2"
+}

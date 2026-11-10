@@ -1,0 +1,75 @@
+{
+  "modelName": "Diabetic Retinopathy 5-Grade Classifier",
+  "modelType": "ResNet-18 Deep Convolutional Network",
+  "clinicalCategory": "Ophthalmology / Retinal Fundus Photography",
+  "datasetSource": "APTOS 2019 Blindness Detection (3,662 Clinically Graded Fundus Images)",
+  "classes": [
+    "No_DR",
+    "Mild",
+    "Moderate",
+    "Severe",
+    "Proliferate_DR"
+  ],
+  "class_to_idx": {
+    "No_DR": 0,
+    "Mild": 1,
+    "Moderate": 2,
+    "Severe": 3,
+    "Proliferate_DR": 4
+  },
+  "clinicalDescriptions": {
+    "No_DR": "Grade 0: Normal Retinal Fundus / No Apparent Retinopathy",
+    "Mild": "Grade 1: Mild Non-Proliferative Retinopathy (Microaneurysms Only)",
+    "Moderate": "Grade 2: Moderate Non-Proliferative Retinopathy (Exudates / Dot-Blot Hemorrhages)",
+    "Severe": "Grade 3: Severe Non-Proliferative Retinopathy (Extensive Hemorrhages / Venous Beading)",
+    "Proliferate_DR": "Grade 4: Proliferative Diabetic Retinopathy (Neovascularization / Vitreous Hemorrhage)"
+  },
+  "metrics": {
+    "test_accuracy": 0.7154,
+    "test_quadratic_kappa": 0.8154,
+    "test_roc_auc": 0.9192,
+    "test_precision": 0.7634,
+    "test_recall": 0.7154,
+    "test_f1": 0.7186
+  },
+  "confusionMatrix": [
+    [
+      172,
+      8,
+      0,
+      0,
+      1
+    ],
+    [
+      1,
+      31,
+      5,
+      0,
+      0
+    ],
+    [
+      3,
+      31,
+      44,
+      17,
+      6
+    ],
+    [
+      0,
+      2,
+      4,
+      10,
+      4
+    ],
+    [
+      0,
+      5,
+      8,
+      10,
+      7
+    ]
+  ],
+  "trainingDurationSeconds": 731.8,
+  "inputResolution": "224x224 RGB",
+  "version": "v1.0"
+}

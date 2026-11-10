@@ -1,0 +1,139 @@
+{
+  "modelName": "Colorectal Histopathology Tissue Classifier",
+  "modelType": "ResNet-18 Deep Convolutional Neural Network",
+  "clinicalCategory": "Pathology & Oncology / Digital Histopathology",
+  "datasetSource": "PathMNIST (107,180 Colorectal Cancer Histology Tiles)",
+  "classes": [
+    "Adipose tissue",
+    "Background",
+    "Debris / Necrosis",
+    "Lymphocyte infiltration",
+    "Mucus",
+    "Smooth muscle",
+    "Normal colon mucosa",
+    "Cancer-associated stroma",
+    "Colorectal adenocarcinoma epithelium"
+  ],
+  "clinicalSignificance": {
+    "Adipose tissue": "Non-neoplastic / Submucosal / Pericolonic adipose",
+    "Background": "Slide background / Non-tissue",
+    "Debris / Necrosis": "Tumor necrosis / Cellular apoptotic debris",
+    "Lymphocyte infiltration": "Host inflammatory / Tumor-infiltrating lymphocytes (TILs)",
+    "Mucus": "Extracellular mucin pools / Mucinous carcinoma marker",
+    "Smooth muscle": "Muscularis propria / Invaded muscular wall",
+    "Normal colon mucosa": "Benign non-dysplastic colonic glandular epithelium",
+    "Cancer-associated stroma": "Desmoplastic reactive stroma surrounding malignant glands",
+    "Colorectal adenocarcinoma epithelium": "Invasive colorectal adenocarcinoma / Malignant epithelial cells"
+  },
+  "metrics": {
+    "test_accuracy": 0.8579,
+    "test_roc_auc": 0.9839,
+    "test_precision": 0.8613,
+    "test_recall": 0.8579,
+    "test_f1": 0.8557
+  },
+  "confusionMatrix": [
+    [
+      1303,
+      4,
+      4,
+      0,
+      6,
+      18,
+      2,
+      0,
+      1
+    ],
+    [
+      0,
+      847,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      4,
+      243,
+      3,
+      0,
+      80,
+      0,
+      9,
+      0
+    ],
+    [
+      0,
+      0,
+      14,
+      580,
+      0,
+      3,
+      6,
+      3,
+      28
+    ],
+    [
+      56,
+      72,
+      2,
+      0,
+      850,
+      5,
+      6,
+      41,
+      3
+    ],
+    [
+      0,
+      5,
+      21,
+      0,
+      0,
+      499,
+      1,
+      61,
+      5
+    ],
+    [
+      2,
+      0,
+      13,
+      27,
+      18,
+      10,
+      588,
+      0,
+      83
+    ],
+    [
+      0,
+      2,
+      36,
+      8,
+      7,
+      151,
+      3,
+      160,
+      54
+    ],
+    [
+      0,
+      1,
+      43,
+      28,
+      18,
+      21,
+      25,
+      7,
+      1090
+    ]
+  ],
+  "trainingDurationSeconds": 526.3,
+  "inputResolution": "64x64 H&E Stained RGB",
+  "version": "v1.0"
+}

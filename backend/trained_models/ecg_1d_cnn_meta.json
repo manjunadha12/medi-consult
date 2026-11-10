@@ -1,0 +1,17 @@
+{
+  "model_type": "1D CNN",
+  "category": "ECG",
+  "dataset": "PTB-XL 1.0.3 (PhysioNet)",
+  "leads": 12,
+  "classes": [
+    "NORM",
+    "MI",
+    "STTC",
+    "CD",
+    "HYP"
+  ],
+  "final_train_loss": 0.24248251795768738,
+  "final_val_loss": 0.36881533145904544,
+  "mean_auroc": 0.9627565842428926,
+  "version": "improved_v2"
+}

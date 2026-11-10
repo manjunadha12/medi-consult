@@ -1,0 +1,26 @@
+{
+  "model_type": "DenseNet121",
+  "category": "Chest X-ray",
+  "dataset": "NIH Chest X-ray 14",
+  "classes": [
+    "Atelectasis",
+    "Cardiomegaly",
+    "Effusion",
+    "Infiltration",
+    "Mass",
+    "Nodule",
+    "Pneumonia",
+    "Pneumothorax",
+    "Consolidation",
+    "Edema",
+    "Emphysema",
+    "Fibrosis",
+    "Pleural_Thickening",
+    "Hernia"
+  ],
+  "final_train_loss": 0.5572564208507538,
+  "final_val_loss": 0.4757347333431244,
+  "mean_auroc": 0.8233132803296606,
+  "version": "improved_v2",
+  "input_resolution": "224x224x3"
+}

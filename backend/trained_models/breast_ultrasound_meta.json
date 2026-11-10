@@ -1,0 +1,48 @@
+{
+  "modelName": "Breast Ultrasound Tumor Classifier",
+  "modelType": "ResNet-18 Deep Convolutional Network",
+  "clinicalCategory": "Oncology & Radiology / Breast Ultrasound Imaging",
+  "datasetSource": "Breast Ultrasound Images Dataset (BUSI - 780 Cases)",
+  "classes": [
+    "benign",
+    "malignant",
+    "normal"
+  ],
+  "class_to_idx": {
+    "benign": 0,
+    "malignant": 1,
+    "normal": 2
+  },
+  "metrics": {
+    "test_accuracy": 0.7083,
+    "test_roc_auc": 0.8803,
+    "test_precision": 0.7083,
+    "test_recall": 0.7083,
+    "test_f1": 0.7083
+  },
+  "confusionMatrix": [
+    [
+      51,
+      13,
+      3
+    ],
+    [
+      12,
+      18,
+      2
+    ],
+    [
+      4,
+      1,
+      16
+    ]
+  ],
+  "biRadsStratification": {
+    "normal": "BI-RADS 1 (Negative / Physiological)",
+    "benign": "BI-RADS 2/3 (Benign Lesion / Probably Benign Fibroadenoma/Cyst)",
+    "malignant": "BI-RADS 4/5 (Suspicious Abnormality / Highly Suggestive of Malignancy)"
+  },
+  "trainingDurationSeconds": 159.3,
+  "inputResolution": "224x224 RGB",
+  "version": "v1.0"
+}

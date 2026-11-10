@@ -1,0 +1,9 @@
+{
+  "model_type": "3D U-Net",
+  "category": "Lung CT",
+  "dataset": "LIDC-IDRI (TCIA NBIA)",
+  "input_patch_resolution": "16x64x64",
+  "final_train_loss": 0.8493105918169022,
+  "final_val_loss": 0.7605843245983124,
+  "mean_dice_score": 0.9414254573692994
+}

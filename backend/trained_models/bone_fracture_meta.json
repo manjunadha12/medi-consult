@@ -1,0 +1,42 @@
+{
+  "modelName": "Bone Fracture EfficientNet-B4 Classifier",
+  "modelType": "EfficientNet-B4 Convolutional Neural Network",
+  "clinicalCategory": "Orthopedics & Traumatology / Skeletal Radiography",
+  "datasetSource": "Bone Fracture Detection Computer Vision Project (4,148 Radiographs)",
+  "classes": [
+    "Fractured",
+    "Normal"
+  ],
+  "class_to_idx": {
+    "Fractured": 0,
+    "Normal": 1
+  },
+  "metrics": {
+    "test_accuracy": 0.7929,
+    "test_roc_auc": 0.8542,
+    "test_precision": 0.7931,
+    "test_recall": 0.6667,
+    "test_f1": 0.7244
+  },
+  "confusionMatrix": [
+    [
+      88,
+      12
+    ],
+    [
+      23,
+      46
+    ]
+  ],
+  "anatomicalRegionsCovered": [
+    "Elbow",
+    "Fingers & Hand Phalanx",
+    "Forearm (Radius/Ulna)",
+    "Humerus",
+    "Shoulder & Clavicle",
+    "Wrist"
+  ],
+  "trainingDurationSeconds": 809.5,
+  "inputResolution": "224x224 RGB",
+  "version": "v1.0"
+}

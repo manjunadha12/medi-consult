@@ -1,0 +1,99 @@
+{
+  "modelName": "Skin Lesion 7-Class Dermoscopic Classifier",
+  "modelType": "ResNet-18 Deep Convolutional Neural Network",
+  "clinicalCategory": "Dermatology & Cutaneous Oncology / Dermoscopy",
+  "datasetSource": "HAM10000 / DermaMNIST (10,015 Dermatoscopic Scans)",
+  "classes": [
+    "Actinic keratoses / intraepithelial carcinoma",
+    "Basal cell carcinoma",
+    "Benign keratosis-like lesions",
+    "Dermatofibroma",
+    "Melanoma",
+    "Melanocytic nevi",
+    "Vascular lesions"
+  ],
+  "malignancyRisk": {
+    "Actinic keratoses / intraepithelial carcinoma": "Moderate (Pre-cancerous / In-situ squamous lesion)",
+    "Basal cell carcinoma": "High (Malignant non-melanoma skin cancer)",
+    "Benign keratosis-like lesions": "Low (Seborrheic keratosis / Benign solar lentigo)",
+    "Dermatofibroma": "Low (Benign cutaneous histiocytoma)",
+    "Melanoma": "Critical (High-grade invasive melanocytic neoplasm - immediate excision)",
+    "Melanocytic nevi": "Low (Common benign nevus / mole)",
+    "Vascular lesions": "Low (Angioma / Pyogenic granuloma)"
+  },
+  "metrics": {
+    "test_accuracy": 0.5571,
+    "test_roc_auc": 0.856,
+    "test_precision": 0.7325,
+    "test_recall": 0.5571,
+    "test_f1": 0.6121
+  },
+  "confusionMatrix": [
+    [
+      23,
+      27,
+      5,
+      2,
+      2,
+      3,
+      4
+    ],
+    [
+      7,
+      51,
+      3,
+      5,
+      4,
+      5,
+      28
+    ],
+    [
+      21,
+      49,
+      60,
+      4,
+      43,
+      28,
+      15
+    ],
+    [
+      1,
+      11,
+      0,
+      2,
+      3,
+      3,
+      3
+    ],
+    [
+      9,
+      11,
+      24,
+      5,
+      119,
+      19,
+      36
+    ],
+    [
+      12,
+      94,
+      40,
+      21,
+      204,
+      840,
+      130
+    ],
+    [
+      0,
+      3,
+      1,
+      0,
+      2,
+      1,
+      22
+    ]
+  ],
+  "trainingDurationSeconds": 196.6,
+  "inputResolution": "64x64 RGB",
+  "version": "v1.0"
+}

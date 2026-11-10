@@ -1,0 +1,76 @@
+{
+  "model_type": "XGBoost",
+  "category": "Blood tests",
+  "dataset": "MIMIC-IV / Clinical Demo",
+  "features": [
+    "Anion Gap",
+    "Bicarbonate",
+    "Calcium, Total",
+    "Chloride",
+    "Creatinine",
+    "Glucose",
+    "Hematocrit",
+    "Hemoglobin",
+    "MCH",
+    "MCHC",
+    "MCV",
+    "Magnesium",
+    "Phosphate",
+    "Platelet Count",
+    "Potassium",
+    "RDW",
+    "Red Blood Cells",
+    "Sodium",
+    "Urea Nitrogen",
+    "White Blood Cells"
+  ],
+  "metrics": {
+    "accuracy": 0.9356321839080459,
+    "precision": 0.999117387466902,
+    "recall": 0.9316872427983539,
+    "f1_score": 0.9642248722316865,
+    "roc_auc": 0.9842569730224051
+  },
+  "top_features": [
+    {
+      "feature": "Hematocrit",
+      "importance": 0.13611672818660736
+    },
+    {
+      "feature": "Urea Nitrogen",
+      "importance": 0.1003125011920929
+    },
+    {
+      "feature": "Calcium, Total",
+      "importance": 0.09457579255104065
+    },
+    {
+      "feature": "White Blood Cells",
+      "importance": 0.09364267438650131
+    },
+    {
+      "feature": "Glucose",
+      "importance": 0.08507848531007767
+    },
+    {
+      "feature": "RDW",
+      "importance": 0.07682693749666214
+    },
+    {
+      "feature": "Creatinine",
+      "importance": 0.051868174225091934
+    },
+    {
+      "feature": "Hemoglobin",
+      "importance": 0.05127047747373581
+    },
+    {
+      "feature": "Red Blood Cells",
+      "importance": 0.048496995121240616
+    },
+    {
+      "feature": "MCHC",
+      "importance": 0.047262679785490036
+    }
+  ]
+}

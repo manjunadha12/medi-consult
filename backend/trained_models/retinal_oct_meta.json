@@ -1,0 +1,54 @@
+{
+  "modelName": "Retinal Optical Coherence Tomography (OCT) Classifier",
+  "modelType": "ResNet-18 Deep Convolutional Neural Network",
+  "clinicalCategory": "Ophthalmology / Retinal OCT Imaging",
+  "datasetSource": "OCTMNIST (109,309 Clinical OCT B-Scans)",
+  "classes": [
+    "Choroidal Neovascularization (CNV)",
+    "Diabetic Macular Edema (DME)",
+    "Drusen",
+    "Normal"
+  ],
+  "clinicalRisk": {
+    "Choroidal Neovascularization (CNV)": "High (Wet Age-Related Macular Degeneration / Urgent Anti-VEGF Indicated)",
+    "Diabetic Macular Edema (DME)": "High (Subretinal Fluid / Macular Thickening / Anti-VEGF / Laser)",
+    "Drusen": "Moderate (Dry AMD Early-to-Intermediate Marker / AREDS2 Supplementation)",
+    "Normal": "Low (Preserved Retinal Architecture & Foveal Depression)"
+  },
+  "metrics": {
+    "test_accuracy": 0.519,
+    "test_roc_auc": 0.8408,
+    "test_precision": 0.447,
+    "test_recall": 0.519,
+    "test_f1": 0.4251
+  },
+  "confusionMatrix": [
+    [
+      215,
+      14,
+      0,
+      21
+    ],
+    [
+      88,
+      75,
+      0,
+      87
+    ],
+    [
+      100,
+      2,
+      0,
+      148
+    ],
+    [
+      19,
+      2,
+      0,
+      229
+    ]
+  ],
+  "trainingDurationSeconds": 280.8,
+  "inputResolution": "64x64 Grayscale / RGB Normalized",
+  "version": "v1.0"
+}

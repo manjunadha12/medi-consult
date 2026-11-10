@@ -1,0 +1,624 @@
+{
+  "timestamp": "2026-11-03 18:59:00",
+  "models": {
+    "blood_xgboost": {
+      "model_type": "XGBoost",
+      "category": "Blood tests",
+      "dataset": "MIMIC-IV / Clinical Demo",
+      "features": [
+        "Anion Gap",
+        "Bicarbonate",
+        "Calcium, Total",
+        "Chloride",
+        "Creatinine",
+        "Glucose",
+        "Hematocrit",
+        "Hemoglobin",
+        "MCH",
+        "MCHC",
+        "MCV",
+        "Magnesium",
+        "Phosphate",
+        "Platelet Count",
+        "Potassium",
+        "RDW",
+        "Red Blood Cells",
+        "Sodium",
+        "Urea Nitrogen",
+        "White Blood Cells"
+      ],
+      "metrics": {
+        "accuracy": 0.9356321839080459,
+        "precision": 0.999117387466902,
+        "recall": 0.9316872427983539,
+        "f1_score": 0.9642248722316865,
+        "roc_auc": 0.9842569730224051
+      },
+      "top_features": [
+        {
+          "feature": "Hematocrit",
+          "importance": 0.13611672818660736
+        },
+        {
+          "feature": "Urea Nitrogen",
+          "importance": 0.1003125011920929
+        },
+        {
+          "feature": "Calcium, Total",
+          "importance": 0.09457579255104065
+        },
+        {
+          "feature": "White Blood Cells",
+          "importance": 0.09364267438650131
+        },
+        {
+          "feature": "Glucose",
+          "importance": 0.08507848531007767
+        },
+        {
+          "feature": "RDW",
+          "importance": 0.07682693749666214
+        },
+        {
+          "feature": "Creatinine",
+          "importance": 0.051868174225091934
+        },
+        {
+          "feature": "Hemoglobin",
+          "importance": 0.05127047747373581
+        },
+        {
+          "feature": "Red Blood Cells",
+          "importance": 0.048496995121240616
+        },
+        {
+          "feature": "MCHC",
+          "importance": 0.047262679785490036
+        }
+      ]
+    },
+    "chest_xray_densenet121": {
+      "model_type": "DenseNet121",
+      "category": "Chest X-ray",
+      "dataset": "NIH Chest X-ray 14",
+      "classes": [
+        "Atelectasis",
+        "Cardiomegaly",
+        "Effusion",
+        "Infiltration",
+        "Mass",
+        "Nodule",
+        "Pneumonia",
+        "Pneumothorax",
+        "Consolidation",
+        "Edema",
+        "Emphysema",
+        "Fibrosis",
+        "Pleural_Thickening",
+        "Hernia"
+      ],
+      "final_train_loss": 0.5572564208507538,
+      "final_val_loss": 0.4757347333431244,
+      "mean_auroc": 0.8233132803296606,
+      "version": "improved_v2",
+      "input_resolution": "224x224x3"
+    },
+    "lung_ct_unet3d": {
+      "model_type": "3D U-Net",
+      "category": "Lung CT",
+      "dataset": "LIDC-IDRI (TCIA NBIA)",
+      "input_patch_resolution": "16x64x64",
+      "final_train_loss": 0.8493105918169022,
+      "final_val_loss": 0.7605843245983124,
+      "mean_dice_score": 0.9414254573692994
+    },
+    "brain_mri_unet3d": {
+      "model_type": "Multimodal 3D U-Net",
+      "category": "Brain MRI",
+      "dataset": "BraTS Multimodal (FLAIR, T1, T1ce, T2)",
+      "input_channels": [
+        "FLAIR",
+        "T1",
+        "T1ce",
+        "T2"
+      ],
+      "output_classes": [
+        "Enhancing_Tumor",
+        "Tumor_Core",
+        "Whole_Tumor"
+      ],
+      "final_train_loss": 1.3112279574076335,
+      "final_val_loss": 1.3367977738380432,
+      "subregion_dice": {
+        "Enhancing_Tumor": 0.06665973885434345,
+        "Tumor_Core": 0.7271999628575043,
+        "Whole_Tumor": 0.9441144412217333
+      },
+      "mean_dice_score": 0.5793247143111937,
+      "version": "improved_v2"
+    },
+    "ecg_1d_cnn": {
+      "model_type": "1D CNN",
+      "category": "ECG",
+      "dataset": "PTB-XL 1.0.3 (PhysioNet)",
+      "leads": 12,
+      "classes": [
+        "NORM",
+        "MI",
+        "STTC",
+        "CD",
+        "HYP"
+      ],
+      "final_train_loss": 0.24248251795768738,
+      "final_val_loss": 0.36881533145904544,
+      "mean_auroc": 0.9627565842428926,
+      "version": "improved_v2"
+    },
+    "urine_xgboost": {
+      "model_type": "XGBoost Classifier",
+      "category": "Nephrology & Urology / Urinalysis",
+      "dataset": "Mendeley Urinalysis Dataset (DOI: 10.17632/6xhr6sfsr9.1)",
+      "features": [
+        "Age",
+        "Sex_Female",
+        "Turbidity",
+        "Sediment_Grade",
+        "Albumin_Protein_Grade",
+        "Sugar_Glucose_Grade",
+        "Epithelial_Cells_HPF",
+        "Pus_Cells_WBC_HPF",
+        "RBC_Erythrocytes_HPF",
+        "Casts_Epithelial_Grade",
+        "Casts_Granular_Grade"
+      ],
+      "metrics": {
+        "accuracy": 0.9955,
+        "roc_auc": 1.0,
+        "f1_score": 0.9931,
+        "precision": 0.9863,
+        "recall": 1.0
+      },
+      "subTargets": {
+        "uti": {
+          "accuracy": 0.9955,
+          "roc_auc": 1.0,
+          "prevalencePct": 32.0
+        },
+        "kidney_disease": {
+          "accuracy": 1.0,
+          "roc_auc": 1.0,
+          "prevalencePct": 29.3
+        },
+        "kidney_stones": {
+          "accuracy": 0.9955,
+          "roc_auc": 1.0,
+          "prevalencePct": 17.7
+        }
+      },
+      "version": "v1.0"
+    },
+    "bone_fracture_efficientnetb4": {
+      "model_type": "EfficientNet-B4 Convolutional Neural Network",
+      "category": "Orthopedics & Traumatology / Skeletal Radiography",
+      "dataset": "Bone Fracture Detection Computer Vision Project (4,148 Radiographs)",
+      "classes": [
+        "Fractured",
+        "Normal"
+      ],
+      "metrics": {
+        "test_accuracy": 0.7929,
+        "test_roc_auc": 0.8542,
+        "test_precision": 0.7931,
+        "test_recall": 0.6667,
+        "test_f1": 0.7244
+      },
+      "confusion_matrix": [
+        [
+          88,
+          12
+        ],
+        [
+          23,
+          46
+        ]
+      ],
+      "anatomical_regions": [
+        "Elbow",
+        "Fingers & Hand Phalanx",
+        "Forearm (Radius/Ulna)",
+        "Humerus",
+        "Shoulder & Clavicle",
+        "Wrist"
+      ],
+      "version": "v1.0"
+    },
+    "breast_ultrasound_resnet": {
+      "model_type": "ResNet-18 Deep Convolutional Network",
+      "category": "Oncology & Radiology / Breast Ultrasound Imaging",
+      "dataset": "Breast Ultrasound Images Dataset (BUSI - 780 Cases)",
+      "classes": [
+        "benign",
+        "malignant",
+        "normal"
+      ],
+      "metrics": {
+        "test_accuracy": 0.7083,
+        "test_roc_auc": 0.8803,
+        "test_precision": 0.7083,
+        "test_recall": 0.7083,
+        "test_f1": 0.7083
+      },
+      "confusion_matrix": [
+        [
+          51,
+          13,
+          3
+        ],
+        [
+          12,
+          18,
+          2
+        ],
+        [
+          4,
+          1,
+          16
+        ]
+      ],
+      "bi_rads_stratification": {
+        "normal": "BI-RADS 1 (Negative / Physiological)",
+        "benign": "BI-RADS 2/3 (Benign Lesion / Probably Benign Fibroadenoma/Cyst)",
+        "malignant": "BI-RADS 4/5 (Suspicious Abnormality / Highly Suggestive of Malignancy)"
+      },
+      "version": "v1.0"
+    },
+    "skin_lesion_resnet18": {
+      "model_type": "ResNet-18 Deep Convolutional Neural Network",
+      "category": "Dermatology & Cutaneous Oncology / Dermoscopy",
+      "dataset": "HAM10000 / DermaMNIST (10,015 Dermatoscopic Scans)",
+      "classes": [
+        "Actinic keratoses / intraepithelial carcinoma",
+        "Basal cell carcinoma",
+        "Benign keratosis-like lesions",
+        "Dermatofibroma",
+        "Melanoma",
+        "Melanocytic nevi",
+        "Vascular lesions"
+      ],
+      "metrics": {
+        "test_accuracy": 0.5571,
+        "test_roc_auc": 0.856,
+        "test_precision": 0.7325,
+        "test_recall": 0.5571,
+        "test_f1": 0.6121
+      },
+      "confusion_matrix": [
+        [
+          23,
+          27,
+          5,
+          2,
+          2,
+          3,
+          4
+        ],
+        [
+          7,
+          51,
+          3,
+          5,
+          4,
+          5,
+          28
+        ],
+        [
+          21,
+          49,
+          60,
+          4,
+          43,
+          28,
+          15
+        ],
+        [
+          1,
+          11,
+          0,
+          2,
+          3,
+          3,
+          3
+        ],
+        [
+          9,
+          11,
+          24,
+          5,
+          119,
+          19,
+          36
+        ],
+        [
+          12,
+          94,
+          40,
+          21,
+          204,
+          840,
+          130
+        ],
+        [
+          0,
+          3,
+          1,
+          0,
+          2,
+          1,
+          22
+        ]
+      ],
+      "malignancy_risk": {
+        "Actinic keratoses / intraepithelial carcinoma": "Moderate (Pre-cancerous / In-situ squamous lesion)",
+        "Basal cell carcinoma": "High (Malignant non-melanoma skin cancer)",
+        "Benign keratosis-like lesions": "Low (Seborrheic keratosis / Benign solar lentigo)",
+        "Dermatofibroma": "Low (Benign cutaneous histiocytoma)",
+        "Melanoma": "Critical (High-grade invasive melanocytic neoplasm - immediate excision)",
+        "Melanocytic nevi": "Low (Common benign nevus / mole)",
+        "Vascular lesions": "Low (Angioma / Pyogenic granuloma)"
+      },
+      "version": "v1.0"
+    },
+    "retinal_oct_resnet18": {
+      "model_type": "ResNet-18 Deep Convolutional Neural Network",
+      "category": "Ophthalmology / Retinal OCT Imaging",
+      "dataset": "OCTMNIST (109,309 Clinical OCT B-Scans)",
+      "classes": [
+        "Choroidal Neovascularization (CNV)",
+        "Diabetic Macular Edema (DME)",
+        "Drusen",
+        "Normal"
+      ],
+      "metrics": {
+        "test_accuracy": 0.519,
+        "test_roc_auc": 0.8408,
+        "test_precision": 0.447,
+        "test_recall": 0.519,
+        "test_f1": 0.4251
+      },
+      "confusion_matrix": [
+        [
+          215,
+          14,
+          0,
+          21
+        ],
+        [
+          88,
+          75,
+          0,
+          87
+        ],
+        [
+          100,
+          2,
+          0,
+          148
+        ],
+        [
+          19,
+          2,
+          0,
+          229
+        ]
+      ],
+      "clinical_risk": {
+        "Choroidal Neovascularization (CNV)": "High (Wet Age-Related Macular Degeneration / Urgent Anti-VEGF Indicated)",
+        "Diabetic Macular Edema (DME)": "High (Subretinal Fluid / Macular Thickening / Anti-VEGF / Laser)",
+        "Drusen": "Moderate (Dry AMD Early-to-Intermediate Marker / AREDS2 Supplementation)",
+        "Normal": "Low (Preserved Retinal Architecture & Foveal Depression)"
+      },
+      "version": "v1.0"
+    },
+    "colon_histology_resnet18": {
+      "model_type": "ResNet-18 Deep Convolutional Neural Network",
+      "category": "Pathology & Oncology / Digital Histopathology",
+      "dataset": "PathMNIST (107,180 Colorectal Cancer Histology Tiles)",
+      "classes": [
+        "Adipose tissue",
+        "Background",
+        "Debris / Necrosis",
+        "Lymphocyte infiltration",
+        "Mucus",
+        "Smooth muscle",
+        "Normal colon mucosa",
+        "Cancer-associated stroma",
+        "Colorectal adenocarcinoma epithelium"
+      ],
+      "metrics": {
+        "test_accuracy": 0.8579,
+        "test_roc_auc": 0.9839,
+        "test_precision": 0.8613,
+        "test_recall": 0.8579,
+        "test_f1": 0.8557
+      },
+      "confusion_matrix": [
+        [
+          1303,
+          4,
+          4,
+          0,
+          6,
+          18,
+          2,
+          0,
+          1
+        ],
+        [
+          0,
+          847,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          4,
+          243,
+          3,
+          0,
+          80,
+          0,
+          9,
+          0
+        ],
+        [
+          0,
+          0,
+          14,
+          580,
+          0,
+          3,
+          6,
+          3,
+          28
+        ],
+        [
+          56,
+          72,
+          2,
+          0,
+          850,
+          5,
+          6,
+          41,
+          3
+        ],
+        [
+          0,
+          5,
+          21,
+          0,
+          0,
+          499,
+          1,
+          61,
+          5
+        ],
+        [
+          2,
+          0,
+          13,
+          27,
+          18,
+          10,
+          588,
+          0,
+          83
+        ],
+        [
+          0,
+          2,
+          36,
+          8,
+          7,
+          151,
+          3,
+          160,
+          54
+        ],
+        [
+          0,
+          1,
+          43,
+          28,
+          18,
+          21,
+          25,
+          7,
+          1090
+        ]
+      ],
+      "clinical_significance": {
+        "Adipose tissue": "Non-neoplastic / Submucosal / Pericolonic adipose",
+        "Background": "Slide background / Non-tissue",
+        "Debris / Necrosis": "Tumor necrosis / Cellular apoptotic debris",
+        "Lymphocyte infiltration": "Host inflammatory / Tumor-infiltrating lymphocytes (TILs)",
+        "Mucus": "Extracellular mucin pools / Mucinous carcinoma marker",
+        "Smooth muscle": "Muscularis propria / Invaded muscular wall",
+        "Normal colon mucosa": "Benign non-dysplastic colonic glandular epithelium",
+        "Cancer-associated stroma": "Desmoplastic reactive stroma surrounding malignant glands",
+        "Colorectal adenocarcinoma epithelium": "Invasive colorectal adenocarcinoma / Malignant epithelial cells"
+      },
+      "version": "v1.0"
+    },
+    "diabetic_retinopathy_resnet": {
+      "model_type": "ResNet-18 Deep Convolutional Network",
+      "category": "Ophthalmology / Retinal Fundus Photography",
+      "dataset": "APTOS 2019 Blindness Detection (3,662 Clinically Graded Fundus Images)",
+      "classes": [
+        "No_DR",
+        "Mild",
+        "Moderate",
+        "Severe",
+        "Proliferate_DR"
+      ],
+      "metrics": {
+        "test_accuracy": 0.7154,
+        "test_quadratic_kappa": 0.8154,
+        "test_roc_auc": 0.9192,
+        "test_precision": 0.7634,
+        "test_recall": 0.7154,
+        "test_f1": 0.7186
+      },
+      "confusion_matrix": [
+        [
+          172,
+          8,
+          0,
+          0,
+          1
+        ],
+        [
+          1,
+          31,
+          5,
+          0,
+          0
+        ],
+        [
+          3,
+          31,
+          44,
+          17,
+          6
+        ],
+        [
+          0,
+          2,
+          4,
+          10,
+          4
+        ],
+        [
+          0,
+          5,
+          8,
+          10,
+          7
+        ]
+      ],
+      "clinical_descriptions": {
+        "No_DR": "Grade 0: Normal Retinal Fundus / No Apparent Retinopathy",
+        "Mild": "Grade 1: Mild Non-Proliferative Retinopathy (Microaneurysms Only)",
+        "Moderate": "Grade 2: Moderate Non-Proliferative Retinopathy (Exudates / Dot-Blot Hemorrhages)",
+        "Severe": "Grade 3: Severe Non-Proliferative Retinopathy (Extensive Hemorrhages / Venous Beading)",
+        "Proliferate_DR": "Grade 4: Proliferative Diabetic Retinopathy (Neovascularization / Vitreous Hemorrhage)"
+      },
+      "version": "v1.0"
+    }
+  }
+}
