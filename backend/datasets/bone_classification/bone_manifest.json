@@ -1,0 +1,431 @@
+{
+  "statistics": {
+    "train": {
+      "total": 3631,
+      "fractured": 1508,
+      "normal": 2123
+    },
+    "val": {
+      "total": 348,
+      "fractured": 142,
+      "normal": 206
+    },
+    "test": {
+      "total": 169,
+      "fractured": 69,
+      "normal": 100
+    }
+  },
+  "manifest": [
+    {
+      "fileName": "distal-humeral-fractures-2-_JPEG.rf.39ba3f53047ecb4064613850a1c76fc1.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "distal-humeral-fractures-2-_JPEG.rf.525ce876785d0fd798ec3af1593e5bc1.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "distal-humeral-fractures-2-_JPEG.rf.f9442db05ec473187c60870d407c9e8f.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "elbow-dislocation-with-coronoid-process-fracture_jpg.rf.234153519323ba2b9aa2e603b0a43771.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "elbow-dislocation-with-coronoid-process-fracture_jpg.rf.75b67d2e40fe637ba2838e1283f970c5.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "elbow-dislocation-with-coronoid-process-fracture_jpg.rf.76486fb6ffe2b6c7da0e4922e58a088f.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "fracture-of-the-humeral-capitellum-milch-type-1-1-1-_jpg.rf.4c16d0817782b56497b9f18bca2b0fdd.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "fracture-of-the-humeral-capitellum-milch-type-1-1-1-_jpg.rf.8b022b79c884d0b37d923a3c961591c6.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "fracture-of-the-humeral-capitellum-milch-type-1-1-1-_jpg.rf.f40a3ca2a57d511a40839bd1ca615d54.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Elbow"
+      ]
+    },
+    {
+      "fileName": "image1_0_png.rf.208b9fc171409973fd0f9af79cdcfead.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_0_png.rf.bc222874fa14e205b638e87ddad52b9d.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_0_png.rf.c068475415ed98d36b311229ae0d3977.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_0_png.rf.c864ea1d0d7a6ba347b3bd6fa51bf4c9.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_0_png.rf.d44c62635f246b717a95453d650ac2cb.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_0_png.rf.d48b4a85ca5fc14b889454b188e1b49f.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1002_png.rf.1feafce607366113c97124dc22d52328.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1002_png.rf.67c46c90c7089ef2ffa40b5fa22e4ad1.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1002_png.rf.c94d11a79032d6beb4ce4d876c9f7fda.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1006_png.rf.b66f118e03810b7d9eb89951f328d910.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1006_png.rf.dcba40627f3de788e4e196d89560ac8e.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1006_png.rf.fdc7cc82e989b2397e5cf842747a17da.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1008_png.rf.25837354152dafe38c41add4190d8a55.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1008_png.rf.896dd6d4d150b0eddcd0138122d6e953.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1008_png.rf.dde77f1e05216fabb1d174064779856c.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1010_png.rf.47d67fce58c4e28fb83b9ed08ad0e8fd.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1010_png.rf.65f54641e628d0952fc45df00ef5e7ff.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1010_png.rf.f89583d2a87e12690f29a1044e4defed.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1014_png.rf.266fddf37e79cc043a9081a0c4fc7ef7.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1014_png.rf.3c994368f0740a7339e332685995b34f.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1014_png.rf.89f2f751efb9b40886e161726ce97513.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1014_png.rf.ae22d5d34e33862879e3e1b521921a7b.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1014_png.rf.b58fdd6d4425f232bf7f431b247fa2fa.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1014_png.rf.d5b384959a79de3c9374ccd0a414ce75.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": [
+        "Humerus"
+      ]
+    },
+    {
+      "fileName": "image1_1021_png.rf.aa911ca30618241dbee3e2905af62f9b.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_1021_png.rf.bc136a47ed3acf46794482bc7ce96a40.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_1021_png.rf.ccd3e5a3d26d1b9cd196c728d527573a.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Shoulder"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.077dcb969ab7f549f7bc09bddca07895.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.7129d1fd8b5572cdb3c96d1979908217.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Forearm"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.790daac7868bb104a1c5fd3642bcb389.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Forearm"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.8bb506fab5d76213a035adf3069a821c.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.9fa19d22112cf8bcdc7904294969ab27.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Wrist"
+      ]
+    },
+    {
+      "fileName": "image1_1022_png.rf.b423a18f64684ae7c6342b0071ef46cf.jpg",
+      "split": "train",
+      "category": "Fractured",
+      "isFractured": true,
+      "regions": [
+        "Forearm"
+      ]
+    },
+    {
+      "fileName": "image1_1025_png.rf.02d69f4b050c274f34f8cea73b8f818e.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1025_png.rf.9b7cca1fd349b10fe2fc5cf4586724e8.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1025_png.rf.f57a431e4d09c44923bfc1508b689a05.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1026_png.rf.37fe3a6ce92876f7d4176aaba328b54f.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1026_png.rf.464a1ce3899c64cfb3b77776216e777f.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1026_png.rf.de064b3ea83c63cf20650b3bda31dd53.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1030_png.rf.0462ed282e0ce5df186f6c3078dfb11e.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    },
+    {
+      "fileName": "image1_1030_png.rf.340a7c618e6939a63c1069d08d759229.jpg",
+      "split": "train",
+      "category": "Normal",
+      "isFractured": false,
+      "regions": []
+    }
+  ]
+}
