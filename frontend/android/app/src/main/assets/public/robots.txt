@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /admin-dashboard
+Disallow: /doc-dashboard
+Disallow: /patient/dashboard
+Disallow: /doctor/
+Disallow: /patient/
+Disallow: /admin/
+Disallow: /settings
